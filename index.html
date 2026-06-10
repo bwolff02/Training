@@ -106,45 +106,49 @@
 
 
   .exercise-card { position: relative; }
-  .drag-handle {
+  .move-btns {
     position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 28px;
+    top: 8px; right: 32px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    color: var(--border);
-    font-size: 14px;
-    user-select: none;
-    -webkit-user-select: none;
+    flex-direction: row;
+    gap: 3px;
+    z-index: 10;
   }
-  .drag-handle:active { cursor: grabbing; color: var(--muted); }
+  .move-btn {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .move-btn:active { background: var(--accent); color: var(--black); border-color: var(--accent); }
+  .exercise-card .exercise-header { padding-left: 14px; padding-right: 60px; }
   .exercise-card.anchor .exercise-header,
-  .exercise-card.anchor-vol .exercise-header,
-  .exercise-card .exercise-header { padding-left: 32px; }
-  .exercise-card.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
-  .exercise-card.drag-over { border-top: 2px solid var(--accent); }
-  .section-exercises { display: flex; flex-direction: column; }
+  .exercise-card.anchor-vol .exercise-header { padding-left: 14px; padding-right: 60px; }
 
 
   .delete-exercise-btn {
     position: absolute;
-    top: 8px; right: 8px;
-    width: 20px; height: 20px;
-    background: none;
-    border: none;
+    top: 8px; right: 6px;
+    width: 22px; height: 22px;
+    background: var(--card2);
+    border: 1px solid var(--border);
     color: var(--muted);
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 4px;
     transition: all 0.2s;
     z-index: 10;
   }
-  .delete-exercise-btn:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+  .delete-exercise-btn:active { color: #ff6b6b; background: rgba(255,107,107,0.15); border-color: rgba(255,107,107,0.4); }
 
 
   .add-superset-btn {
@@ -935,10 +939,11 @@ function renderExercise(ex, isVol) {
     </div>`;
   });
 
-  return `<div class="exercise-card${anchorClass}" draggable="true" data-exid="${ex.id}"
-    ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropEx(event)" ondragend="dragEnd(event)"
-    ontouchstart="touchStart(event)" ontouchmove="touchMove(event)" ontouchend="touchEnd(event)">
-    <div class="drag-handle" title="Drag to reorder">⠿</div>
+  return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}">
+    <div class="move-btns">
+      <button class="move-btn" onclick="moveCard(this, -1)" title="Move up">▲</button>
+      <button class="move-btn" onclick="moveCard(this, 1)" title="Move down">▼</button>
+    </div>
     <button class="delete-exercise-btn" onclick="deleteExerciseCard(this)" title="Remove">✕</button>
     <div class="exercise-header">
       <div>
@@ -1071,105 +1076,19 @@ function renameExercise(exId, newName) {
   localStorage.setItem('name_' + exId, newName);
 }
 
-// ─── DRAG & DROP REORDER ─────────────────────────────────────
-let dragSrc = null;
-let touchDragEl = null;
-let touchClone = null;
-let touchStartY = 0;
-
-function dragStart(e) {
-  dragSrc = e.currentTarget;
-  dragSrc.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function dragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const target = e.currentTarget;
-  if (target !== dragSrc) {
-    document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
-    target.classList.add('drag-over');
+// ─── MOVE CARDS UP/DOWN ───────────────────────────────────────
+function moveCard(btn, direction) {
+  const card = btn.closest('.exercise-card');
+  if (!card) return;
+  const parent = card.parentNode;
+  // Get only direct exercise-card children (not nested in superset)
+  const siblings = [...parent.children].filter(el => el.classList.contains('exercise-card') || el.classList.contains('superset-block'));
+  const idx = siblings.indexOf(card);
+  if (direction === -1 && idx > 0) {
+    parent.insertBefore(card, siblings[idx - 1]);
+  } else if (direction === 1 && idx < siblings.length - 1) {
+    parent.insertBefore(card, siblings[idx + 2] || null);
   }
-}
-
-function dropEx(e) {
-  e.preventDefault();
-  const target = e.currentTarget;
-  if (dragSrc && target !== dragSrc) {
-    const parent = dragSrc.parentNode;
-    const cards = [...parent.querySelectorAll('.exercise-card')];
-    const srcIdx = cards.indexOf(dragSrc);
-    const tgtIdx = cards.indexOf(target);
-    if (srcIdx !== -1 && tgtIdx !== -1) {
-      if (srcIdx < tgtIdx) {
-        parent.insertBefore(dragSrc, target.nextSibling);
-      } else {
-        parent.insertBefore(dragSrc, target);
-      }
-    }
-  }
-  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
-}
-
-function dragEnd(e) {
-  document.querySelectorAll('.exercise-card').forEach(c => {
-    c.classList.remove('dragging');
-    c.classList.remove('drag-over');
-  });
-  dragSrc = null;
-}
-
-// Touch support for mobile
-function touchStart(e) {
-  const card = e.currentTarget;
-  // Only initiate drag from the handle
-  if (!e.target.classList.contains('drag-handle')) return;
-  e.preventDefault();
-  touchDragEl = card;
-  touchStartY = e.touches[0].clientY;
-  touchClone = card.cloneNode(true);
-  touchClone.style.cssText = `position:fixed;z-index:1000;width:${card.offsetWidth}px;opacity:0.85;pointer-events:none;left:${card.getBoundingClientRect().left}px;top:${card.getBoundingClientRect().top}px;`;
-  document.body.appendChild(touchClone);
-  card.classList.add('dragging');
-}
-
-function touchMove(e) {
-  if (!touchDragEl || !touchClone) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  touchClone.style.top = (touch.clientY - 30) + 'px';
-  // Find element under touch
-  touchClone.style.display = 'none';
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.display = '';
-  const card = el ? el.closest('.exercise-card') : null;
-  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
-  if (card && card !== touchDragEl) card.classList.add('drag-over');
-}
-
-function touchEnd(e) {
-  if (!touchDragEl || !touchClone) return;
-  const touch = e.changedTouches[0];
-  touchClone.style.display = 'none';
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.display = '';
-  const target = el ? el.closest('.exercise-card') : null;
-  if (target && target !== touchDragEl) {
-    const parent = touchDragEl.parentNode;
-    const cards = [...parent.querySelectorAll('.exercise-card')];
-    const srcIdx = cards.indexOf(touchDragEl);
-    const tgtIdx = cards.indexOf(target);
-    if (srcIdx !== -1 && tgtIdx !== -1) {
-      if (srcIdx < tgtIdx) parent.insertBefore(touchDragEl, target.nextSibling);
-      else parent.insertBefore(touchDragEl, target);
-    }
-  }
-  touchClone.remove();
-  touchClone = null;
-  touchDragEl.classList.remove('dragging');
-  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
-  touchDragEl = null;
 }
 
 
