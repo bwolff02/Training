@@ -649,9 +649,18 @@ async function loadDay(index) {
   const variant = getCurrentVariant(index);
   if (!variant) { renderDay(index); return; }
   const saved = await loadFromDB('log_' + variant.id);
-  sessionLogs = saved || {};
+  const today = new Date().toISOString().split('T')[0];
+
+  // If saved log is from a previous date, clear inputs but keep history
+  if (saved && saved._date && saved._date !== today) {
+    sessionLogs = {};
+  } else {
+    sessionLogs = saved || {};
+  }
+
   const dot = document.getElementById('dot-' + index);
-  if (dot) dot.classList.toggle('has-log', !!saved);
+  // Only show green dot if logged today
+  if (dot) dot.classList.toggle('has-log', !!(saved && saved._date === today));
   renderDay(index);
 }
 
