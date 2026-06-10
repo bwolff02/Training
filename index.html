@@ -104,6 +104,77 @@
   .custom-exercise-input:focus{border-color:var(--accent);}
   .remove-exercise-btn{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px;}
 
+
+  .exercise-card { position: relative; }
+  .drag-handle {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: var(--border);
+    font-size: 14px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .drag-handle:active { cursor: grabbing; color: var(--muted); }
+  .exercise-card.anchor .exercise-header,
+  .exercise-card.anchor-vol .exercise-header,
+  .exercise-card .exercise-header { padding-left: 32px; }
+  .exercise-card.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
+  .exercise-card.drag-over { border-top: 2px solid var(--accent); }
+  .section-exercises { display: flex; flex-direction: column; }
+
+
+  .delete-exercise-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 20px; height: 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  .delete-exercise-btn:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+
+
+  .add-superset-btn {
+    width:100%;padding:12px;background:var(--card);
+    border:1px dashed rgba(100,180,255,0.4);border-radius:10px;
+    color:var(--blue);font-family:'JetBrains Mono',monospace;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;
+  }
+  .superset-mode-banner {
+    background:rgba(100,180,255,0.08);border:1px solid rgba(100,180,255,0.3);
+    border-radius:8px;padding:10px 14px;margin-bottom:10px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--blue);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .superset-mode-cancel {
+    background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;
+  }
+  .exercise-card.superset-pick-target {
+    border: 1px dashed rgba(100,180,255,0.6) !important;
+    cursor:pointer;
+  }
+  .exercise-card.superset-pick-target:hover {
+    border-color: var(--blue) !important;
+    background: rgba(100,180,255,0.05);
+  }
+  .exercise-card.superset-selected {
+    border: 2px solid var(--blue) !important;
+  }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -156,7 +227,7 @@ const PROGRAM = [
       id: 'mon-legs-a', title: 'LEGS', subtitle: 'Quad & Unilateral — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat', name:'Barbell Squat', note:'2 top sets then 1 back-off at 85–90%. 2–3 sec descent. All in on both.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. 2 heavy top sets + 1 back-off. 2–3 sec descent. All in.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-lunge', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
@@ -244,23 +315,6 @@ const PROGRAM = [
   {
     label: 'WED · Pull',
     weekA: {
-      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
-      sections: [
-        { label: 'Anchors', exercises: [
-          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'2 top sets then 1 back-off (drop 10–15lbs or BW). Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'lat-pulldown', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'cable-row-close', name:'Seated Cable Row (Close Neutral)', note:'2 top sets then 1 back-off at 85%. Full stretch forward, drive elbows back hard.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-        ]},
-        { label: 'Accessories', exercises: [
-          { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-wed', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
-          { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'hammer-curl-wed', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-wed', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
-        ]},
-      ]
-    },
-    weekB: {
       id: 'wed-pull-b', title: 'PULL', subtitle: 'Row Primary — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
@@ -269,12 +323,29 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown-b', name:'Close Grip Lat Pulldown', note:'Neutral close grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
-          { id:'bw-pullup-b', name:'Bodyweight Pull Ups', note:'Volume, not load. Chase reps.', target:'3 × max', defaultSets:3 },
+          { id:'bw-pullup-b', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
           { id:'face-pull-wed-b', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
           { id:'shrug-wed-b', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
           { id:'incline-curl-b', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
           { id:'reverse-curl-b', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
           { id:'cable-lat-sat-b', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
+        ]},
+      ]
+    },
+    weekB: {
+      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
+      sections: [
+        { label: 'Anchors', exercises: [
+          { id:'barbell-row', name:'Barbell Row', note:'Leads today — Week B. 2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'lat-pulldown', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+        ]},
+        { label: 'Accessories', exercises: [
+          { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
+          { id:'face-pull-wed', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
+          { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'hammer-curl-wed', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'shrug-wed', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
         ]},
       ]
     }
@@ -309,7 +380,8 @@ const PROGRAM = [
       id: 'thu-legs-b', title: 'LEGS', subtitle: 'Quad & Unilateral — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat-thu', name:'Barbell Squat', note:'2 top sets then 1 back-off at 85–90%. 2–3 sec descent. All in on both.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today — Week B heavy. 2 heavy top sets + 1 back-off. Hinge at hips, bar stays close. Drive the weight.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'squat-thu', name:'Barbell Squat', note:'2 heavy top sets + 1 back-off. 2–3 sec descent. Follows RDL today.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-lunge-thu', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
@@ -374,6 +446,23 @@ const PROGRAM = [
   {
     label: 'SAT · Pull',
     weekA: {
+      id: 'sat-pull-b', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
+      sections: [
+        { label: 'Anchors', exercises: [
+          { id:'wtd-pullup-sat', name:'Weighted Pull Ups', note:'Leads today — Week A. 2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'barbell-row-sat', name:'Barbell Row', note:'2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'lat-pulldown-sat', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+        ]},
+        { label: 'Accessories', exercises: [
+          { id:'cable-pullover-sat', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
+          { id:'face-pull-sat-b', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
+          { id:'db-curl-sat', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'shrug-sat-b', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
+        ]},
+      ]
+    },
+    weekB: {
       id: 'sat-pull-a', title: 'PULL', subtitle: 'Row Primary — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
@@ -382,29 +471,12 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Neutral grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
-          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume, not load. Chase reps.', target:'3 × max', defaultSets:3 },
+          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
           { id:'face-pull-sat', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
           { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
           { id:'incline-curl', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
           { id:'reverse-curl', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
           { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
-        ]},
-      ]
-    },
-    weekB: {
-      id: 'sat-pull-b', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
-      sections: [
-        { label: 'Anchors', exercises: [
-          { id:'wtd-pullup-sat', name:'Weighted Pull Ups', note:'2 top sets then 1 back-off (drop 10–15lbs or BW). Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'lat-pulldown-sat', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'cable-row-close-sat', name:'Seated Cable Row (Close Neutral)', note:'2 top sets then 1 back-off at 85%. Full stretch forward, drive elbows back hard.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-        ]},
-        { label: 'Accessories', exercises: [
-          { id:'cable-pullover-sat', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-sat-b', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
-          { id:'db-curl-sat', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-sat-b', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
         ]},
       ]
     }
@@ -444,6 +516,7 @@ const HISTORY = {
   'cable-rot':       [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'cable-rot-thu':   [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'rdl':             [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
+  'rdl-thu-heavy':   [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-04-27', sets:[{weight:245,reps:7},{weight:225,reps:9}]}],
   'rdl-mon':         [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
   'bulgarian':       [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
   'bulgarian-mon':   [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
@@ -485,12 +558,14 @@ const HISTORY = {
   'tri-lth-b':       [{ date:'2026-06-02', sets:[{weight:100,reps:5},{weight:100,reps:6}]}],
   'tri-overhead':    [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
   'tri-overhead-b':  [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
-  'wtd-pullup':      [{ date:'2026-06-03', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
-  'wtd-pullup-sat':  [{ date:'2026-06-03', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
+  'wtd-pullup':      [{ date:'2026-06-03', sets:[{weight:35,reps:8},{weight:35,reps:8}]}, {date:'2026-04-16', sets:[{weight:45,reps:5},{weight:45,reps:6}]}],
+  'wtd-pullup-sat':  [{ date:'2026-06-03', sets:[{weight:35,reps:8},{weight:35,reps:8}]}, {date:'2026-04-16', sets:[{weight:45,reps:5},{weight:45,reps:6}]}],
   'lat-pulldown':    [{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
   'lat-pulldown-sat':[{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
   'cable-row-close': [{ date:'2026-06-03', sets:[{weight:110,reps:6},{weight:110,reps:7}]}],
   'cable-row-close-sat':[{ date:'2026-06-03', sets:[{weight:110,reps:6},{weight:110,reps:7}]}],
+  'barbell-row':     [{ date:'2026-06-03', sets:[{weight:185,reps:8},{weight:205,reps:7}]}, {date:'2026-05-25', sets:[{weight:185,reps:8},{weight:195,reps:8}]}],
+  'barbell-row-sat': [{ date:'2026-06-03', sets:[{weight:185,reps:8},{weight:205,reps:7}]}, {date:'2026-05-25', sets:[{weight:185,reps:8},{weight:195,reps:8}]}],
   'cable-pullover':  [{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
   'cable-pullover-sat':[{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
   'face-pull-wed':   [{ date:'2026-06-03', sets:[{weight:120,reps:10},{weight:120,reps:10}]}],
@@ -626,7 +701,13 @@ function appendHistoryAndAddExercise(index, variant) {
   // --- ADD EXERCISE SECTION ---
   const addSection = document.createElement('div');
   addSection.className = 'add-exercise-section';
-  addSection.innerHTML = `<button class="add-exercise-btn" onclick="addCustomExercise('custom-list-${index}')">+ Add Exercise</button><div id="custom-list-${index}"></div>`;
+  addSection.innerHTML = `
+    <button class="add-exercise-btn" onclick="addCustomExercise('custom-list-${index}')">+ Add Exercise</button>
+    <button class="add-superset-btn" onclick="addCustomSuperset('custom-list-${index}', ${index})">⚡ Add Superset</button>
+    <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">🔗 Pair Existing Exercises</button>
+    <div id="custom-list-${index}"></div>
+    <div id="superset-mode-banner-${index}"></div>
+  `;
   main.appendChild(addSection);
   
   // Restore any already-added custom exercises for this session
@@ -762,39 +843,60 @@ function removeCustomExercise(idx) {
 }
 
 
-function getSuggestion(exId) {
+function getSuggestion(exId, isVolumeDay, isAnchor) {
   const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
   const builtin = HISTORY[exId] || [];
   const all = [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
   if (!all.length) return null;
+
+  // For volume days, try to find a heavy day session to base 85-90% off
+  // For heavy days, use last session as normal
   const last = all[all.length - 1];
   if (!last.sets || !last.sets.length) return null;
+
   const weights = last.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
   const reps = last.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
   if (!reps.length) return null;
+
   const lastWeight = weights.length ? Math.max(...weights) : 0;
   const maxReps = Math.max(...reps);
   const avgReps = reps.reduce((a,b)=>a+b,0)/reps.length;
-  let recWeight = lastWeight;
-  let arrow = '→';
-  let note = '';
-  if (avgReps >= 7.5) {
-    const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : lastWeight > 0 ? 2.5 : 0;
-    recWeight = lastWeight + bump;
-    arrow = '↑';
-    note = 'Looking strong — try';
-  } else if (avgReps <= 5) {
-    note = 'Build here — stay at';
-  } else {
-    note = 'Match last session —';
+
+  // Accessories: always hold weight, just chase reps
+  if (!isAnchor) {
+    return { note: 'Hold weight —', arrow: '→', recWeight: lastWeight, lastWeight, maxReps, lastDate: last.date, isVolume: false };
   }
-  return { note, arrow, recWeight, lastWeight, maxReps, lastDate: last.date };
+
+  if (isVolumeDay) {
+    // Volume anchor: suggest 87.5% of top weight, higher reps
+    const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
+    const arrow = '→';
+    const note = 'Volume — 87.5% of heavy';
+    const repTarget = '10–12 reps';
+    return { note, arrow, recWeight: volWeight, lastWeight, maxReps, lastDate: last.date, repTarget, isVolume: true };
+  } else {
+    // Heavy anchor: standard progressive logic
+    let recWeight = lastWeight;
+    let arrow = '→';
+    let note = '';
+    if (avgReps >= 7.5) {
+      const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : lastWeight > 0 ? 2.5 : 0;
+      recWeight = lastWeight + bump;
+      arrow = '↑';
+      note = 'Looking strong — try';
+    } else if (avgReps <= 5) {
+      note = 'Build here — stay at';
+    } else {
+      note = 'Match last session —';
+    }
+    return { note, arrow, recWeight, lastWeight, maxReps, lastDate: last.date, isVolume: false };
+  }
 }
 
 function renderExercise(ex, isVol) {
   const log = sessionLogs[ex.id] || {};
   const sets = log.sets || Array(ex.defaultSets).fill(null).map(() => ({ weight: '', reps: '' }));
-  const sugg = getSuggestion(ex.id);
+  const sugg = getSuggestion(ex.id, isVol, ex.anchor);
   const anchorClass = ex.anchor ? (ex.anchorVol ? ' anchor-vol' : ' anchor') : '';
   const customName = localStorage.getItem('name_' + ex.id);
   const displayName = customName || ex.name;
@@ -804,9 +906,10 @@ function renderExercise(ex, isVol) {
   if (sugg) {
     const weightDisplay = sugg.recWeight > 0 ? `${sugg.recWeight}lbs` : 'BW';
     const lastDisplay = sugg.lastWeight > 0 ? `${sugg.lastWeight}lbs` : 'BW';
+    const repHint = sugg.isVolume ? `<span style="color:var(--orange);font-size:11px;margin-left:6px;">@ ${sugg.repTarget}</span>` : '';
     suggHtml = `<div class="suggestion-box">
       <div class="sugg-title">💡 Suggested</div>
-      <div class="sugg-val">${sugg.arrow} ${weightDisplay}</div>
+      <div class="sugg-val">${sugg.arrow} ${weightDisplay}${repHint}</div>
       <div class="sugg-last">${sugg.note} — last: ${lastDisplay} × ${sugg.maxReps} (${sugg.lastDate})</div>
     </div>`;
   }
@@ -823,7 +926,11 @@ function renderExercise(ex, isVol) {
     </div>`;
   });
 
-  return `<div class="exercise-card${anchorClass}">
+  return `<div class="exercise-card${anchorClass}" draggable="true" data-exid="${ex.id}"
+    ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropEx(event)" ondragend="dragEnd(event)"
+    ontouchstart="touchStart(event)" ontouchmove="touchMove(event)" ontouchend="touchEnd(event)">
+    <div class="drag-handle" title="Drag to reorder">⠿</div>
+    <button class="delete-exercise-btn" onclick="deleteExerciseCard(this)" title="Remove">✕</button>
     <div class="exercise-header">
       <div>
         <div class="exercise-name" contenteditable="true" spellcheck="false"
@@ -832,8 +939,8 @@ function renderExercise(ex, isVol) {
           title="Tap to rename">${displayName}</div>
         <div class="exercise-note">${ex.note}</div>
       </div>
-      <div class="exercise-target${targetClass}"><span class="target-label">Target</span>${ex.target}</div>
     </div>
+    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);">${ex.target}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -954,6 +1061,279 @@ function renameExercise(exId, newName) {
   // Store custom name in localStorage
   localStorage.setItem('name_' + exId, newName);
 }
+
+// ─── DRAG & DROP REORDER ─────────────────────────────────────
+let dragSrc = null;
+let touchDragEl = null;
+let touchClone = null;
+let touchStartY = 0;
+
+function dragStart(e) {
+  dragSrc = e.currentTarget;
+  dragSrc.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target !== dragSrc) {
+    document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  }
+}
+
+function dropEx(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  if (dragSrc && target !== dragSrc) {
+    const parent = dragSrc.parentNode;
+    const cards = [...parent.querySelectorAll('.exercise-card')];
+    const srcIdx = cards.indexOf(dragSrc);
+    const tgtIdx = cards.indexOf(target);
+    if (srcIdx !== -1 && tgtIdx !== -1) {
+      if (srcIdx < tgtIdx) {
+        parent.insertBefore(dragSrc, target.nextSibling);
+      } else {
+        parent.insertBefore(dragSrc, target);
+      }
+    }
+  }
+  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+}
+
+function dragEnd(e) {
+  document.querySelectorAll('.exercise-card').forEach(c => {
+    c.classList.remove('dragging');
+    c.classList.remove('drag-over');
+  });
+  dragSrc = null;
+}
+
+// Touch support for mobile
+function touchStart(e) {
+  const card = e.currentTarget;
+  // Only initiate drag from the handle
+  if (!e.target.classList.contains('drag-handle')) return;
+  e.preventDefault();
+  touchDragEl = card;
+  touchStartY = e.touches[0].clientY;
+  touchClone = card.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;z-index:1000;width:${card.offsetWidth}px;opacity:0.85;pointer-events:none;left:${card.getBoundingClientRect().left}px;top:${card.getBoundingClientRect().top}px;`;
+  document.body.appendChild(touchClone);
+  card.classList.add('dragging');
+}
+
+function touchMove(e) {
+  if (!touchDragEl || !touchClone) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  touchClone.style.top = (touch.clientY - 30) + 'px';
+  // Find element under touch
+  touchClone.style.display = 'none';
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchClone.style.display = '';
+  const card = el ? el.closest('.exercise-card') : null;
+  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+  if (card && card !== touchDragEl) card.classList.add('drag-over');
+}
+
+function touchEnd(e) {
+  if (!touchDragEl || !touchClone) return;
+  const touch = e.changedTouches[0];
+  touchClone.style.display = 'none';
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchClone.style.display = '';
+  const target = el ? el.closest('.exercise-card') : null;
+  if (target && target !== touchDragEl) {
+    const parent = touchDragEl.parentNode;
+    const cards = [...parent.querySelectorAll('.exercise-card')];
+    const srcIdx = cards.indexOf(touchDragEl);
+    const tgtIdx = cards.indexOf(target);
+    if (srcIdx !== -1 && tgtIdx !== -1) {
+      if (srcIdx < tgtIdx) parent.insertBefore(touchDragEl, target.nextSibling);
+      else parent.insertBefore(touchDragEl, target);
+    }
+  }
+  touchClone.remove();
+  touchClone = null;
+  touchDragEl.classList.remove('dragging');
+  document.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+  touchDragEl = null;
+}
+
+
+// ─── CUSTOM SUPERSET ─────────────────────────────────────────
+function addCustomSuperset(listId, dayIndex) {
+  if (!sessionLogs._custom) sessionLogs._custom = [];
+  const idx = sessionLogs._custom.length;
+  // Add two blank exercises as a superset pair
+  sessionLogs._custom.push({ name: 'Exercise A', sets: [{ weight: '', reps: '' }], supersetPair: idx + 1 });
+  sessionLogs._custom.push({ name: 'Exercise B', sets: [{ weight: '', reps: '' }], supersetPair: idx });
+  appendCustomSupersetCard(dayIndex, idx, idx + 1, '', '', [], []);
+}
+
+function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, setsB) {
+  const list = document.getElementById('custom-list-' + dayIndex);
+  if (!list) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'superset-block';
+  wrapper.id = 'custom-superset-' + idxA;
+
+  const makeSets = (sets, idx) => (sets && sets.length ? sets : [{ weight: '', reps: '' }]).map((s, si) => `
+    <div class="set-entry">
+      <span class="set-num">S${si+1}</span>
+      <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
+        value="${s.weight||''}" onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
+      <span style="color:var(--muted);font-size:12px">×</span>
+      <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
+        value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
+    </div>`).join('');
+
+  wrapper.innerHTML = `
+    <div class="superset-header">⚡ Superset — back to back
+      <button onclick="removeCustomSuperset(${idxA}, ${idxB})" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div class="custom-exercise-card" style="margin-bottom:3px;border-radius:7px;">
+      <div class="custom-exercise-header">
+        <input class="custom-exercise-input" type="text" placeholder="Exercise A"
+          value="${nameA}" oninput="updateCustomName(${idxA}, this.value)" />
+      </div>
+      <div class="log-area">
+        <div id="custom-sets-${idxA}">${makeSets(setsA, idxA)}</div>
+        <button class="add-set-btn" onclick="addCustomSet(${idxA})">+ Add Set</button>
+      </div>
+    </div>
+    <div class="superset-divider">↕ then immediately</div>
+    <div class="custom-exercise-card" style="border-radius:7px;">
+      <div class="custom-exercise-header">
+        <input class="custom-exercise-input" type="text" placeholder="Exercise B"
+          value="${nameB}" oninput="updateCustomName(${idxB}, this.value)" />
+      </div>
+      <div class="log-area">
+        <div id="custom-sets-${idxB}">${makeSets(setsB, idxB)}</div>
+        <button class="add-set-btn" onclick="addCustomSet(${idxB})">+ Add Set</button>
+      </div>
+    </div>`;
+  list.appendChild(wrapper);
+}
+
+function removeCustomSuperset(idxA, idxB) {
+  const wrapper = document.getElementById('custom-superset-' + idxA);
+  if (wrapper) wrapper.remove();
+  if (sessionLogs._custom) {
+    if (sessionLogs._custom[idxA]) sessionLogs._custom[idxA] = null;
+    if (sessionLogs._custom[idxB]) sessionLogs._custom[idxB] = null;
+  }
+}
+
+// ─── PAIR EXISTING EXERCISES ──────────────────────────────────
+let pairMode = false;
+let pairDayIndex = null;
+let pairSelectedCard = null;
+
+function startPairMode(dayIndex) {
+  pairMode = true;
+  pairDayIndex = dayIndex;
+  pairSelectedCard = null;
+
+  const banner = document.getElementById('superset-mode-banner-' + dayIndex);
+  banner.innerHTML = `<div class="superset-mode-banner">
+    <span>Tap two exercises to superset them</span>
+    <button class="superset-mode-cancel" onclick="cancelPairMode(${dayIndex})">✕ Cancel</button>
+  </div>`;
+
+  // Add pick styling to all exercise cards
+  document.querySelectorAll('.exercise-card').forEach(card => {
+    card.classList.add('superset-pick-target');
+    card.addEventListener('click', handlePairClick);
+  });
+}
+
+function cancelPairMode(dayIndex) {
+  pairMode = false;
+  pairSelectedCard = null;
+  const banner = document.getElementById('superset-mode-banner-' + dayIndex);
+  if (banner) banner.innerHTML = '';
+  document.querySelectorAll('.exercise-card').forEach(card => {
+    card.classList.remove('superset-pick-target', 'superset-selected');
+    card.removeEventListener('click', handlePairClick);
+  });
+}
+
+function handlePairClick(e) {
+  if (!pairMode) return;
+  const card = e.currentTarget;
+
+  if (!pairSelectedCard) {
+    // First selection
+    pairSelectedCard = card;
+    card.classList.add('superset-selected');
+  } else if (pairSelectedCard === card) {
+    // Deselect
+    pairSelectedCard = null;
+    card.classList.remove('superset-selected');
+  } else {
+    // Second selection — wrap both in a superset block
+    const cardA = pairSelectedCard;
+    const cardB = card;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'superset-block';
+    wrapper.style.marginBottom = '6px';
+
+    const header = document.createElement('div');
+    header.className = 'superset-header';
+    header.innerHTML = '⚡ Superset — back to back <button onclick="unpairSuperset(this)" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;">✕</button>';
+
+    const divider = document.createElement('div');
+    divider.className = 'superset-divider';
+    divider.textContent = '↕ then immediately';
+
+    cardA.classList.remove('superset-pick-target', 'superset-selected');
+    cardB.classList.remove('superset-pick-target', 'superset-selected');
+    cardA.style.borderRadius = '7px';
+    cardB.style.borderRadius = '7px';
+    cardA.style.marginBottom = '3px';
+
+    const parentA = cardA.parentNode;
+    parentA.insertBefore(wrapper, cardA);
+    wrapper.appendChild(header);
+    wrapper.appendChild(cardA);
+    wrapper.appendChild(divider);
+    wrapper.appendChild(cardB);
+    if (cardB.parentNode && cardB.parentNode !== wrapper) {
+      cardB.parentNode.removeChild(cardB);
+      wrapper.appendChild(cardB);
+    }
+
+    cancelPairMode(pairDayIndex);
+  }
+}
+
+function unpairSuperset(btn) {
+  const wrapper = btn.closest('.superset-block');
+  if (!wrapper) return;
+  const parent = wrapper.parentNode;
+  const cards = wrapper.querySelectorAll('.exercise-card');
+  cards.forEach(card => {
+    card.style.borderRadius = '';
+    card.style.marginBottom = '';
+    parent.insertBefore(card, wrapper);
+  });
+  wrapper.remove();
+}
+
+function deleteExerciseCard(btn) {
+  const card = btn.closest('.exercise-card');
+  if (!card) return;
+  const exId = card.dataset.exid;
+  if (exId && sessionLogs[exId]) delete sessionLogs[exId];
+  card.remove();
+}
+
 
 function showToast(msg) {
   const t = document.getElementById('toast');
