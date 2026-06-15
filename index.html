@@ -179,6 +179,127 @@
     border: 2px solid var(--blue) !important;
   }
 
+
+  .drop-set-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--blue);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 0 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .drop-set-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-left: 20px;
+    border-left: 2px solid rgba(100,180,255,0.3);
+    margin-left: 8px;
+  }
+  .drop-set-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--blue);
+    width: 24px;
+    flex-shrink: 0;
+    letter-spacing: .05em;
+  }
+  .drop-set-remove {
+    font-size: 10px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+
+
+  .session-meta {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  .session-meta-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .feel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .feel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .feel-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+  }
+  .feel-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--black);
+  }
+  .feel-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .feel-emoji {
+    font-size: 18px;
+    flex-shrink: 0;
+    width: 24px;
+  }
+  .session-notes-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    padding: 10px 12px;
+    outline: none;
+    resize: none;
+    min-height: 70px;
+    line-height: 1.5;
+  }
+  .session-notes-input:focus { border-color: var(--accent); }
+  .session-notes-input::placeholder { color: var(--muted); }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -233,14 +354,16 @@ const PROGRAM = [
         { label: 'Anchors', exercises: [
           { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. 2 heavy top sets + 1 back-off. 2–3 sec descent. All in.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-lunge', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
+          { id:'good-mornings', name:'Good Mornings (Smith)', note:'Posterior chain accessory after squats. Hinge at hips, soft knee bend, feel the hamstring stretch. Lindsey already confirmed form looks good.', target:'3 × 10–12', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'leg-ext-mon', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
           { superset:true, exercises:[
             { id:'leg-press-mon', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
-            { id:'calf-ext-mon', name:'Calf Extension', note:'Full stretch, don\'t bounce.', target:'3 × 15', defaultSets:3 },
+            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch, don\'t bounce. Paired with leg press.', target:'3 × 15', defaultSets:3 },
           ]},
           { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric. RDLs are Thursday.', target:'3 × 8–10', defaultSets:3 },
+          { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Different stimulus from horizontal. Full stretch at bottom, pause at top. Track separately.', target:'3 × 12–15', defaultSets:3 },
           { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
@@ -254,14 +377,15 @@ const PROGRAM = [
       id: 'mon-legs-b', title: 'LEGS', subtitle: 'Glute & Hamstring — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'rdl-mon', name:'Romanian Deadlift', note:'2 working sets + 1 back-off with pause reps. Feel every rep — hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'rdl-mon', name:'Romanian Deadlift', note:'Leads today — Week B volume. 2 working sets + 1 back-off. Hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
           { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'2 working sets + 1 back-off lighter. Full depth, rear foot elevated. Feel the burn.', target:'2 sets + 1 back-off / leg', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'goblet-squat', name:'Goblet Squat', note:'Week B volume quad finisher. Dumbbell at chest, upright torso, full depth. Different stimulus from barbell work.', target:'3 × 12–15', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'seated-curl-mon', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
           { superset:true, exercises:[
             { id:'leg-press-mon-b', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-ext-mon-b', name:'Calf Extension', note:'Full stretch. High reps, full burn.', target:'3 × 20', defaultSets:3 },
+            { id:'calf-horizontal-vol', name:'Horizontal Calf Extension', note:'Full stretch. High reps, full burn. Paired with leg press.', target:'3 × 20', defaultSets:3 },
           ]},
           { id:'hip-abd-mon-b', name:'Cable Hip Abduction', note:'Light and controlled. Feel the glute med work.', target:'3 × 15–20 / side', defaultSets:3 },
           { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:3 },
@@ -361,14 +485,15 @@ const PROGRAM = [
       id: 'thu-legs-a', title: 'LEGS', subtitle: 'Posterior Chain — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'rdl', name:'Romanian Deadlift', note:'2 working sets + 1 back-off with pause reps. Feel every rep — hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'rdl', name:'Romanian Deadlift', note:'Leads today — Week A volume. 2 working sets + 1 back-off. Hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
           { id:'bulgarian', name:'Bulgarian Split Squat (Smith)', note:'2 working sets + 1 back-off lighter. Full depth, rear foot elevated. Feel the burn.', target:'2 sets + 1 back-off / leg', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'db-split-squat', name:'Dumbbell Split Squat', note:'Week A volume quad finisher. Dumbbells at sides, front shin vertical, full range. Catches imbalances barbell work misses.', target:'3 × 10–12 / leg', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
           { superset:true, exercises:[
             { id:'leg-press-thu', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-ext-thu', name:'Calf Extension', note:'Full stretch. High reps.', target:'3 × 20', defaultSets:3 },
+            { id:'calf-horizontal-vol', name:'Horizontal Calf Extension', note:'Full stretch. High reps. Paired with leg press.', target:'3 × 20', defaultSets:3 },
           ]},
           { id:'hip-abd-thu', name:'Cable Hip Abduction', note:'Light and controlled. Second weekly hit.', target:'3 × 15–20 / side', defaultSets:3 },
           { id:'hip-add', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:2 },
@@ -385,14 +510,14 @@ const PROGRAM = [
       sections: [
         { label: 'Anchors', exercises: [
           { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today — Week B heavy. 2 heavy top sets + 1 back-off. Hinge at hips, bar stays close. Drive the weight.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'squat-thu', name:'Barbell Squat', note:'2 heavy top sets + 1 back-off. 2–3 sec descent. Follows RDL today.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-lunge-thu', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
+          { id:'goblet-squat-thu', name:'Goblet Squat', note:'Quad finisher after heavy RDLs. Light dumbbell, upright torso, full depth. Not a barbell day for squats.', target:'3 × 12–15', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'leg-ext-thu', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
           { superset:true, exercises:[
             { id:'leg-press-thu-b', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
-            { id:'calf-ext-thu-b', name:'Calf Extension', note:'Full stretch, don\'t bounce.', target:'3 × 15', defaultSets:3 },
+            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch, don\'t bounce. Paired with leg press.', target:'3 × 15', defaultSets:3 },
           ]},
           { id:'prone-curl-thu', name:'Prone Leg Curl', note:'Slow eccentric. Heavy day — push the weight.', target:'3 × 8–10', defaultSets:3 },
           { id:'hip-abd-thu-b', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
@@ -501,10 +626,9 @@ const HISTORY = {
   'leg-press-mon-b': [{ date:'2026-05-22', sets:[{weight:190,reps:8},{weight:190,reps:9}]}],
   'leg-press-thu':   [{ date:'2026-05-22', sets:[{weight:190,reps:8},{weight:190,reps:9}]}],
   'leg-press-thu-b': [{ date:'2026-06-08', sets:[{weight:190,reps:7},{weight:190,reps:8}]}],
-  'calf-ext-mon':    [{ date:'2026-06-08', sets:[{weight:160,reps:12},{weight:160,reps:12}]}],
-  'calf-ext-mon-b':  [{ date:'2026-05-18', sets:[{weight:190,reps:10},{weight:190,reps:12}]}],
-  'calf-ext-thu':    [{ date:'2026-05-18', sets:[{weight:190,reps:10},{weight:190,reps:12}]}],
-  'calf-ext-thu-b':  [{ date:'2026-06-08', sets:[{weight:160,reps:12},{weight:160,reps:12}]}],
+  'calf-horizontal':     [{ date:'2026-06-08', sets:[{weight:160,reps:12},{weight:160,reps:12}]}],
+  'calf-horizontal-vol': [{ date:'2026-05-18', sets:[{weight:190,reps:10},{weight:190,reps:12}]}],
+  'calf-vertical':       [{ date:'2026-05-29', sets:[{weight:135,reps:13},{weight:135,reps:10}]}],
   'prone-curl-mon':  [{ date:'2026-06-08', sets:[{weight:110,reps:7},{weight:110,reps:7},{weight:110,reps:6}]}],
   'prone-curl-thu':  [{ date:'2026-06-08', sets:[{weight:110,reps:7},{weight:110,reps:7},{weight:110,reps:6}]}],
   'hip-abd-mon':     [{ date:'2026-06-08', sets:[{weight:30,reps:8},{weight:30,reps:8}]}],
@@ -520,6 +644,10 @@ const HISTORY = {
   'cable-rot':       [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'cable-rot-thu':   [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'rdl':             [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
+  'good-mornings':    [{ date:'2026-05-29', sets:[{weight:135,reps:6},{weight:135,reps:6}]}],
+  'goblet-squat':     [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
+  'goblet-squat-thu': [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
+  'db-split-squat':   [{ date:'2026-05-01', sets:[{weight:40,reps:10},{weight:40,reps:10}]}],
   'rdl-thu-heavy':   [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-04-27', sets:[{weight:245,reps:7},{weight:225,reps:9}]}],
   'rdl-mon':         [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
   'bulgarian':       [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
@@ -686,7 +814,22 @@ function renderDay(index) {
     <div class="day-subtitle">${variant.subtitle}</div>
   </div><span class="tag tag-${variant.tag}">${variant.tag}</span></div>`;
 
+  const savedFeel = sessionLogs._feel || 7;
+  const savedNotes = sessionLogs._notes || '';
+  const feelEmoji = getFeel(savedFeel);
   html += `<div class="session-row"><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>`;
+  html += `<div class="session-meta">
+    <div class="session-meta-label">Session Check-In</div>
+    <div class="feel-row">
+      <span class="feel-label">Feel</span>
+      <input type="range" class="feel-slider" id="feelSlider" min="1" max="10" value="${savedFeel}"
+        oninput="updateFeel(this.value)"/>
+      <span class="feel-value" id="feelValue">${savedFeel}</span>
+      <span class="feel-emoji" id="feelEmoji">${feelEmoji}</span>
+    </div>
+    <textarea class="session-notes-input" id="sessionNotes" placeholder="How did you feel? Anything to note about today's session..."
+      oninput="sessionLogs._notes = this.value">${savedNotes}</textarea>
+  </div>`;
 
   variant.sections.forEach(section => {
     html += `<div class="section"><div class="section-label">${section.label}</div>`;
@@ -744,11 +887,13 @@ function appendHistoryAndAddExercise(index, variant) {
     histHtml += `<div style="font-size:12px;color:var(--muted);padding:8px 0;">No sessions logged yet — this will populate after you save workouts.</div>`;
   } else {
     recent.forEach(session => {
+      const feelStr = session.feel ? `${getFeel(session.feel)} ${session.feel}/10` : '';
       histHtml += `<div class="history-entry">
         <div class="history-entry-header">
           <span class="history-entry-date">${session.date}</span>
-          <span class="history-entry-week">${session.week || ''}</span>
-        </div>`;
+          <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
+        </div>
+        ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}`;
       (session.exercises || []).forEach(ex => {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
@@ -929,6 +1074,11 @@ function renderExercise(ex, isVol) {
 
   let setsHtml = '';
   sets.forEach((s, i) => {
+    const dropSets = s.drops || [];
+    let dropHtml = '';
+    dropSets.forEach((d, di) => {
+      dropHtml += buildDropSetRow(ex.id, i, di, d.weight, d.reps, 0);
+    });
     setsHtml += `<div class="set-entry">
       <span class="set-num">S${i+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
@@ -936,7 +1086,9 @@ function renderExercise(ex, isVol) {
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
         value="${s.reps||''}" onchange="updateSet('${ex.id}',${i},'reps',this.value)"/>
-    </div>`;
+      <button class="drop-set-link" onclick="addDropSet('${ex.id}', ${i}, 0, this)">↓ drop</button>
+    </div>
+    <div id="drops-${ex.id}-${i}-0">${dropHtml}</div>`;
   });
 
   return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}">
@@ -993,6 +1145,10 @@ async function saveDay() {
   const variant = getCurrentVariant(currentDay);
   const dateEl = document.getElementById('sessionDate');
   sessionLogs._date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
+  const feelEl = document.getElementById('feelSlider');
+  const notesEl = document.getElementById('sessionNotes');
+  if (feelEl) sessionLogs._feel = parseInt(feelEl.value);
+  if (notesEl) sessionLogs._notes = notesEl.value;
   await saveToDB('log_' + variant.id, sessionLogs);
   variant.sections.forEach(section => {
     section.exercises.forEach(ex => {
@@ -1037,6 +1193,8 @@ async function saveDay() {
     allSessions.push({
       date: sessionLogs._date,
       week: isWeekA ? 'WEEK A' : 'WEEK B',
+      feel: sessionLogs._feel || null,
+      notes: sessionLogs._notes || '',
       exercises: sessionExercises
     });
     if (allSessions.length > 8) allSessions.shift();
@@ -1075,6 +1233,63 @@ function renameExercise(exId, newName) {
   // Store custom name in localStorage
   localStorage.setItem('name_' + exId, newName);
 }
+
+// ─── DROP SETS ────────────────────────────────────────────────
+function buildDropSetRow(exId, setIdx, dropIdx, weight, reps, depth) {
+  const indent = depth * 20;
+  const id = `drops-${exId}-${setIdx}-${dropIdx + 1}`;
+  return `<div class="drop-set-row" style="padding-left:${20 + indent}px;" id="droprow-${exId}-${setIdx}-${dropIdx}">
+    <span class="drop-set-label">D${dropIdx + 1}</span>
+    <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
+      value="${weight||''}" onchange="updateDropSet('${exId}',${setIdx},${dropIdx},'weight',this.value)"/>
+    <span style="color:var(--muted);font-size:12px">×</span>
+    <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
+      value="${reps||''}" onchange="updateDropSet('${exId}',${setIdx},${dropIdx},'reps',this.value)"/>
+    <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIdx}, ${dropIdx + 1}, this)">↓ drop</button>
+    <button class="drop-set-remove" onclick="removeDropSet('${exId}',${setIdx},${dropIdx},this)">✕</button>
+  </div>
+  <div id="${id}"></div>`;
+}
+
+function addDropSet(exId, setIdx, dropIdx, btn) {
+  // Find or create drops array on the set
+  if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
+  while (sessionLogs[exId].sets.length <= setIdx) sessionLogs[exId].sets.push({ weight:'', reps:'' });
+  if (!sessionLogs[exId].sets[setIdx].drops) sessionLogs[exId].sets[setIdx].drops = [];
+
+  // Insert new drop at dropIdx position
+  sessionLogs[exId].sets[setIdx].drops.splice(dropIdx, 0, { weight:'', reps:'' });
+
+  // Find container to insert into
+  const containerId = dropIdx === 0
+    ? `drops-${exId}-${setIdx}-0`
+    : `drops-${exId}-${setIdx}-${dropIdx}`;
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const div = document.createElement('div');
+  div.innerHTML = buildDropSetRow(exId, setIdx, dropIdx, '', '', 0);
+  container.insertAdjacentHTML('beforeend', buildDropSetRow(exId, setIdx, dropIdx, '', '', 0));
+}
+
+function updateDropSet(exId, setIdx, dropIdx, field, value) {
+  if (!sessionLogs[exId] || !sessionLogs[exId].sets[setIdx] || !sessionLogs[exId].sets[setIdx].drops) return;
+  if (sessionLogs[exId].sets[setIdx].drops[dropIdx]) {
+    sessionLogs[exId].sets[setIdx].drops[dropIdx][field] = value;
+  }
+}
+
+function removeDropSet(exId, setIdx, dropIdx, btn) {
+  const row = document.getElementById(`droprow-${exId}-${setIdx}-${dropIdx}`);
+  const container = document.getElementById(`drops-${exId}-${setIdx}-${dropIdx + 1}`);
+  if (row) row.remove();
+  if (container) container.remove();
+  if (sessionLogs[exId] && sessionLogs[exId].sets[setIdx] && sessionLogs[exId].sets[setIdx].drops) {
+    sessionLogs[exId].sets[setIdx].drops.splice(dropIdx, 1);
+  }
+}
+
 
 // ─── MOVE CARDS UP/DOWN ───────────────────────────────────────
 function moveCard(btn, direction) {
@@ -1253,6 +1468,28 @@ function unpairSuperset(btn) {
   });
   wrapper.remove();
 }
+
+function getFeel(val) {
+  val = parseInt(val);
+  if (val <= 2) return '😵';
+  if (val <= 4) return '😞';
+  if (val <= 6) return '😐';
+  if (val <= 8) return '💪';
+  return '🔥';
+}
+
+function updateFeel(val) {
+  sessionLogs._feel = parseInt(val);
+  const valEl = document.getElementById('feelValue');
+  const emojiEl = document.getElementById('feelEmoji');
+  if (valEl) valEl.textContent = val;
+  if (emojiEl) emojiEl.textContent = getFeel(val);
+  // Color the value based on rating
+  if (valEl) {
+    valEl.style.color = val <= 4 ? '#ff6b6b' : val <= 6 ? 'var(--muted)' : 'var(--accent)';
+  }
+}
+
 
 function deleteExerciseCard(btn) {
   const card = btn.closest('.exercise-card');
