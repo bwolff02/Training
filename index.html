@@ -1135,8 +1135,13 @@ function addSet(exId) {
       onchange="updateSet('${exId}',${setIndex},'weight',this.value)"/>
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-      onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>`;
+      onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
+    <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>`;
   container.appendChild(div);
+  // Add drop container after the set entry
+  const dropContainer = document.createElement('div');
+  dropContainer.id = `drops-${exId}-${setIndex}-0`;
+  container.appendChild(dropContainer);
 }
 
 async function saveDay() {
