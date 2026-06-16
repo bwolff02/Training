@@ -300,6 +300,73 @@
   .session-notes-input:focus { border-color: var(--accent); }
   .session-notes-input::placeholder { color: var(--muted); }
 
+
+  .export-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+    transition: all 0.2s;
+  }
+  .export-btn:active { border-color: var(--accent); color: var(--accent); }
+  .import-area {
+    margin-top: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .import-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .import-textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    outline: none;
+    resize: none;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+  .import-textarea:focus { border-color: var(--accent); }
+  .import-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: var(--black);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -911,6 +978,20 @@ function appendHistoryAndAddExercise(index, variant) {
   histHtml += `</div>`;
   histSection.innerHTML = histHtml;
   main.appendChild(histSection);
+
+  // Export/Import section
+  const exportSection = document.createElement('div');
+  exportSection.style.marginTop = '20px';
+  exportSection.innerHTML = `
+    <button class="export-btn" onclick="exportData()">📤 Export All Data (Copy to Notes)</button>
+    <button class="export-btn" style="margin-top:4px;" onclick="toggleImport(this)">📥 Import / Restore Data</button>
+    <div id="import-area" style="display:none;" class="import-area">
+      <div class="import-label">Paste exported data below</div>
+      <textarea class="import-textarea" id="import-text" placeholder="Paste your exported data here..."></textarea>
+      <button class="import-btn" onclick="importData()">Restore Data</button>
+    </div>
+  `;
+  main.appendChild(exportSection);
 }
 
 function toggleHistory(btn) {
@@ -1337,6 +1418,96 @@ function removeDropSet(exId, setIdx, dropIdx, btn) {
   if (sessionLogs[exId] && sessionLogs[exId].sets[setIdx] && sessionLogs[exId].sets[setIdx].drops) {
     sessionLogs[exId].sets[setIdx].drops.splice(dropIdx, 1);
   }
+}
+
+
+// ─── EXPORT / IMPORT ─────────────────────────────────────────
+function exportData() {
+  const data = {};
+
+  // Grab all localStorage keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    data[key] = localStorage.getItem(key);
+  }
+
+  // Also grab persistent storage keys
+  const persistKeys = DAYS.flatMap(day => {
+    if (day.rest) return [];
+    const variants = [day.weekA, day.weekB].filter(Boolean);
+    return variants.map(v => 'log_' + v.id);
+  });
+
+  const exportObj = {
+    version: '1.0',
+    exportDate: new Date().toISOString().split('T')[0],
+    localStorage: data,
+    persistKeys: persistKeys
+  };
+
+  const exportStr = JSON.stringify(exportObj, null, 2);
+
+  // Copy to clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(exportStr).then(() => {
+      showToast('Copied! Paste into Notes to save.');
+    }).catch(() => {
+      promptCopy(exportStr);
+    });
+  } else {
+    promptCopy(exportStr);
+  }
+}
+
+function promptCopy(str) {
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  showToast('Copied! Paste into Notes to save.');
+}
+
+function toggleImport(btn) {
+  const area = document.getElementById('import-area');
+  if (area) {
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function importData() {
+  const text = document.getElementById('import-text').value.trim();
+  if (!text) { showToast('No data to import'); return; }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch(e) {
+    showToast('Invalid data — check format');
+    return;
+  }
+
+  if (!parsed.localStorage) { showToast('Invalid format'); return; }
+
+  // Restore localStorage
+  Object.entries(parsed.localStorage).forEach(([key, val]) => {
+    localStorage.setItem(key, val);
+  });
+
+  // Restore persistent storage
+  if (parsed.persistKeys) {
+    for (const key of parsed.persistKeys) {
+      const val = parsed.localStorage['log_' + key.replace('log_', '')];
+      if (val) {
+        try { await window.storage.set(key, val); } catch(e) {}
+      }
+    }
+  }
+
+  showToast('Data restored! Reload the page.');
+  setTimeout(() => location.reload(), 1500);
 }
 
 
