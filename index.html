@@ -474,7 +474,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.17</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.18</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1631,13 +1631,11 @@ function closeEditModal() {
 function exportData() {
   const data = {};
 
-  // Grab all localStorage keys
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     data[key] = localStorage.getItem(key);
   }
 
-  // Also grab persistent storage keys
   const persistKeys = DAYS.flatMap(day => {
     if (day.rest) return [];
     const variants = [day.weekA, day.weekB].filter(Boolean);
@@ -1653,27 +1651,64 @@ function exportData() {
 
   const exportStr = JSON.stringify(exportObj, null, 2);
 
-  // Copy to clipboard
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(exportStr).then(() => {
-      showToast('Copied! Paste into Notes to save.');
-    }).catch(() => {
-      promptCopy(exportStr);
-    });
-  } else {
-    promptCopy(exportStr);
+  // Show export modal with the data so user can copy/share it
+  showExportModal(exportStr);
+}
+
+function showExportModal(exportStr) {
+  // Remove existing if any
+  const existing = document.getElementById('export-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'export-modal-overlay';
+  overlay.className = 'edit-modal-overlay';
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-title">
+        <span>Export Data — ${new Date().toISOString().split('T')[0]}</span>
+        <button class="edit-modal-close" onclick="document.getElementById('export-modal-overlay').remove()">✕</button>
+      </div>
+      <div class="edit-modal-label" style="margin-bottom:8px;">Copy this and paste into Apple Notes to back up your data.</div>
+      <textarea class="edit-notes-ta" id="export-text-area" style="min-height:120px;font-size:10px;" readonly>${exportStr}</textarea>
+      <button class="edit-save-btn" style="margin-top:10px;" onclick="copyExportText()">📋 Copy to Clipboard</button>
+      <button class="edit-save-btn" style="margin-top:6px;background:var(--card);color:var(--white);border:1px solid var(--border);" onclick="shareExportText('${encodeURIComponent(exportStr)}')">📤 Share / Save to Notes</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  // Auto-select the text
+  setTimeout(() => {
+    const ta = document.getElementById('export-text-area');
+    if (ta) { ta.focus(); ta.select(); }
+  }, 100);
+}
+
+function copyExportText() {
+  const ta = document.getElementById('export-text-area');
+  if (!ta) return;
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('Copied! Paste into Notes.');
+  } catch(e) {
+    showToast('Select all text and copy manually.');
   }
 }
 
-function promptCopy(str) {
-  const ta = document.createElement('textarea');
-  ta.value = str;
-  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  ta.remove();
-  showToast('Copied! Paste into Notes to save.');
+function shareExportText(encoded) {
+  const str = decodeURIComponent(encoded);
+  if (navigator.share) {
+    navigator.share({
+      title: 'Bryce Training Backup ' + new Date().toISOString().split('T')[0],
+      text: str
+    }).catch(() => {});
+  } else {
+    copyExportText();
+  }
 }
 
 function toggleImport(btn) {
