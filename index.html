@@ -474,7 +474,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.18</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.21</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1630,86 +1630,88 @@ function closeEditModal() {
 // ─── EXPORT / IMPORT ─────────────────────────────────────────
 function exportData() {
   const data = {};
-
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     data[key] = localStorage.getItem(key);
   }
-
-  const persistKeys = DAYS.flatMap(day => {
-    if (day.rest) return [];
-    const variants = [day.weekA, day.weekB].filter(Boolean);
-    return variants.map(v => 'log_' + v.id);
-  });
-
   const exportObj = {
     version: '1.0',
     exportDate: new Date().toISOString().split('T')[0],
     localStorage: data,
-    persistKeys: persistKeys
+    persistKeys: []
   };
+  const exportStr = JSON.stringify(exportObj);
 
-  const exportStr = JSON.stringify(exportObj, null, 2);
-
-  // Show export modal with the data so user can copy/share it
-  showExportModal(exportStr);
-}
-
-function showExportModal(exportStr) {
-  // Remove existing if any
+  // Remove existing modal if any
   const existing = document.getElementById('export-modal-overlay');
   if (existing) existing.remove();
 
   const overlay = document.createElement('div');
   overlay.id = 'export-modal-overlay';
-  overlay.className = 'edit-modal-overlay';
-  overlay.innerHTML = `
-    <div class="edit-modal">
-      <div class="edit-modal-title">
-        <span>Export Data — ${new Date().toISOString().split('T')[0]}</span>
-        <button class="edit-modal-close" onclick="document.getElementById('export-modal-overlay').remove()">✕</button>
-      </div>
-      <div class="edit-modal-label" style="margin-bottom:8px;">Copy this and paste into Apple Notes to back up your data.</div>
-      <textarea class="edit-notes-ta" id="export-text-area" style="min-height:120px;font-size:10px;" readonly>${exportStr}</textarea>
-      <button class="edit-save-btn" style="margin-top:10px;" onclick="copyExportText()">📋 Copy to Clipboard</button>
-      <button class="edit-save-btn" style="margin-top:6px;background:var(--card);color:var(--white);border:1px solid var(--border);" onclick="shareExportText('${encodeURIComponent(exportStr)}')">📤 Share / Save to Notes</button>
-    </div>
-  `;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:flex-end;';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#151515;border:1px solid #2a2a2a;border-radius:16px 16px 0 0;padding:24px 20px 48px;width:100%;max-height:80vh;overflow-y:auto;';
+  
+  const title = document.createElement('div');
+  title.style.cssText = "font-family:'JetBrains Mono',monospace;font-size:11px;color:#c8f135;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;";
+    title.innerHTML = '<span>Backup Data \u2014 ' + new Date().toISOString().split('T')[0] + '</span>';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;color:#6b6b6b;font-size:18px;cursor:pointer;';
+  closeBtn.onclick = function() { document.getElementById('export-modal-overlay').remove(); };
+  title.appendChild(closeBtn);
+  
+  const instructions = document.createElement('div');
+  instructions.style.cssText = "font-size:12px;color:#6b6b6b;margin-bottom:10px;line-height:1.5;";
+  instructions.textContent = 'Tap the text area, select all, then copy. Save to Apple Notes.';
+  
+  const ta = document.createElement('textarea');
+  ta.value = exportStr;
+  ta.readOnly = true;
+  ta.style.cssText = 'width:100%;background:#252525;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-family:monospace;font-size:10px;padding:10px 12px;min-height:100px;resize:none;outline:none;-webkit-user-select:text;user-select:text;';
+  
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = '📋 Select All & Copy';
+  copyBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:#c8f135;border:none;border-radius:8px;color:#0d0d0d;font-family:monospace;font-size:12px;font-weight:600;cursor:pointer;';
+  copyBtn.onclick = function() {
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      copyBtn.textContent = '✓ Copied!';
+      setTimeout(() => copyBtn.textContent = '📋 Select All & Copy', 2000);
+    } catch(e) {
+      ta.setSelectionRange(0, ta.value.length);
+    }
+  };
+
+  const shareBtn = document.createElement('button');
+  shareBtn.textContent = '📤 Share to Notes';
+  shareBtn.style.cssText = 'width:100%;margin-top:6px;padding:12px;background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-family:monospace;font-size:12px;cursor:pointer;';
+  shareBtn.onclick = function() {
+    if (navigator.share) {
+      navigator.share({ title: 'Training Backup ' + new Date().toISOString().split('T')[0], text: exportStr });
+    } else {
+      ta.focus(); ta.select(); document.execCommand('copy');
+      shareBtn.textContent = '✓ Copied!';
+    }
+  };
+
+  modal.appendChild(title);
+  modal.appendChild(instructions);
+  modal.appendChild(ta);
+  modal.appendChild(copyBtn);
+  modal.appendChild(shareBtn);
+  overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.remove();
-  });
-
-  // Auto-select the text
-  setTimeout(() => {
-    const ta = document.getElementById('export-text-area');
-    if (ta) { ta.focus(); ta.select(); }
-  }, 100);
+  
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  
+  // Auto focus and select
+  setTimeout(() => { ta.focus(); ta.select(); }, 200);
 }
 
-function copyExportText() {
-  const ta = document.getElementById('export-text-area');
-  if (!ta) return;
-  ta.select();
-  try {
-    document.execCommand('copy');
-    showToast('Copied! Paste into Notes.');
-  } catch(e) {
-    showToast('Select all text and copy manually.');
-  }
-}
-
-function shareExportText(encoded) {
-  const str = decodeURIComponent(encoded);
-  if (navigator.share) {
-    navigator.share({
-      title: 'Bryce Training Backup ' + new Date().toISOString().split('T')[0],
-      text: str
-    }).catch(() => {});
-  } else {
-    copyExportText();
-  }
-}
 
 function toggleImport(btn) {
   const area = document.getElementById('import-area');
