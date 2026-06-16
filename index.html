@@ -463,6 +463,84 @@
     cursor: pointer;
   }
 
+
+  .progress-container { padding: 0 0 40px; }
+  .progress-header { margin-bottom: 20px; }
+  .progress-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: .04em; }
+  .progress-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 300; }
+  .lift-selector {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 12px 14px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    margin-bottom: 20px;
+    cursor: pointer;
+  }
+  .chart-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .chart-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .chart-canvas { width: 100%; height: 180px; display: block; }
+  .pr-section { margin-bottom: 20px; }
+  .pr-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pr-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pr-card.new-pr { border-left: 3px solid #ffd700; }
+  .pr-name { font-size: 13px; font-weight: 600; }
+  .pr-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .pr-weight { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: #ffd700; }
+  .pr-reps { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .no-data-msg { font-size: 13px; color: var(--muted); text-align: center; padding: 40px 20px; line-height: 1.7; }
+  .pr-badge {
+    display: inline-block;
+    background: rgba(255,215,0,0.15);
+    border: 1px solid rgba(255,215,0,0.4);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #ffd700;
+    padding: 2px 6px;
+    letter-spacing: .08em;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -474,7 +552,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.21</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.25</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -933,11 +1011,19 @@ function buildTabs() {
     btn.onclick = () => switchDay(i);
     tabsEl.appendChild(btn);
   });
+  const progressBtn = document.createElement('button');
+  progressBtn.className = 'tab';
+  progressBtn.id = 'progress-tab-btn';
+  progressBtn.textContent = '📈 Progress';
+  progressBtn.onclick = () => showProgressTab();
+  tabsEl.appendChild(progressBtn);
 }
 
 async function switchDay(index) {
   currentDay = index;
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+  const ptab = document.getElementById('progress-tab-btn');
+  if (ptab) ptab.classList.remove('active');
   await loadDay(index);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1433,7 +1519,7 @@ async function saveDay() {
       exercises.forEach(e => {
         if (sessionLogs[e.id] && sessionLogs[e.id].sets && sessionLogs[e.id].sets.length) {
           const hist = JSON.parse(localStorage.getItem('hist_' + e.id) || '[]');
-          hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets });
+          hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy' });
           if (hist.length > 12) hist.shift();
           localStorage.setItem('hist_' + e.id, JSON.stringify(hist));
         }
@@ -1478,9 +1564,16 @@ async function saveDay() {
     localStorage.setItem(histKey, JSON.stringify(allSessions));
   }
 
+  // Check for PRs
+  const newPRs = checkForPRs(variant, sessionLogs);
   const dot = document.getElementById('dot-' + currentDay);
   if (dot) dot.classList.add('has-log');
-  showToast('Workout saved!');
+  if (newPRs.length > 0) {
+    const p = newPRs[0];
+    showToast('🏆 ' + (newPRs.length === 1 ? p.name + ' ' + p.weight + 'lbs × ' + p.reps + '!' : newPRs.length + ' new PRs!'));
+  } else {
+    showToast('Workout saved!');
+  }
 }
 
 function clearDay() {
@@ -1624,6 +1717,265 @@ function saveEditSession(histKey, sessionIdx) {
 function closeEditModal() {
   const overlay = document.getElementById('edit-modal-overlay');
   if (overlay) overlay.remove();
+}
+
+
+// ─── ANCHOR LIFTS FOR PROGRESS ────────────────────────────────
+const ANCHOR_LIFTS = [
+  { id: 'squat', name: 'Barbell Squat' },
+  { id: 'rdl', name: 'Romanian Deadlift' },
+  { id: 'rdl-thu-heavy', name: 'RDL (Heavy)' },
+  { id: 'smith-lunge', name: 'Smith Lunges' },
+  { id: 'bulgarian', name: 'Bulgarian Split Squat' },
+  { id: 'incline-smith', name: 'Incline Smith Press' },
+  { id: 'flat-smith', name: 'Flat Smith Press' },
+  { id: 'military-press', name: 'Military Press' },
+  { id: 'smith-shoulder-press', name: 'Smith Shoulder Press' },
+  { id: 'wtd-pullup', name: 'Weighted Pull Ups' },
+  { id: 'barbell-row', name: 'Barbell Row' },
+  { id: 'lat-pulldown', name: 'Lat Pulldown' },
+  { id: 'cable-row-close', name: 'Seated Cable Row' },
+  { id: 'diverg-row', name: 'Diverging Row' },
+  { id: 'skull-crusher', name: 'Skull Crusher' },
+];
+
+function getAllHistory(exId) {
+  const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+  const builtin = HISTORY[exId] || [];
+  return [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
+}
+
+function epley1RM(weight, reps) {
+  return weight * (1 + reps / 30);
+}
+
+function getLifePR(exId) {
+  const all = getAllHistory(exId);
+  let pr = null;
+  let prEstimate = 0;
+  all.forEach(session => {
+    if (!session.sets) return;
+    const reps = session.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
+    const avgReps = reps.length ? reps.reduce((a,b) => a+b,0) / reps.length : 0;
+    const isHeavy = session.heavy !== undefined ? session.heavy : avgReps <= 8;
+    if (!isHeavy) return;
+    session.sets.forEach(s => {
+      const w = parseFloat(s.weight);
+      const r = parseInt(s.reps);
+      if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
+      const est = epley1RM(w, r);
+      if (est > prEstimate) {
+        prEstimate = est;
+        pr = { weight: w, reps: r, date: session.date, estimated1RM: Math.round(est) };
+      }
+    });
+  });
+  return pr;
+}
+
+function showProgressTab() {
+  // Update tab styling
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const ptab = document.getElementById('progress-tab-btn');
+  if (ptab) ptab.classList.add('active');
+
+  const main = document.getElementById('mainContent');
+
+  // Build dropdown options - only show lifts with history
+  const liftsWithData = ANCHOR_LIFTS.filter(lift => {
+    const all = getAllHistory(lift.id);
+    return all.some(s => s.sets && s.sets.some(set => parseFloat(set.weight) > 0));
+  });
+
+  let dropdownOptions = liftsWithData.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  if (!dropdownOptions) dropdownOptions = '<option value="">No data yet</option>';
+
+  main.innerHTML = `
+    <div class="progress-container">
+      <div class="progress-header">
+        <div class="progress-title">PROGRESS</div>
+        <div class="progress-subtitle">Strength over time — anchor lifts</div>
+      </div>
+
+      <select class="lift-selector" id="liftDropdown" onchange="renderProgressChart(this.value)">
+        <option value="">Select a lift...</option>
+        ${dropdownOptions}
+      </select>
+
+      <div id="chart-area"></div>
+
+      <div class="pr-section">
+        <div class="pr-title">Personal Records</div>
+        <div id="pr-list"></div>
+      </div>
+    </div>
+  `;
+
+  renderPRList(liftsWithData);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderProgressChart(exId) {
+  const chartArea = document.getElementById('chart-area');
+  if (!exId) { chartArea.innerHTML = ''; return; }
+
+  const lift = ANCHOR_LIFTS.find(l => l.id === exId);
+  const all = getAllHistory(exId);
+
+  // Build data points - max weight per HEAVY session only
+  // For builtin history (no heavy tag), infer from avg reps - low reps = heavy
+  const dataPoints = [];
+  all.forEach(session => {
+    if (!session.sets) return;
+    const weights = session.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
+    const reps = session.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
+    if (!weights.length || !reps.length) return;
+    const avgReps = reps.reduce((a,b) => a+b, 0) / reps.length;
+    // Use explicit heavy tag if available, otherwise infer from reps
+    const isHeavy = session.heavy !== undefined ? session.heavy : avgReps <= 8;
+    if (!isHeavy) return;
+    dataPoints.push({ date: session.date, weight: Math.max(...weights) });
+  });
+
+  if (dataPoints.length < 2) {
+    chartArea.innerHTML = `<div class="no-data-msg">Log at least 2 sessions to see your progress chart.</div>`;
+    return;
+  }
+
+  // Draw SVG chart
+  const W = 320, H = 160, PAD = { top: 10, right: 10, bottom: 30, left: 40 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const weights = dataPoints.map(d => d.weight);
+  const minW = Math.min(...weights) * 0.95;
+  const maxW = Math.max(...weights) * 1.05;
+
+  const xScale = i => PAD.left + (i / (dataPoints.length - 1)) * innerW;
+  const yScale = w => PAD.top + innerH - ((w - minW) / (maxW - minW)) * innerH;
+
+  // Build path
+  const pts = dataPoints.map((d, i) => `${xScale(i)},${yScale(d.weight)}`);
+  const pathD = 'M ' + pts.join(' L ');
+
+  // Fill area
+  const fillD = pathD + ` L ${xScale(dataPoints.length-1)},${H-PAD.bottom} L ${xScale(0)},${H-PAD.bottom} Z`;
+
+  // Y axis labels
+  const yLabels = [minW, (minW+maxW)/2, maxW].map(w => ({
+    y: yScale(w),
+    label: Math.round(w)
+  }));
+
+  // X axis labels (first, middle, last)
+  const xLabels = [0, Math.floor(dataPoints.length/2), dataPoints.length-1].map(i => ({
+    x: xScale(i),
+    label: dataPoints[i].date.slice(5) // MM-DD
+  }));
+
+  // Dots for data points
+  const dots = dataPoints.map((d, i) => `<circle cx="${xScale(i)}" cy="${yScale(d.weight)}" r="3" fill="var(--accent)" stroke="var(--black)" stroke-width="1.5"/>`).join('');
+
+  // PR point
+  const prIdx = weights.indexOf(Math.max(...weights));
+  const prDot = `<circle cx="${xScale(prIdx)}" cy="${yScale(dataPoints[prIdx].weight)}" r="5" fill="#ffd700" stroke="var(--black)" stroke-width="1.5"/>`;
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-canvas">
+    <defs>
+      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c8f135" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#c8f135" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <!-- Grid lines -->
+    ${yLabels.map(l => `<line x1="${PAD.left}" y1="${l.y}" x2="${W-PAD.right}" y2="${l.y}" stroke="#2a2a2a" stroke-width="1"/>`).join('')}
+    <!-- Fill area -->
+    <path d="${fillD}" fill="url(#chartGrad)"/>
+    <!-- Line -->
+    <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- Dots -->
+    ${dots}
+    ${prDot}
+    <!-- Y labels -->
+    ${yLabels.map(l => `<text x="${PAD.left-4}" y="${l.y+4}" text-anchor="end" font-family="monospace" font-size="9" fill="#6b6b6b">${l.label}</text>`).join('')}
+    <!-- X labels -->
+    ${xLabels.map(l => `<text x="${l.x}" y="${H-8}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6b6b">${l.label}</text>`).join('')}
+    <!-- Axis -->
+    <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${H-PAD.bottom}" stroke="#2a2a2a" stroke-width="1"/>
+    <line x1="${PAD.left}" y1="${H-PAD.bottom}" x2="${W-PAD.right}" y2="${H-PAD.bottom}" stroke="#2a2a2a" stroke-width="1"/>
+  </svg>`;
+
+  const pr = getLifePR(exId);
+  const prText = pr ? `🏆 PR: ${pr.weight}lbs × ${pr.reps} on ${pr.date} (est. 1RM ~${pr.estimated1RM}lbs)` : '';
+
+  chartArea.innerHTML = `
+    <div class="chart-container">
+      <div class="chart-title">${lift ? lift.name : exId} — Heavy Days — Max Weight</div>
+      ${svg}
+      ${pr ? `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#ffd700;margin-top:8px;text-align:center;">${prText}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderPRList(lifts) {
+  const prList = document.getElementById('pr-list');
+  if (!prList) return;
+
+  const prs = lifts.map(lift => {
+    const pr = getLifePR(lift.id);
+    return pr ? { ...lift, pr } : null;
+  }).filter(Boolean).sort((a, b) => b.pr.weight - a.pr.weight);
+
+  if (!prs.length) {
+    prList.innerHTML = '<div class="no-data-msg">No data yet — log some workouts and your PRs will appear here.</div>';
+    return;
+  }
+
+  prList.innerHTML = prs.map(item => `
+    <div class="pr-card">
+      <div>
+        <div class="pr-name">${item.name}</div>
+        <div class="pr-date">${item.pr.date}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="pr-weight">${item.pr.weight}lbs × ${item.pr.reps}</div>
+        <div class="pr-reps">est. 1RM ~${item.pr.estimated1RM}lbs</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── PR DETECTION ON SAVE ─────────────────────────────────────
+function checkForPRs(variant, sessionLogs) {
+  const newPRs = [];
+  if (variant.tag !== 'heavy') return newPRs; // Only check PRs on heavy days
+  variant.sections.forEach(section => {
+    section.exercises.forEach(ex => {
+      const exList = ex.superset ? ex.exercises : [ex];
+      exList.forEach(e => {
+        if (!e.anchor) return;
+        const log = sessionLogs[e.id];
+        if (!log || !log.sets) return;
+        // Find best estimated 1RM from today's session
+        let bestEst = 0;
+        let bestSet = null;
+        log.sets.forEach(s => {
+          const w = parseFloat(s.weight);
+          const r = parseInt(s.reps);
+          if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
+          const est = epley1RM(w, r);
+          if (est > bestEst) { bestEst = est; bestSet = { weight: w, reps: r }; }
+        });
+        if (!bestSet) return;
+        const pr = getLifePR(e.id);
+        const prEst = pr ? pr.estimated1RM : 0;
+        if (bestEst > prEst) {
+          newPRs.push({ name: e.name, weight: bestSet.weight, reps: bestSet.reps, estimated1RM: Math.round(bestEst), id: e.id });
+        }
+      });
+    });
+  });
+  return newPRs;
 }
 
 
