@@ -377,9 +377,9 @@ const PROGRAM = [
       id: 'mon-legs-b', title: 'LEGS', subtitle: 'Glute & Hamstring — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'rdl-mon', name:'Romanian Deadlift', note:'Leads today — Week B volume. 2 working sets + 1 back-off. Hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'squat-mon-b', name:'Barbell Squat', note:'Volume day — Week B. 2 working sets + 1 back-off. Higher reps than heavy day, controlled descent.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
           { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'2 working sets + 1 back-off lighter. Full depth, rear foot elevated. Feel the burn.', target:'2 sets + 1 back-off / leg', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'goblet-squat', name:'Goblet Squat', note:'Week B volume quad finisher. Dumbbell at chest, upright torso, full depth. Different stimulus from barbell work.', target:'3 × 12–15', anchor:false, defaultSets:3 },
+          { id:'goblet-squat', name:'Goblet Squat', note:'Quad finisher. Dumbbell at chest, upright torso, full depth.', target:'3 × 12–15', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'seated-curl-mon', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
@@ -643,12 +643,13 @@ const HISTORY = {
   'rope-crunch-thu': [{ date:'2026-06-08', sets:[{weight:150,reps:7},{weight:150,reps:8}]}],
   'cable-rot':       [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'cable-rot-thu':   [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
-  'rdl':             [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
+  'rdl':             [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-06-11', sets:[{weight:215,reps:12},{weight:215,reps:13}]}],
   'good-mornings':    [{ date:'2026-05-29', sets:[{weight:135,reps:6},{weight:135,reps:6}]}],
+  'squat-mon-b':      [{ date:'2026-05-26', sets:[{weight:205,reps:8},{weight:205,reps:8}]}],
   'goblet-squat':     [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
   'goblet-squat-thu': [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
   'db-split-squat':   [{ date:'2026-05-01', sets:[{weight:40,reps:10},{weight:40,reps:10}]}],
-  'rdl-thu-heavy':   [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-04-27', sets:[{weight:245,reps:7},{weight:225,reps:9}]}],
+  'rdl-thu-heavy':   [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-06-11', sets:[{weight:215,reps:12},{weight:215,reps:13}]}],
   'rdl-mon':         [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
   'bulgarian':       [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
   'bulgarian-mon':   [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
@@ -1007,37 +1008,80 @@ function getSuggestion(exId, isVolumeDay, isAnchor) {
   const all = [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
   if (!all.length) return null;
 
-  // For volume days, try to find a heavy day session to base 85-90% off
-  // For heavy days, use last session as normal
   const last = all[all.length - 1];
   if (!last.sets || !last.sets.length) return null;
 
-  const weights = last.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
-  const reps = last.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
-  if (!reps.length) return null;
+  const lastWeights = last.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
+  const lastReps = last.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
+  if (!lastReps.length) return null;
+  const lastWeight = lastWeights.length ? Math.max(...lastWeights) : 0;
+  const maxReps = Math.max(...lastReps);
+  const avgReps = lastReps.reduce((a,b) => a+b, 0) / lastReps.length;
 
-  const lastWeight = weights.length ? Math.max(...weights) : 0;
-  const maxReps = Math.max(...reps);
-  const avgReps = reps.reduce((a,b)=>a+b,0)/reps.length;
+  // Epley 1RM estimate: weight * (1 + reps/30)
+  function estimate1RM(weight, reps) {
+    return weight * (1 + reps / 30);
+  }
 
-  // Accessories: always hold weight, just chase reps
+  // Find best estimated 1RM across ALL sessions
+  let best1RM = 0;
+  let bestSessionWeight = 0;
+  let bestSessionReps = 0;
+  all.forEach(session => {
+    if (!session.sets) return;
+    session.sets.forEach(s => {
+      const w = parseFloat(s.weight);
+      const r = parseInt(s.reps);
+      if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
+      const est = estimate1RM(w, r);
+      if (est > best1RM) {
+        best1RM = est;
+        bestSessionWeight = w;
+        bestSessionReps = r;
+      }
+    });
+  });
+
   if (!isAnchor) {
     return { note: 'Hold weight —', arrow: '→', recWeight: lastWeight, lastWeight, maxReps, lastDate: last.date, isVolume: false };
   }
 
   if (isVolumeDay) {
-    // Volume anchor: suggest 87.5% of top weight, higher reps
-    const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
-    const arrow = '→';
-    const note = 'Volume — 87.5% of heavy';
-    const repTarget = '10–12 reps';
-    return { note, arrow, recWeight: volWeight, lastWeight, maxReps, lastDate: last.date, repTarget, isVolume: true };
+    const looksLikeHeavy = avgReps <= 7;
+    if (looksLikeHeavy) {
+      const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
+      return { note: 'Est. from heavy —', arrow: '→', recWeight: volWeight, lastWeight, maxReps, lastDate: last.date, repTarget: '8–12 reps', isVolume: true };
+    } else {
+      let recWeight = lastWeight;
+      let arrow = '→';
+      let note = '';
+      if (avgReps >= 11) {
+        const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : 2.5;
+        recWeight = lastWeight + bump;
+        arrow = '↑';
+        note = 'Top of range — push to';
+      } else if (avgReps >= 8) {
+        note = 'Stay in range —';
+      } else {
+        note = 'Build here — stay at';
+      }
+      return { note, arrow, recWeight, lastWeight, maxReps, lastDate: last.date, repTarget: '8–12 reps', isVolume: true };
+    }
   } else {
-    // Heavy anchor: standard progressive logic
-    let recWeight = lastWeight;
+    // Heavy day: derive working weight from best 1RM estimate across ALL sessions
+    // Target ~85% of estimated 1RM for a solid 4-8 rep working weight
+    const heavyFromBest1RM = best1RM > 0 ? Math.round((best1RM * 0.85) / 5) * 5 : lastWeight;
+
+    let recWeight = Math.max(lastWeight, heavyFromBest1RM);
     let arrow = '→';
     let note = '';
-    if (avgReps >= 7.5) {
+
+    if (heavyFromBest1RM > lastWeight + 5) {
+      // Volume sessions indicate capacity beyond last heavy weight
+      recWeight = heavyFromBest1RM;
+      arrow = '↑';
+      note = 'Capacity up — try';
+    } else if (avgReps >= 7.5) {
       const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : lastWeight > 0 ? 2.5 : 0;
       recWeight = lastWeight + bump;
       arrow = '↑';
