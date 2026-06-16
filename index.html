@@ -370,6 +370,99 @@
     cursor: pointer;
   }
 
+
+  .history-edit-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    background: none;
+    border: 1px solid rgba(200,241,53,0.3);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .edit-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+  }
+  .edit-modal {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .edit-modal-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .edit-modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .edit-feel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .edit-modal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .1em;
+    margin-bottom: 6px;
+  }
+  .edit-notes-ta {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    resize: none;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+  .edit-notes-ta:focus { border-color: var(--accent); }
+  .edit-save-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: var(--black);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -381,7 +474,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.15</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.17</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -960,12 +1053,14 @@ function appendHistoryAndAddExercise(index, variant) {
   } else {
     recent.forEach(session => {
       const feelStr = session.feel ? `${getFeel(session.feel)} ${session.feel}/10` : '';
+      const sessionIdx = recent.length - 1 - recent.indexOf(session);
       histHtml += `<div class="history-entry">
         <div class="history-entry-header">
           <span class="history-entry-date">${session.date}</span>
           <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
         </div>
-        ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}`;
+        ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}
+        <button class="history-edit-btn" onclick="editSession('${histKey}', ${sessionIdx})">✏️ Edit Notes</button>`;
       (session.exercises || []).forEach(ex => {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
@@ -1031,7 +1126,9 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets) {
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
         value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
-    </div>`).join('');
+      <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
+    </div>
+    <div id="custom-drops-${idx}-${si}-0"></div>`).join('');
 
   card.innerHTML = `
     <div class="custom-exercise-header">
@@ -1065,7 +1162,7 @@ function addCustomSet(idx) {
   if (!sessionLogs._custom || !sessionLogs._custom[idx]) return;
   if (!sessionLogs._custom[idx].sets) sessionLogs._custom[idx].sets = [];
   const si = sessionLogs._custom[idx].sets.length;
-  sessionLogs._custom[idx].sets.push({ weight:'', reps:'' });
+  sessionLogs._custom[idx].sets.push({ weight:'', reps:'', drops:[] });
   const container = document.getElementById('custom-sets-' + idx);
   const div = document.createElement('div');
   div.className = 'set-entry';
@@ -1074,8 +1171,55 @@ function addCustomSet(idx) {
       onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-      onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>`;
+      onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
+    <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>`;
   container.appendChild(div);
+  const dropContainer = document.createElement('div');
+  dropContainer.id = `custom-drops-${idx}-${si}-0`;
+  container.appendChild(dropContainer);
+}
+
+function addCustomDropSet(exIdx, setIdx, dropIdx, btn) {
+  if (!sessionLogs._custom || !sessionLogs._custom[exIdx]) return;
+  if (!sessionLogs._custom[exIdx].sets[setIdx].drops) sessionLogs._custom[exIdx].sets[setIdx].drops = [];
+  sessionLogs._custom[exIdx].sets[setIdx].drops.splice(dropIdx, 0, { weight:'', reps:'' });
+  const containerId = dropIdx === 0
+    ? `custom-drops-${exIdx}-${setIdx}-0`
+    : `custom-drops-${exIdx}-${setIdx}-${dropIdx}`;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const di = dropIdx;
+  container.insertAdjacentHTML('beforeend', `
+    <div class="drop-set-row" id="customdroprow-${exIdx}-${setIdx}-${di}">
+      <span class="drop-set-label">D${di+1}</span>
+      <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
+        onchange="updateCustomDrop(${exIdx},${setIdx},${di},'weight',this.value)"/>
+      <span style="color:var(--muted);font-size:12px">×</span>
+      <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
+        onchange="updateCustomDrop(${exIdx},${setIdx},${di},'reps',this.value)"/>
+      <button class="drop-set-link" onclick="addCustomDropSet(${exIdx}, ${setIdx}, ${di+1}, this)">↓ drop</button>
+      <button class="drop-set-remove" onclick="removeCustomDrop(${exIdx},${setIdx},${di},this)">✕</button>
+    </div>
+    <div id="custom-drops-${exIdx}-${setIdx}-${di+1}"></div>
+  `);
+}
+
+function updateCustomDrop(exIdx, setIdx, dropIdx, field, val) {
+  if (!sessionLogs._custom || !sessionLogs._custom[exIdx]) return;
+  if (!sessionLogs._custom[exIdx].sets[setIdx].drops) return;
+  if (sessionLogs._custom[exIdx].sets[setIdx].drops[dropIdx]) {
+    sessionLogs._custom[exIdx].sets[setIdx].drops[dropIdx][field] = val;
+  }
+}
+
+function removeCustomDrop(exIdx, setIdx, dropIdx, btn) {
+  const row = document.getElementById(`customdroprow-${exIdx}-${setIdx}-${dropIdx}`);
+  const cont = document.getElementById(`custom-drops-${exIdx}-${setIdx}-${dropIdx+1}`);
+  if (row) row.remove();
+  if (cont) cont.remove();
+  if (sessionLogs._custom && sessionLogs._custom[exIdx] && sessionLogs._custom[exIdx].sets[setIdx].drops) {
+    sessionLogs._custom[exIdx].sets[setIdx].drops.splice(dropIdx, 1);
+  }
 }
 
 function removeCustomExercise(idx) {
@@ -1254,7 +1398,7 @@ function updateSet(exId, setIndex, field, value) {
 function addSet(exId) {
   if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
   if (!sessionLogs[exId].sets) sessionLogs[exId].sets = [];
-  sessionLogs[exId].sets.push({ weight:'', reps:'' });
+  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[] });
   const container = document.getElementById('sets-' + exId);
   const setIndex = sessionLogs[exId].sets.length - 1;
   const div = document.createElement('div');
@@ -1267,7 +1411,6 @@ function addSet(exId) {
       onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
     <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>`;
   container.appendChild(div);
-  // Add drop container after the set entry
   const dropContainer = document.createElement('div');
   dropContainer.id = `drops-${exId}-${setIndex}-0`;
   container.appendChild(dropContainer);
@@ -1422,6 +1565,65 @@ function removeDropSet(exId, setIdx, dropIdx, btn) {
   if (sessionLogs[exId] && sessionLogs[exId].sets[setIdx] && sessionLogs[exId].sets[setIdx].drops) {
     sessionLogs[exId].sets[setIdx].drops.splice(dropIdx, 1);
   }
+}
+
+
+// ─── EDIT SESSION ─────────────────────────────────────────────
+function editSession(histKey, sessionIdx) {
+  const sessions = JSON.parse(localStorage.getItem(histKey) || '[]');
+  const session = sessions[sessionIdx];
+  if (!session) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-modal-overlay';
+  overlay.id = 'edit-modal-overlay';
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-title">
+        <span>Edit Session — ${session.date}</span>
+        <button class="edit-modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="edit-modal-label">How did you feel?</div>
+      <div class="edit-feel-row">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);width:32px;">Feel</span>
+        <input type="range" class="feel-slider" id="editFeelSlider" min="1" max="10"
+          value="${session.feel || 7}" oninput="updateEditFeel(this.value)"/>
+        <span class="feel-value" id="editFeelValue">${session.feel || 7}</span>
+        <span class="feel-emoji" id="editFeelEmoji">${getFeel(session.feel || 7)}</span>
+      </div>
+      <div class="edit-modal-label">Session Notes</div>
+      <textarea class="edit-notes-ta" id="editNotesTA" placeholder="Add notes about this session...">${session.notes || ''}</textarea>
+      <button class="edit-save-btn" onclick="saveEditSession('${histKey}', ${sessionIdx})">Save</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeEditModal(); });
+}
+
+function updateEditFeel(val) {
+  const valEl = document.getElementById('editFeelValue');
+  const emojiEl = document.getElementById('editFeelEmoji');
+  if (valEl) { valEl.textContent = val; valEl.style.color = val <= 4 ? '#ff6b6b' : val <= 6 ? 'var(--muted)' : 'var(--accent)'; }
+  if (emojiEl) emojiEl.textContent = getFeel(parseInt(val));
+}
+
+function saveEditSession(histKey, sessionIdx) {
+  const sessions = JSON.parse(localStorage.getItem(histKey) || '[]');
+  if (!sessions[sessionIdx]) return;
+  const feelEl = document.getElementById('editFeelSlider');
+  const notesEl = document.getElementById('editNotesTA');
+  if (feelEl) sessions[sessionIdx].feel = parseInt(feelEl.value);
+  if (notesEl) sessions[sessionIdx].notes = notesEl.value;
+  localStorage.setItem(histKey, JSON.stringify(sessions));
+  closeEditModal();
+  // Refresh the day view to show updated notes
+  loadDay(currentDay);
+  showToast('Session updated!');
+}
+
+function closeEditModal() {
+  const overlay = document.getElementById('edit-modal-overlay');
+  if (overlay) overlay.remove();
 }
 
 
