@@ -541,6 +541,46 @@
     vertical-align: middle;
   }
 
+
+  .set-notes-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 0 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .set-notes-toggle.has-note { color: var(--blue); }
+  .set-notes-area {
+    margin: 2px 0 6px 24px;
+    display: none;
+  }
+  .set-notes-area.open { display: block; }
+  .set-note-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    padding: 7px 10px;
+    outline: none;
+    resize: none;
+    min-height: 44px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+  .set-note-input:focus { border-color: var(--blue); }
+  .set-note-input::placeholder { color: var(--muted); font-style: italic; }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -552,7 +592,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.25</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.30</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1140,13 +1180,16 @@ function appendHistoryAndAddExercise(index, variant) {
     recent.forEach(session => {
       const feelStr = session.feel ? `${getFeel(session.feel)} ${session.feel}/10` : '';
       const sessionIdx = recent.length - 1 - recent.indexOf(session);
-      histHtml += `<div class="history-entry">
+      histHtml += `<div class="history-entry" id="hist-entry-${sessionIdx}">
         <div class="history-entry-header">
           <span class="history-entry-date">${session.date}</span>
           <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
         </div>
         ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}
-        <button class="history-edit-btn" onclick="editSession('${histKey}', ${sessionIdx})">✏️ Edit Notes</button>`;
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="history-edit-btn" onclick="editSession('${histKey}', ${sessionIdx})">✏️ Edit Notes</button>
+          <button class="history-edit-btn" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3);" onclick="confirmDeleteSession('${histKey}', ${sessionIdx})">🗑 Delete</button>
+        </div>`;
       (session.exercises || []).forEach(ex => {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
@@ -1438,6 +1481,7 @@ function renderExercise(ex, isVol) {
     dropSets.forEach((d, di) => {
       dropHtml += buildDropSetRow(ex.id, i, di, d.weight, d.reps, 0);
     });
+    const hasNote = s.note && s.note.trim().length > 0;
     setsHtml += `<div class="set-entry">
       <span class="set-num">S${i+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
@@ -1446,16 +1490,23 @@ function renderExercise(ex, isVol) {
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
         value="${s.reps||''}" onchange="updateSet('${ex.id}',${i},'reps',this.value)"/>
       <button class="drop-set-link" onclick="addDropSet('${ex.id}', ${i}, 0, this)">↓ drop</button>
+      <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleSetNote(this, '${ex.id}', ${i})">✎ note</button>
+    </div>
+    <div class="set-notes-area ${hasNote ? 'open' : ''}" id="set-note-area-${ex.id}-${i}">
+      <textarea class="set-note-input" placeholder="How did that feel? Anything to note..."
+        oninput="updateSetNote('${ex.id}', ${i}, this.value)">${s.note || ''}</textarea>
     </div>
     <div id="drops-${ex.id}-${i}-0">${dropHtml}</div>`;
   });
 
-  return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}">
+  const isAnchorCard = ex.anchor || ex.anchorVol;
+  return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}" data-anchor="${isAnchorCard ? '1' : '0'}">
     <div class="move-btns">
       <button class="move-btn" onclick="moveCard(this, -1)" title="Move up">▲</button>
       <button class="move-btn" onclick="moveCard(this, 1)" title="Move down">▼</button>
     </div>
     <button class="delete-exercise-btn" onclick="deleteExerciseCard(this)" title="Remove">✕</button>
+    <button class="promote-btn" onclick="toggleAnchor(this)" title="${isAnchorCard ? 'Remove anchor' : 'Promote to anchor'}" style="position:absolute;top:8px;right:56px;width:22px;height:22px;background:${isAnchorCard ? 'var(--accent-dim)' : 'var(--card2)'};border:1px solid ${isAnchorCard ? 'rgba(200,241,53,.4)' : 'var(--border)'};border-radius:4px;color:${isAnchorCard ? 'var(--accent)' : 'var(--muted)'};font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
     <div class="exercise-header">
       <div>
         <div class="exercise-name" contenteditable="true" spellcheck="false"
@@ -1495,8 +1546,15 @@ function addSet(exId) {
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
       onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
-    <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>`;
+    <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>
+    <button class="set-notes-toggle" onclick="toggleSetNote(this, '${exId}', ${setIndex})">✎ note</button>`;
   container.appendChild(div);
+  // Add note area
+  const noteArea = document.createElement('div');
+  noteArea.className = 'set-notes-area';
+  noteArea.id = `set-note-area-${exId}-${setIndex}`;
+  noteArea.innerHTML = `<textarea class="set-note-input" placeholder="How did that feel? Anything to note..." oninput="updateSetNote('${exId}', ${setIndex}, this.value)"></textarea>`;
+  container.appendChild(noteArea);
   const dropContainer = document.createElement('div');
   dropContainer.id = `drops-${exId}-${setIndex}-0`;
   container.appendChild(dropContainer);
@@ -1519,7 +1577,7 @@ async function saveDay() {
       exercises.forEach(e => {
         if (sessionLogs[e.id] && sessionLogs[e.id].sets && sessionLogs[e.id].sets.length) {
           const hist = JSON.parse(localStorage.getItem('hist_' + e.id) || '[]');
-          hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy' });
+          hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[e.id].sets || []).map(s => s.note || '').filter(Boolean) });
           if (hist.length > 12) hist.shift();
           localStorage.setItem('hist_' + e.id, JSON.stringify(hist));
         }
@@ -1979,7 +2037,70 @@ function checkForPRs(variant, sessionLogs) {
 }
 
 
-// ─── EXPORT / IMPORT ─────────────────────────────────────────
+function confirmDeleteSession(histKey, sessionIdx) {
+  // Create confirmation modal
+  const existing = document.getElementById('confirm-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'confirm-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#151515;border:1px solid #2a2a2a;border-radius:14px;padding:24px 20px;width:100%;max-width:320px;text-align:center;';
+
+  const icon = document.createElement('div');
+  icon.textContent = '🗑';
+  icon.style.cssText = 'font-size:32px;margin-bottom:12px;';
+
+  const title = document.createElement('div');
+  title.textContent = 'Delete Session?';
+  title.style.cssText = "font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:8px;";
+
+  const subtitle = document.createElement('div');
+  subtitle.textContent = 'This cannot be undone.';
+  subtitle.style.cssText = 'font-size:13px;color:#6b6b6b;margin-bottom:20px;';
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:10px;';
+
+  const noBtn = document.createElement('button');
+  noBtn.textContent = 'No, Keep It';
+  noBtn.style.cssText = "flex:1;padding:12px;background:#1c1c1c;border:1px solid #2a2a2a;border-radius:8px;color:#f0f0f0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;";
+  noBtn.onclick = () => overlay.remove();
+
+  const yesBtn = document.createElement('button');
+  yesBtn.textContent = 'Yes, Delete';
+  yesBtn.style.cssText = "flex:1;padding:12px;background:rgba(255,107,107,0.15);border:1px solid rgba(255,107,107,0.4);border-radius:8px;color:#ff6b6b;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;";
+  yesBtn.onclick = () => {
+    overlay.remove();
+    deleteSession(histKey, sessionIdx);
+  };
+
+  btnRow.appendChild(noBtn);
+  btnRow.appendChild(yesBtn);
+  modal.appendChild(icon);
+  modal.appendChild(title);
+  modal.appendChild(subtitle);
+  modal.appendChild(btnRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function deleteSession(histKey, sessionIdx) {
+  const sessions = JSON.parse(localStorage.getItem(histKey) || '[]');
+  if (sessionIdx < 0 || sessionIdx >= sessions.length) return;
+  sessions.splice(sessionIdx, 1);
+  localStorage.setItem(histKey, JSON.stringify(sessions));
+  showToast('Session deleted.');
+  // Refresh the day view
+  loadDay(currentDay);
+}
+
+
+// ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
 function exportData() {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -2107,6 +2228,55 @@ async function importData() {
 
 
 // ─── MOVE CARDS UP/DOWN ───────────────────────────────────────
+function toggleSetNote(btn, exId, setIdx) {
+  const areaId = `set-note-area-${exId}-${setIdx}`;
+  const area = document.getElementById(areaId);
+  if (!area) return;
+  const isOpen = area.classList.contains('open');
+  area.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    const ta = area.querySelector('textarea');
+    if (ta) setTimeout(() => ta.focus(), 50);
+  }
+}
+
+function updateSetNote(exId, setIdx, value) {
+  if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
+  while (sessionLogs[exId].sets.length <= setIdx) sessionLogs[exId].sets.push({ weight:'', reps:'' });
+  sessionLogs[exId].sets[setIdx].note = value;
+  // Update toggle button color
+  const btn = document.querySelector(`button.set-notes-toggle[onclick*="${exId}"][onclick*="${setIdx}"]`);
+  if (btn) btn.classList.toggle('has-note', value.trim().length > 0);
+}
+
+
+function toggleAnchor(btn) {
+  const card = btn.closest('.exercise-card');
+  if (!card) return;
+  const isAnchor = card.dataset.anchor === '1';
+  if (isAnchor) {
+    // Remove anchor
+    card.dataset.anchor = '0';
+    card.classList.remove('anchor', 'anchor-vol');
+    btn.style.background = 'var(--card2)';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--muted)';
+    btn.title = 'Promote to anchor';
+  } else {
+    // Promote to anchor - move to top of parent section and add anchor styling
+    card.dataset.anchor = '1';
+    card.classList.add('anchor');
+    btn.style.background = 'var(--accent-dim)';
+    btn.style.borderColor = 'rgba(200,241,53,.4)';
+    btn.style.color = 'var(--accent)';
+    btn.title = 'Remove anchor';
+    // Move to top of its parent container
+    const parent = card.parentNode;
+    parent.insertBefore(card, parent.firstChild);
+  }
+}
+
+
 function moveCard(btn, direction) {
   const card = btn.closest('.exercise-card');
   if (!card) return;
@@ -2257,15 +2427,15 @@ function handlePairClick(e) {
     cardA.style.marginBottom = '3px';
 
     const parentA = cardA.parentNode;
+    const parentB = cardB.parentNode;
+    // Remove cardB from its current location first
+    if (parentB && parentB !== parentA) parentB.removeChild(cardB);
+    // Insert wrapper where cardA is
     parentA.insertBefore(wrapper, cardA);
     wrapper.appendChild(header);
     wrapper.appendChild(cardA);
     wrapper.appendChild(divider);
     wrapper.appendChild(cardB);
-    if (cardB.parentNode && cardB.parentNode !== wrapper) {
-      cardB.parentNode.removeChild(cardB);
-      wrapper.appendChild(cardB);
-    }
 
     cancelPairMode(pairDayIndex);
   }
