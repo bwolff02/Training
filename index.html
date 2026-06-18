@@ -109,15 +109,10 @@
 
 
   .exercise-card { position: relative; }
-  .move-btns {
-    position: absolute;
-    top: 8px; right: 32px;
-    display: flex;
-    flex-direction: row;
-    gap: 3px;
-    z-index: 10;
-  }
+  .move-btns { display: none; } /* handled individually */
   .move-btn {
+    position: absolute;
+    top: 8px;
     background: var(--card2);
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -128,11 +123,14 @@
     cursor: pointer;
     padding: 0;
     transition: all 0.15s;
+    z-index: 10;
   }
   .move-btn:active { background: var(--accent); color: var(--black); border-color: var(--accent); }
-  .exercise-card .exercise-header { padding-left: 14px; padding-right: 60px; }
+  .move-btn-up { right: 56px; }
+  .move-btn-down { right: 28px; }
+  .exercise-card .exercise-header { padding-left: 14px; padding-right: 114px; }
   .exercise-card.anchor .exercise-header,
-  .exercise-card.anchor-vol .exercise-header { padding-left: 14px; padding-right: 60px; }
+  .exercise-card.anchor-vol .exercise-header { padding-left: 14px; padding-right: 114px; }
 
 
   .delete-exercise-btn {
@@ -581,6 +579,36 @@
   .set-note-input:focus { border-color: var(--blue); }
   .set-note-input::placeholder { color: var(--muted); font-style: italic; }
 
+
+  .deload-banner {
+    background: rgba(255,159,67,0.1);
+    border: 1px solid rgba(255,159,67,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .deload-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .deload-text { font-size: 12px; color: var(--orange); line-height: 1.5; }
+  .deload-text strong { color: var(--orange); font-weight: 600; }
+  .deload-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--orange);
+    background: none;
+    border: 1px solid rgba(255,159,67,0.3);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-top: 6px;
+    display: inline-block;
+  }
+  .week-badge.deload { background: rgba(255,159,67,0.1); color: var(--orange); border: 1px solid rgba(255,159,67,0.4); }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -592,13 +620,14 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.30</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.38</div>
     </div>
   </div>
   <div class="week-indicator">
     <span class="week-badge" id="weekBadge" onclick="toggleWeek()" style="cursor:pointer;user-select:none;"></span>
     <span class="week-label" id="weekLabel"></span>
     <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px;cursor:pointer;" onclick="toggleWeek()">↺ tap to flip</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,159,67,0.6);margin-left:8px;cursor:pointer;" onclick="toggleDeload()">🔋 deload</span>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
 </header>
@@ -623,6 +652,7 @@ function getISOWeek(date) {
 const today = new Date();
 const isoWeek = getISOWeek(today);
 let isWeekA = isoWeek % 2 === 1; // odd weeks = Week A (tappable to override)
+let isDeloadWeek = isoWeek % 4 === 0; // every 4th week = deload
 
 // ─── PROGRAM DATA ─────────────────────────────────────────────
 // Each day has weekA and weekB variants
@@ -1025,7 +1055,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 function setWeekBadge() {
   const badge = document.getElementById('weekBadge');
   const label = document.getElementById('weekLabel');
-  if (isWeekA) {
+  if (isDeloadWeek) {
+    badge.textContent = 'DELOAD';
+    badge.className = 'week-badge deload';
+    label.textContent = 'Recovery week — 60-70% weight, higher reps';
+  } else if (isWeekA) {
     badge.textContent = 'WEEK A';
     badge.className = 'week-badge week-a';
     label.textContent = 'Heavy Mon/Tue/Sat · Volume Wed/Thu/Fri';
@@ -1109,6 +1143,15 @@ function renderDay(index) {
   const savedNotes = sessionLogs._notes || '';
   const feelEmoji = getFeel(savedFeel);
   html += `<div class="session-row"><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>`;
+  if (isDeloadWeek) {
+    html += `<div class="deload-banner">
+      <div class="deload-icon">🔋</div>
+      <div class="deload-text">
+        <strong>Deload Week</strong> — 60–70% of working weight, 3–4 sets at 12–15 reps. No grinding. Focus on form and feel.<br>
+        <button class="deload-toggle" onclick="toggleDeload()">↺ Switch to normal week</button>
+      </div>
+    </div>`;
+  }
   html += `<div class="session-meta">
     <div class="session-meta-label">Session Check-In</div>
     <div class="feel-row">
@@ -1138,6 +1181,18 @@ function renderDay(index) {
     });
     html += `</div>`;
   });
+
+  // Deload extras - extra accessories only shown during deload week
+  if (isDeloadWeek) {
+    const deloadExtras = getDeloadExtras(variant.id);
+    if (deloadExtras.length > 0) {
+      html += `<div class="section"><div class="section-label" style="color:var(--orange);">🔋 Deload Extras</div>`;
+      deloadExtras.forEach(ex => {
+        html += renderExercise(ex, true);
+      });
+      html += `</div>`;
+    }
+  }
   main.innerHTML = html;
   appendHistoryAndAddExercise(index, variant);
 }
@@ -1360,7 +1415,50 @@ function removeCustomExercise(idx) {
 }
 
 
-function getSuggestion(exId, isVolumeDay, isAnchor) {
+function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
+  // Deload week: drop weight, higher reps
+  if (isDeloadWeek) {
+    const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+    const builtin = HISTORY[exId] || [];
+    const all = [...builtin, ...stored];
+    let bestWeight = 0;
+    all.forEach(s => {
+      if (!s.sets) return;
+      s.sets.forEach(set => {
+        const w = parseFloat(set.weight);
+        if (!isNaN(w) && w > bestWeight) bestWeight = w;
+      });
+    });
+    if (bestWeight > 0) {
+      if (isAnchor) {
+        // Anchors: 65% weight, 12-15 reps, +1 set (set count handled in renderExercise)
+        const deloadWeight = Math.round((bestWeight * 0.65) / 5) * 5;
+        return { note: 'Deload — 65% of best', arrow: '↓', recWeight: deloadWeight, lastWeight: bestWeight, maxReps: 0, lastDate: '', repTarget: '12–15 reps', isVolume: true, isDeload: true };
+      } else {
+        // Accessories: 75% weight, same sets, higher reps
+        const deloadWeight = Math.round((bestWeight * 0.75) / 5) * 5;
+        return { note: 'Deload — 75% of best', arrow: '↓', recWeight: deloadWeight, lastWeight: bestWeight, maxReps: 0, lastDate: '', repTarget: '12–15 reps', isVolume: true, isDeload: true };
+      }
+    }
+    // No direct history - try relatedId for deload extras
+    if (relatedId) {
+      const relStored = JSON.parse(localStorage.getItem('hist_' + relatedId) || '[]');
+      const relBuiltin = HISTORY[relatedId] || [];
+      const relAll = [...relBuiltin, ...relStored];
+      let relBest = 0;
+      relAll.forEach(s => {
+        if (!s.sets) return;
+        s.sets.forEach(set => {
+          const w = parseFloat(set.weight);
+          if (!isNaN(w) && w > relBest) relBest = w;
+        });
+      });
+      if (relBest > 0) {
+        const deloadWeight = Math.round((relBest * 0.75) / 5) * 5;
+        return { note: 'Deload — 75% of related', arrow: '↓', recWeight: deloadWeight, lastWeight: relBest, maxReps: 0, lastDate: '', repTarget: '12–15 reps', isVolume: true, isDeload: true };
+      }
+    }
+  }
   const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
   const builtin = HISTORY[exId] || [];
   const all = [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
@@ -1455,8 +1553,10 @@ function getSuggestion(exId, isVolumeDay, isAnchor) {
 
 function renderExercise(ex, isVol) {
   const log = sessionLogs[ex.id] || {};
-  const sets = log.sets || Array(ex.defaultSets).fill(null).map(() => ({ weight: '', reps: '' }));
-  const sugg = getSuggestion(ex.id, isVol, ex.anchor);
+  // Deload week: bump sets by 1 for anchors, keep accessories same
+  const deloadSets = isDeloadWeek && ex.anchor ? (ex.defaultSets || 3) + 1 : (ex.defaultSets || 3);
+  const sets = log.sets || Array(deloadSets).fill(null).map(() => ({ weight: '', reps: '' }));
+  const sugg = getSuggestion(ex.id, isVol, ex.anchor, ex.relatedId);
   const anchorClass = ex.anchor ? (ex.anchorVol ? ' anchor-vol' : ' anchor') : '';
   const customName = localStorage.getItem('name_' + ex.id);
   const displayName = customName || ex.name;
@@ -1466,7 +1566,7 @@ function renderExercise(ex, isVol) {
   if (sugg) {
     const weightDisplay = sugg.recWeight > 0 ? `${sugg.recWeight}lbs` : 'BW';
     const lastDisplay = sugg.lastWeight > 0 ? `${sugg.lastWeight}lbs` : 'BW';
-    const repHint = sugg.isVolume ? `<span style="color:var(--orange);font-size:11px;margin-left:6px;">@ ${sugg.repTarget}</span>` : '';
+    const repHint = (sugg.isVolume || sugg.isDeload) ? `<span style="color:${sugg.isDeload ? 'var(--orange)' : 'var(--orange)'};font-size:11px;margin-left:6px;">@ ${sugg.repTarget}</span>` : '';
     suggHtml = `<div class="suggestion-box">
       <div class="sugg-title">💡 Suggested</div>
       <div class="sugg-val">${sugg.arrow} ${weightDisplay}${repHint}</div>
@@ -1501,12 +1601,10 @@ function renderExercise(ex, isVol) {
 
   const isAnchorCard = ex.anchor || ex.anchorVol;
   return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}" data-anchor="${isAnchorCard ? '1' : '0'}">
-    <div class="move-btns">
-      <button class="move-btn" onclick="moveCard(this, -1)" title="Move up">▲</button>
-      <button class="move-btn" onclick="moveCard(this, 1)" title="Move down">▼</button>
-    </div>
+    <button class="move-btn move-btn-up" onclick="moveCard(this, -1)" title="Move up">▲</button>
+    <button class="promote-btn" onclick="toggleAnchor(this)" title="${isAnchorCard ? 'Remove anchor' : 'Promote to anchor'}" style="position:absolute;top:8px;right:84px;width:22px;height:22px;background:${isAnchorCard ? 'var(--accent-dim)' : 'var(--card2)'};border:1px solid ${isAnchorCard ? 'rgba(200,241,53,.4)' : 'var(--border)'};border-radius:4px;color:${isAnchorCard ? 'var(--accent)' : 'var(--muted)'};font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
+    <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down">▼</button>
     <button class="delete-exercise-btn" onclick="deleteExerciseCard(this)" title="Remove">✕</button>
-    <button class="promote-btn" onclick="toggleAnchor(this)" title="${isAnchorCard ? 'Remove anchor' : 'Promote to anchor'}" style="position:absolute;top:8px;right:56px;width:22px;height:22px;background:${isAnchorCard ? 'var(--accent-dim)' : 'var(--card2)'};border:1px solid ${isAnchorCard ? 'rgba(200,241,53,.4)' : 'var(--border)'};border-radius:4px;color:${isAnchorCard ? 'var(--accent)' : 'var(--muted)'};font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
     <div class="exercise-header">
       <div>
         <div class="exercise-name" contenteditable="true" spellcheck="false"
@@ -1516,7 +1614,7 @@ function renderExercise(ex, isVol) {
         <div class="exercise-note">${ex.note}</div>
       </div>
     </div>
-    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);">${ex.target}</div>
+    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:${isDeloadWeek && ex.anchor ? 'var(--orange)' : 'var(--muted)'}">${isDeloadWeek && ex.anchor ? (deloadSets) + ' sets × 12–15 — deload' : ex.target}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -1651,7 +1749,17 @@ async function loadFromDB(key) {
 
 
 function toggleWeek() {
-  isWeekA = !isWeekA;
+  if (isDeloadWeek) {
+    isDeloadWeek = false;
+  } else {
+    isWeekA = !isWeekA;
+  }
+  setWeekBadge();
+  loadDay(currentDay);
+}
+
+function toggleDeload() {
+  isDeloadWeek = !isDeloadWeek;
   setWeekBadge();
   loadDay(currentDay);
 }
@@ -2007,6 +2115,7 @@ function renderPRList(lifts) {
 function checkForPRs(variant, sessionLogs) {
   const newPRs = [];
   if (variant.tag !== 'heavy') return newPRs; // Only check PRs on heavy days
+  if (isDeloadWeek) return newPRs; // No PRs on deload week
   variant.sections.forEach(section => {
     section.exercises.forEach(ex => {
       const exList = ex.superset ? ex.exercises : [ex];
@@ -2097,6 +2206,40 @@ function deleteSession(histKey, sessionIdx) {
   showToast('Session deleted.');
   // Refresh the day view
   loadDay(currentDay);
+}
+
+
+// ─── DELOAD EXTRAS ────────────────────────────────────────────
+function getDeloadExtras(variantId) {
+  // Return 1-2 extra isolation accessories based on the day type
+  const base = variantId.replace(/-[ab]$/, '');
+  const extras = {
+    'mon-legs': [
+      { id:'dl-adductor', name:'Machine Hip Adduction', note:'Deload extra — inner thigh isolation. Light and controlled, full range.', target:'3 × 15–20', defaultSets:3, relatedId:'hip-abd-mon' },
+      { id:'dl-leg-ext-extra', name:'Leg Extension (Slow)', note:'Deload extra — slow 4-sec eccentric. Focus on quad contraction, not load.', target:'3 × 15', defaultSets:3, relatedId:'leg-ext-mon' },
+    ],
+    'thu-legs': [
+      { id:'dl-ham-curl', name:'Leg Curl (Slow Eccentric)', note:'Deload extra — slow 4-sec down. Hamstring isolation at light weight.', target:'3 × 15', defaultSets:3, relatedId:'seated-curl' },
+      { id:'dl-hip-abd-extra', name:'Cable Hip Abduction', note:'Deload extra — glute med isolation. Light, full range, controlled.', target:'3 × 20 / side', defaultSets:3, relatedId:'hip-abd-thu' },
+    ],
+    'tue-push': [
+      { id:'dl-pec-fly', name:'Cable Fly (Low to High)', note:'Deload extra — chest isolation. Full stretch, squeeze at top. Light weight.', target:'3 × 15', defaultSets:3, relatedId:'cable-fly-htl' },
+      { id:'dl-rear-delt', name:'Rear Delt Fly (Cable)', note:'Deload extra — rear delt health. Pull apart motion, controlled.', target:'3 × 15', defaultSets:3, relatedId:'face-pull-wed' },
+    ],
+    'fri-push': [
+      { id:'dl-cable-lat-extra', name:'Cable Lateral Raise', note:'Deload extra — medial delt isolation. Light, high reps, feel the contraction.', target:'4 × 20 / side', defaultSets:4, relatedId:'cable-lat-raise-tue' },
+      { id:'dl-chest-press-extra', name:'Machine Chest Press', note:'Deload extra — chest pump. Light weight, slow and controlled.', target:'3 × 15', defaultSets:3, relatedId:'incline-smith' },
+    ],
+    'wed-pull': [
+      { id:'dl-incline-curl-extra', name:'Incline Dumbbell Curl', note:'Deload extra — bicep stretch position. Slow eccentric, light weight.', target:'3 × 15 / arm', defaultSets:3, relatedId:'incline-curl' },
+      { id:'dl-straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Deload extra — lat isolation. Arms straight, feel the lat stretch and contract.', target:'3 × 15', defaultSets:3, relatedId:'cable-pullover' },
+    ],
+    'sat-pull': [
+      { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-wed' },
+      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-wed' },
+    ],
+  };
+  return extras[base] || [];
 }
 
 
