@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.44</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.45</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2565,9 +2565,63 @@ async function importData() {
 
   if (!parsed.localStorage) { showToast('Invalid format'); return; }
 
-  // Restore localStorage
+  // Restore localStorage, migrating old hist_session_<day> keys to new hist_session_<muscle>-<tag> format
+  const oldDayToMuscle = {
+    'mon-legs': 'legs', 'thu-legs': 'legs',
+    'tue-push': 'push', 'fri-push': 'push',
+    'wed-pull': 'pull', 'sat-pull': 'pull'
+  };
+
+  const migratedSessions = {}; // muscle-tag -> combined array
+
   Object.entries(parsed.localStorage).forEach(([key, val]) => {
-    localStorage.setItem(key, val);
+    const oldSessionMatch = key.match(/^hist_session_(mon-legs|thu-legs|tue-push|fri-push|wed-pull|sat-pull)$/);
+    if (oldSessionMatch) {
+      const oldDay = oldSessionMatch[1];
+      const muscle = oldDayToMuscle[oldDay];
+      let sessions;
+      try { sessions = JSON.parse(val); } catch(e) { sessions = []; }
+      // Determine heavy/volume tag per session using exercise rep averages as fallback
+      sessions.forEach(session => {
+        // Infer heavy/volume from week label if present, else from rep averages
+        let tag = 'heavy';
+        if (session.week && /VOLUME/i.test(session.week)) tag = 'volume';
+        else if (session.week && /HEAVY/i.test(session.week)) tag = 'heavy';
+        else {
+          // Infer from average reps across all exercises
+          let allReps = [];
+          (session.exercises || []).forEach(ex => {
+            (ex.sets || []).forEach(s => {
+              const r = parseInt(s.reps);
+              if (!isNaN(r)) allReps.push(r);
+            });
+          });
+          const avgReps = allReps.length ? allReps.reduce((a,b)=>a+b,0)/allReps.length : 8;
+          tag = avgReps <= 8 ? 'heavy' : 'volume';
+        }
+        const newKey = 'hist_session_' + muscle + '-' + tag;
+        if (!migratedSessions[newKey]) migratedSessions[newKey] = [];
+        migratedSessions[newKey].push(session);
+      });
+    } else {
+      // Not an old session key - store as-is
+      localStorage.setItem(key, val);
+    }
+  });
+
+  // Merge migrated sessions with any existing data under new keys
+  Object.entries(migratedSessions).forEach(([newKey, newSessions]) => {
+    const existing = JSON.parse(localStorage.getItem(newKey) || '[]');
+    const combined = [...existing, ...newSessions];
+    // Dedupe by date+exercise count, keep most recent 8
+    const seen = new Set();
+    const deduped = combined.filter(s => {
+      const sig = s.date + '_' + (s.exercises ? s.exercises.length : 0);
+      if (seen.has(sig)) return false;
+      seen.add(sig);
+      return true;
+    }).sort((a,b) => a.date > b.date ? 1 : -1).slice(-8);
+    localStorage.setItem(newKey, JSON.stringify(deduped));
   });
 
   // Restore persistent storage
