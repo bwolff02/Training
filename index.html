@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.42</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.44</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1267,7 +1267,7 @@ function appendHistoryAndAddExercise(index, variant) {
   const histSection = document.createElement('div');
   histSection.className = 'history-section';
   
-  const histKey = variant ? 'hist_session_' + variant.id.replace(/-[ab]$/, '') : null;
+  const histKey = variant ? getHistKey(variant) : null;
   const sessions = histKey ? JSON.parse(localStorage.getItem(histKey) || '[]') : [];
   const recent = sessions.slice(-4).reverse();
 
@@ -1290,15 +1290,31 @@ function appendHistoryAndAddExercise(index, variant) {
           <button class="history-edit-btn" onclick="editSession('${histKey}', ${sessionIdx})">✏️ Edit Notes</button>
           <button class="history-edit-btn" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3);" onclick="confirmDeleteSession('${histKey}', ${sessionIdx})">🗑 Delete</button>
         </div>`;
-      (session.exercises || []).forEach(ex => {
+      let lastGroup = null;
+      (session.exercises || []).forEach((ex, exIdx) => {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
         if (!validSets.length) return;
         const setsStr = validSets.map(s => `${s.weight||'BW'}×${s.reps||'?'}`).join('  ');
-        histHtml += `<div class="history-exercise">
+        const hasNotes = validSets.some(s => s.note && s.note.trim());
+        const notesStr = hasNotes ? validSets.filter(s => s.note).map(s => s.note).join(' / ') : '';
+        
+        const inSuperset = !!ex.supersetGroup;
+        const isNewGroup = inSuperset && ex.supersetGroup !== lastGroup;
+        
+        if (isNewGroup) {
+          histHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--blue);letter-spacing:.1em;text-transform:uppercase;margin-top:6px;margin-bottom:2px;">⚡ superset</div>`;
+        }
+        
+        const indentStyle = inSuperset ? 'margin-left:10px;border-left:2px solid rgba(100,180,255,0.3);padding-left:8px;' : '';
+        
+        histHtml += `<div class="history-exercise" style="${indentStyle}">
           <div class="history-exercise-name">${ex.name}</div>
           <div class="history-sets">${setsStr}</div>
+          ${notesStr ? `<div style="font-size:10px;color:var(--muted);font-style:italic;margin-top:2px;">${notesStr}</div>` : ''}
         </div>`;
+        
+        lastGroup = ex.supersetGroup || null;
       });
       histHtml += `</div>`;
     });
@@ -1765,7 +1781,7 @@ async function saveDay() {
     });
   });
   // Save full session to history for past sessions view
-  const histKey = 'hist_session_' + variant.id.replace(/-[ab]$/, '');
+  const histKey = getHistKey(variant);
   const allSessions = JSON.parse(localStorage.getItem(histKey) || '[]');
   
   // Build exercise list for this session
@@ -1956,6 +1972,33 @@ function editSession(histKey, sessionIdx) {
   const overlay = document.createElement('div');
   overlay.className = 'edit-modal-overlay';
   overlay.id = 'edit-modal-overlay';
+
+  let exercisesHtml = '';
+  (session.exercises || []).forEach((ex, exIdx) => {
+    const setsHtml = (ex.sets || []).map((s, si) => `
+      <div class="set-entry">
+        <span class="set-num">S${si+1}</span>
+        <input class="log-input" style="width:70px" type="number" inputmode="decimal" placeholder="lbs"
+          value="${s.weight||''}" onchange="updateEditSet(${exIdx},${si},'weight',this.value)"/>
+        <span style="color:var(--muted);font-size:12px">×</span>
+        <input class="log-input" style="width:55px" type="number" inputmode="numeric" placeholder="reps"
+          value="${s.reps||''}" onchange="updateEditSet(${exIdx},${si},'reps',this.value)"/>
+        <button class="drop-set-remove" onclick="removeEditSet(${exIdx},${si},this)" style="font-size:13px;">✕</button>
+      </div>`).join('');
+
+    exercisesHtml += `
+      <div class="custom-exercise-card" style="margin-bottom:8px;" id="edit-ex-${exIdx}">
+        <div class="custom-exercise-header">
+          <input class="custom-exercise-input" type="text" value="${ex.name}" oninput="updateEditExName(${exIdx}, this.value)"/>
+          <button class="remove-exercise-btn" onclick="document.getElementById('edit-ex-${exIdx}').remove()" title="Remove exercise">✕</button>
+        </div>
+        <div class="log-area">
+          <div id="edit-sets-${exIdx}">${setsHtml}</div>
+          <button class="add-set-btn" onclick="addEditSet(${exIdx})">+ Add Set</button>
+        </div>
+      </div>`;
+  });
+
   overlay.innerHTML = `
     <div class="edit-modal">
       <div class="edit-modal-title">
@@ -1972,11 +2015,14 @@ function editSession(histKey, sessionIdx) {
       </div>
       <div class="edit-modal-label">Session Notes</div>
       <textarea class="edit-notes-ta" id="editNotesTA" placeholder="Add notes about this session...">${session.notes || ''}</textarea>
-      <button class="edit-save-btn" onclick="saveEditSession('${histKey}', ${sessionIdx})">Save</button>
+      <div class="edit-modal-label" style="margin-top:16px;">Exercises &amp; Sets</div>
+      <div id="edit-exercises-list">${exercisesHtml}</div>
+      <button class="edit-save-btn" onclick="saveEditSession('${histKey}', ${sessionIdx})">Save Changes</button>
     </div>
   `;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeEditModal(); });
+  window._editSessionData = JSON.parse(JSON.stringify(session.exercises || []));
 }
 
 function updateEditFeel(val) {
@@ -1986,6 +2032,44 @@ function updateEditFeel(val) {
   if (emojiEl) emojiEl.textContent = getFeel(parseInt(val));
 }
 
+function updateEditExName(exIdx, val) {
+  if (window._editSessionData && window._editSessionData[exIdx]) {
+    window._editSessionData[exIdx].name = val;
+  }
+}
+
+function updateEditSet(exIdx, setIdx, field, val) {
+  if (window._editSessionData && window._editSessionData[exIdx] && window._editSessionData[exIdx].sets[setIdx]) {
+    window._editSessionData[exIdx].sets[setIdx][field] = val;
+  }
+}
+
+function addEditSet(exIdx) {
+  if (!window._editSessionData || !window._editSessionData[exIdx]) return;
+  if (!window._editSessionData[exIdx].sets) window._editSessionData[exIdx].sets = [];
+  const si = window._editSessionData[exIdx].sets.length;
+  window._editSessionData[exIdx].sets.push({ weight: '', reps: '' });
+  const container = document.getElementById('edit-sets-' + exIdx);
+  const div = document.createElement('div');
+  div.className = 'set-entry';
+  div.innerHTML = `<span class="set-num">S${si+1}</span>
+    <input class="log-input" style="width:70px" type="number" inputmode="decimal" placeholder="lbs"
+      onchange="updateEditSet(${exIdx},${si},'weight',this.value)"/>
+    <span style="color:var(--muted);font-size:12px">×</span>
+    <input class="log-input" style="width:55px" type="number" inputmode="numeric" placeholder="reps"
+      onchange="updateEditSet(${exIdx},${si},'reps',this.value)"/>
+    <button class="drop-set-remove" onclick="removeEditSet(${exIdx},${si},this)" style="font-size:13px;">✕</button>`;
+  container.appendChild(div);
+}
+
+function removeEditSet(exIdx, setIdx, btn) {
+  const entry = btn.closest('.set-entry');
+  if (entry) entry.remove();
+  if (window._editSessionData && window._editSessionData[exIdx] && window._editSessionData[exIdx].sets) {
+    window._editSessionData[exIdx].sets[setIdx] = { weight: '', reps: '' };
+  }
+}
+
 function saveEditSession(histKey, sessionIdx) {
   const sessions = JSON.parse(localStorage.getItem(histKey) || '[]');
   if (!sessions[sessionIdx]) return;
@@ -1993,9 +2077,20 @@ function saveEditSession(histKey, sessionIdx) {
   const notesEl = document.getElementById('editNotesTA');
   if (feelEl) sessions[sessionIdx].feel = parseInt(feelEl.value);
   if (notesEl) sessions[sessionIdx].notes = notesEl.value;
+
+  // Save exercise edits - only keep exercises whose cards still exist in DOM
+  if (window._editSessionData) {
+    const updatedExercises = window._editSessionData.filter((ex, exIdx) => {
+      return !!document.getElementById('edit-ex-' + exIdx);
+    }).map(ex => ({
+      ...ex,
+      sets: (ex.sets || []).filter(s => s.weight || s.reps)
+    })).filter(ex => ex.sets.length > 0);
+    sessions[sessionIdx].exercises = updatedExercises;
+  }
+
   localStorage.setItem(histKey, JSON.stringify(sessions));
   closeEditModal();
-  // Refresh the day view to show updated notes
   loadDay(currentDay);
   showToast('Session updated!');
 }
@@ -2487,6 +2582,19 @@ async function importData() {
 
   showToast('Data restored! Reload the page.');
   setTimeout(() => location.reload(), 1500);
+}
+
+
+function getMuscleGroupFromId(variantId) {
+  if (variantId.includes('legs')) return 'legs';
+  if (variantId.includes('push')) return 'push';
+  if (variantId.includes('pull')) return 'pull';
+  return variantId.replace(/-[ab]$/, '');
+}
+
+function getHistKey(variant) {
+  const muscleGroup = getMuscleGroupFromId(variant.id);
+  return 'hist_session_' + muscleGroup + '-' + variant.tag;
 }
 
 
