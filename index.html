@@ -168,15 +168,18 @@
   .superset-mode-cancel {
     background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;
   }
-  .exercise-card.superset-pick-target {
+  .exercise-card.superset-pick-target,
+  .custom-exercise-card.superset-pick-target {
     border: 1px dashed rgba(100,180,255,0.6) !important;
     cursor:pointer;
   }
-  .exercise-card.superset-pick-target:hover {
+  .exercise-card.superset-pick-target:hover,
+  .custom-exercise-card.superset-pick-target:hover {
     border-color: var(--blue) !important;
     background: rgba(100,180,255,0.05);
   }
-  .exercise-card.superset-selected {
+  .exercise-card.superset-selected,
+  .custom-exercise-card.superset-selected {
     border: 2px solid var(--blue) !important;
   }
 
@@ -609,6 +612,48 @@
   }
   .week-badge.deload { background: rgba(255,159,67,0.1); color: var(--orange); border: 1px solid rgba(255,159,67,0.4); }
 
+
+  .save-success-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13,13,13,0.95);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    animation: fadeInSuccess 0.2s ease;
+  }
+  @keyframes fadeInSuccess {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .save-success-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: popIn 0.4s ease;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .save-success-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: .05em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .save-success-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.6;
+  }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -620,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.38</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.42</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1302,8 +1347,9 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets) {
   card.className = 'custom-exercise-card';
   card.id = 'custom-ex-' + idx;
 
-  let setsHtml = (existingSets && existingSets.length ? existingSets : [{ weight: '', reps: '' }]).map((s, si) => `
-    <div class="set-entry">
+  let setsHtml = (existingSets && existingSets.length ? existingSets : [{ weight: '', reps: '' }]).map((s, si) => {
+    const hasNote = s.note && s.note.trim().length > 0;
+    return `<div class="set-entry">
       <span class="set-num">S${si+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
         value="${s.weight||''}" onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
@@ -1311,15 +1357,26 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets) {
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
         value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
       <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
+      <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>
     </div>
-    <div id="custom-drops-${idx}-${si}-0"></div>`).join('');
+    <div class="set-notes-area ${hasNote ? 'open' : ''}" id="custom-set-note-area-${idx}-${si}">
+      <textarea class="set-note-input" placeholder="How did that feel? Anything to note..."
+        oninput="updateCustomSetNote(${idx}, ${si}, this.value)">${s.note || ''}</textarea>
+    </div>
+    <div id="custom-drops-${idx}-${si}-0"></div>`;
+  }).join('');
 
+  card.style.position = 'relative';
+  card.dataset.anchor = '0';
   card.innerHTML = `
-    <div class="custom-exercise-header">
+    <button class="promote-btn" onclick="toggleAnchor(this)" title="Promote to anchor" style="position:absolute;top:8px;right:84px;width:22px;height:22px;background:var(--card2);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
+    <button class="move-btn move-btn-up" onclick="moveCard(this, -1)" title="Move up">▲</button>
+    <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down">▼</button>
+    <button class="delete-exercise-btn" onclick="removeCustomExercise(${idx})" title="Remove">✕</button>
+    <div class="custom-exercise-header" style="padding-right:114px;">
       <input class="custom-exercise-input" type="text" placeholder="Exercise name"
         value="${name === 'Exercise Name' ? '' : name}"
         oninput="updateCustomName(${idx}, this.value)" />
-      <button class="remove-exercise-btn" onclick="removeCustomExercise(${idx})">✕</button>
     </div>
     <div class="log-area">
       <div id="custom-sets-${idx}">${setsHtml}</div>
@@ -1356,12 +1413,37 @@ function addCustomSet(idx) {
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
       onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
-    <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>`;
+    <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
+    <button class="set-notes-toggle" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>`;
   container.appendChild(div);
+  const noteArea = document.createElement('div');
+  noteArea.className = 'set-notes-area';
+  noteArea.id = `custom-set-note-area-${idx}-${si}`;
+  noteArea.innerHTML = `<textarea class="set-note-input" placeholder="How did that feel? Anything to note..." oninput="updateCustomSetNote(${idx}, ${si}, this.value)"></textarea>`;
+  container.appendChild(noteArea);
   const dropContainer = document.createElement('div');
   dropContainer.id = `custom-drops-${idx}-${si}-0`;
   container.appendChild(dropContainer);
 }
+
+function toggleCustomSetNote(btn, exIdx, setIdx) {
+  const areaId = `custom-set-note-area-${exIdx}-${setIdx}`;
+  const area = document.getElementById(areaId);
+  if (!area) return;
+  const isOpen = area.classList.contains('open');
+  area.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    const ta = area.querySelector('textarea');
+    if (ta) setTimeout(() => ta.focus(), 50);
+  }
+}
+
+function updateCustomSetNote(exIdx, setIdx, value) {
+  if (!sessionLogs._custom || !sessionLogs._custom[exIdx]) return;
+  if (!sessionLogs._custom[exIdx].sets[setIdx]) return;
+  sessionLogs._custom[exIdx].sets[setIdx].note = value;
+}
+
 
 function addCustomDropSet(exIdx, setIdx, dropIdx, btn) {
   if (!sessionLogs._custom || !sessionLogs._custom[exIdx]) return;
@@ -1711,7 +1793,7 @@ async function saveDay() {
   if (sessionExercises.length) {
     allSessions.push({
       date: sessionLogs._date,
-      week: isWeekA ? 'WEEK A' : 'WEEK B',
+      week: (variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B'),
       feel: sessionLogs._feel || null,
       notes: sessionLogs._notes || '',
       exercises: sessionExercises
@@ -1724,12 +1806,50 @@ async function saveDay() {
   const newPRs = checkForPRs(variant, sessionLogs);
   const dot = document.getElementById('dot-' + currentDay);
   if (dot) dot.classList.add('has-log');
-  if (newPRs.length > 0) {
-    const p = newPRs[0];
-    showToast('🏆 ' + (newPRs.length === 1 ? p.name + ' ' + p.weight + 'lbs × ' + p.reps + '!' : newPRs.length + ' new PRs!'));
-  } else {
-    showToast('Workout saved!');
-  }
+
+  const prMsg = newPRs.length > 0
+    ? (newPRs.length === 1 ? '🏆 New PR — ' + newPRs[0].name + ' ' + newPRs[0].weight + 'lbs × ' + newPRs[0].reps + '!' : '🏆 ' + newPRs.length + ' New PRs this session!')
+    : null;
+
+  showSaveSuccess(prMsg);
+
+  // Clear the session inputs since this workout is now saved
+  sessionLogs = {};
+  setTimeout(() => {
+    loadDay(currentDay);
+  }, 1400);
+}
+
+function showSaveSuccess(prMsg) {
+  const existing = document.getElementById('save-success-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'save-success-overlay';
+  overlay.className = 'save-success-overlay';
+
+  const icon = document.createElement('div');
+  icon.className = 'save-success-icon';
+  icon.textContent = prMsg ? '🏆' : '✓';
+
+  const title = document.createElement('div');
+  title.className = 'save-success-title';
+  title.textContent = 'SAVED';
+
+  const subtitle = document.createElement('div');
+  subtitle.className = 'save-success-subtitle';
+  subtitle.textContent = prMsg ? prMsg : 'Workout logged successfully. Inputs cleared for your next session.';
+
+  overlay.appendChild(icon);
+  overlay.appendChild(title);
+  overlay.appendChild(subtitle);
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.style.transition = 'opacity 0.3s ease';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 300);
+  }, 1200);
 }
 
 function clearDay() {
@@ -2516,8 +2636,8 @@ function startPairMode(dayIndex) {
     <button class="superset-mode-cancel" onclick="cancelPairMode(${dayIndex})">✕ Cancel</button>
   </div>`;
 
-  // Add pick styling to all exercise cards
-  document.querySelectorAll('.exercise-card').forEach(card => {
+  // Add pick styling to all exercise cards AND custom exercise cards
+  document.querySelectorAll('.exercise-card, .custom-exercise-card').forEach(card => {
     card.classList.add('superset-pick-target');
     card.addEventListener('click', handlePairClick);
   });
@@ -2528,7 +2648,7 @@ function cancelPairMode(dayIndex) {
   pairSelectedCard = null;
   const banner = document.getElementById('superset-mode-banner-' + dayIndex);
   if (banner) banner.innerHTML = '';
-  document.querySelectorAll('.exercise-card').forEach(card => {
+  document.querySelectorAll('.exercise-card, .custom-exercise-card').forEach(card => {
     card.classList.remove('superset-pick-target', 'superset-selected');
     card.removeEventListener('click', handlePairClick);
   });
