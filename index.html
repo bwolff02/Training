@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.45</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.50</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -800,11 +800,11 @@ const PROGRAM = [
   {
     label: 'WED · Pull',
     weekA: {
-      id: 'wed-pull-b', title: 'PULL', subtitle: 'Row Primary — Volume', tag: 'volume',
+      id: 'wed-pull-b', title: 'PULL', subtitle: 'Lat Primary — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'diverg-row-wed', name:'Diverging Seated Row', note:'2 working sets + 1 back-off. Drive elbows back hard. Volume focus.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'cable-row-wide-wed', name:'Seated Cable Row (Wide Grip)', note:'2 working sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Lat focus — Week B volume. Lighter weight than heavy day, higher reps. Full dead hang, chin over bar.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'2 working sets + 1 back-off. Pull to upper chest, full stretch at top. Higher reps than heavy day.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown-b', name:'Close Grip Lat Pulldown', note:'Neutral close grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
@@ -821,8 +821,7 @@ const PROGRAM = [
       id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'barbell-row', name:'Barbell Row', note:'Leads today — Week B. 2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Lat focus — Week A heavy. 2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'lat-pulldown', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
@@ -932,12 +931,11 @@ const PROGRAM = [
   {
     label: 'SAT · Pull',
     weekA: {
-      id: 'sat-pull-b', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
+      id: 'sat-pull-b', title: 'PULL', subtitle: 'Row Primary — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup-sat', name:'Weighted Pull Ups', note:'Leads today — Week A. 2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'barbell-row-sat', name:'Barbell Row', note:'2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'lat-pulldown-sat', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'barbell-row-sat', name:'Barbell Row', note:'Row focus — Week B heavy. 2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'cable-row-wide-sat-heavy', name:'Seated Cable Row (Wide Grip)', note:'2 heavy top sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'cable-pullover-sat', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
@@ -952,11 +950,12 @@ const PROGRAM = [
       id: 'sat-pull-a', title: 'PULL', subtitle: 'Row Primary — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'diverg-row', name:'Diverging Seated Row', note:'2 working sets + 1 back-off. Drive elbows back hard. Volume focus.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'barbell-row-vol-sat', name:'Barbell Row', note:'Row focus — Week A volume. 2 working sets + 1 back-off. Higher reps than heavy day, overhand grip, drive elbows back.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
           { id:'cable-row-wide', name:'Seated Cable Row (Wide Grip)', note:'2 working sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Neutral grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
+          { id:'diverg-row-sat-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row. Drive elbows back hard.', target:'3 × 12–15', defaultSets:3 },
           { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
           { id:'face-pull-sat', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
           { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
@@ -1049,12 +1048,18 @@ const HISTORY = {
   'tri-overhead':    [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
   'tri-overhead-b':  [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
   'wtd-pullup':      [{ date:'2026-06-03', sets:[{weight:35,reps:8},{weight:35,reps:8}]}, {date:'2026-04-16', sets:[{weight:45,reps:5},{weight:45,reps:6}]}],
+  'wtd-pullup-vol-wed': [{ date:'2026-04-16', sets:[{weight:25,reps:10},{weight:25,reps:10}]}],
+  'wtd-pullup-vol-sat': [{ date:'2026-04-16', sets:[{weight:25,reps:10},{weight:25,reps:10}]}],
   'wtd-pullup-sat':  [{ date:'2026-06-03', sets:[{weight:35,reps:8},{weight:35,reps:8}]}, {date:'2026-04-16', sets:[{weight:45,reps:5},{weight:45,reps:6}]}],
   'lat-pulldown':    [{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
+  'lat-pulldown-vol-wed': [{ date:'2026-06-03', sets:[{weight:145,reps:10},{weight:145,reps:10}]}],
+  'cable-row-wide-sat-heavy': [{ date:'2026-06-03', sets:[{weight:145,reps:8},{weight:145,reps:7}]}],
   'lat-pulldown-sat':[{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
   'cable-row-close': [{ date:'2026-06-03', sets:[{weight:110,reps:6},{weight:110,reps:7}]}],
   'cable-row-close-sat':[{ date:'2026-06-03', sets:[{weight:110,reps:6},{weight:110,reps:7}]}],
   'barbell-row':     [{ date:'2026-06-03', sets:[{weight:185,reps:8},{weight:205,reps:7}]}, {date:'2026-05-25', sets:[{weight:185,reps:8},{weight:195,reps:8}]}],
+  'barbell-row-vol-wed': [{ date:'2026-05-25', sets:[{weight:175,reps:10},{weight:175,reps:10}]}],
+  'barbell-row-vol-sat': [{ date:'2026-05-25', sets:[{weight:175,reps:10},{weight:175,reps:10}]}],
   'barbell-row-sat': [{ date:'2026-06-03', sets:[{weight:185,reps:8},{weight:205,reps:7}]}, {date:'2026-05-25', sets:[{weight:185,reps:8},{weight:195,reps:8}]}],
   'cable-pullover':  [{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
   'cable-pullover-sat':[{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
@@ -1070,8 +1075,8 @@ const HISTORY = {
   'shrug-wed-b':     [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
   'shrug-sat':       [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
   'shrug-sat-b':     [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
-  'diverg-row':      [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
-  'diverg-row-wed':  [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
+  'diverg-row-wed-acc': [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
+  'diverg-row-sat-acc': [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
   'cable-row-wide':  [{ date:'2026-05-28', sets:[{weight:115,reps:6},{weight:115,reps:8}]}],
   'cable-row-wide-wed':[{ date:'2026-05-28', sets:[{weight:115,reps:6},{weight:115,reps:8}]}],
   'close-pulldown':  [{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
@@ -1786,23 +1791,38 @@ async function saveDay() {
   
   // Build exercise list for this session
   const sessionExercises = [];
+  let supersetGroupCounter = 0;
   variant.sections.forEach(section => {
     section.exercises.forEach(ex => {
       const exList = ex.superset ? ex.exercises : [ex];
+      const groupId = ex.superset ? ('ss-' + (supersetGroupCounter++)) : null;
       exList.forEach(e => {
         const log = sessionLogs[e.id];
         if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
           const customName = localStorage.getItem('name_' + e.id);
-          sessionExercises.push({ name: customName || e.name, sets: log.sets });
+          sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: groupId });
         }
       });
     });
   });
-  
-  // Add custom exercises
-  (sessionLogs._custom || []).filter(Boolean).forEach(ex => {
+
+  // Add custom exercises - detect superset pairing from DOM structure
+  const customList = document.getElementById('custom-list-' + currentDay);
+  const customSupersetMap = {}; // custom array index -> group id
+  if (customList) {
+    let domGroupCounter = 1000; // offset to avoid collision with preset group ids
+    customList.querySelectorAll('.superset-block').forEach(block => {
+      const groupId = 'ss-custom-' + (domGroupCounter++);
+      block.querySelectorAll('.custom-exercise-card').forEach(card => {
+        const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
+        if (idx !== null && !isNaN(idx)) customSupersetMap[idx] = groupId;
+      });
+    });
+  }
+
+  (sessionLogs._custom || []).filter(Boolean).forEach((ex, idx) => {
     if (ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
-      sessionExercises.push(ex);
+      sessionExercises.push({ ...ex, supersetGroup: customSupersetMap[idx] || null });
     }
   });
 
@@ -2116,7 +2136,7 @@ const ANCHOR_LIFTS = [
   { id: 'barbell-row', name: 'Barbell Row' },
   { id: 'lat-pulldown', name: 'Lat Pulldown' },
   { id: 'cable-row-close', name: 'Seated Cable Row' },
-  { id: 'diverg-row', name: 'Diverging Row' },
+  { id: 'barbell-row-vol-wed', name: 'Barbell Row (Volume)' },
   { id: 'skull-crusher', name: 'Skull Crusher' },
 ];
 
@@ -2703,16 +2723,31 @@ function toggleAnchor(btn) {
 
 
 function moveCard(btn, direction) {
-  const card = btn.closest('.exercise-card');
+  let card = btn.closest('.exercise-card, .custom-exercise-card');
   if (!card) return;
+
+  const supersetParent = card.closest('.superset-block');
+  if (supersetParent) {
+    card = supersetParent;
+  }
+
   const parent = card.parentNode;
-  // Get only direct exercise-card children (not nested in superset)
-  const siblings = [...parent.children].filter(el => el.classList.contains('exercise-card') || el.classList.contains('superset-block'));
+  if (!parent) return;
+
+  const siblings = [...parent.children].filter(el =>
+    el.classList.contains('exercise-card') ||
+    el.classList.contains('custom-exercise-card') ||
+    el.classList.contains('superset-block')
+  );
+
   const idx = siblings.indexOf(card);
+  if (idx === -1) return;
+
   if (direction === -1 && idx > 0) {
     parent.insertBefore(card, siblings[idx - 1]);
   } else if (direction === 1 && idx < siblings.length - 1) {
-    parent.insertBefore(card, siblings[idx + 2] || null);
+    const nextSibling = siblings[idx + 1];
+    parent.insertBefore(card, nextSibling.nextSibling);
   }
 }
 
