@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.50</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.51</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1094,6 +1094,7 @@ const HISTORY = {
 // ─── STATE ────────────────────────────────────────────────────
 let currentDay = 0;
 let sessionLogs = {};
+let justSavedDay = null; // index of day just saved, to force blank reload
 
 // ─── INIT ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1158,15 +1159,18 @@ async function loadDay(index) {
   const saved = await loadFromDB('log_' + variant.id);
   const today = new Date().toISOString().split('T')[0];
 
-  // If saved log is from a previous date, clear inputs but keep history
-  if (saved && saved._date && saved._date !== today) {
+  if (justSavedDay === index) {
+    // Just saved this day - force blank inputs regardless of date match
+    sessionLogs = {};
+    justSavedDay = null;
+  } else if (saved && saved._date && saved._date !== today) {
+    // Saved log is from a previous date - clear inputs but keep history
     sessionLogs = {};
   } else {
     sessionLogs = saved || {};
   }
 
   const dot = document.getElementById('dot-' + index);
-  // Only show green dot if logged today
   if (dot) dot.classList.toggle('has-log', !!(saved && saved._date === today));
   renderDay(index);
 }
@@ -1851,6 +1855,7 @@ async function saveDay() {
 
   // Clear the session inputs since this workout is now saved
   sessionLogs = {};
+  justSavedDay = currentDay;
   setTimeout(() => {
     loadDay(currentDay);
   }, 1400);
