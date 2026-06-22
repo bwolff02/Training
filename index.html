@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.51</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.52</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1853,12 +1853,10 @@ async function saveDay() {
 
   showSaveSuccess(prMsg);
 
-  // Clear the session inputs since this workout is now saved
+  // Clear the session inputs since this workout is now saved - render immediately
   sessionLogs = {};
   justSavedDay = currentDay;
-  setTimeout(() => {
-    loadDay(currentDay);
-  }, 1400);
+  renderDay(currentDay); // immediate re-render with blank inputs, no delay
 }
 
 function showSaveSuccess(prMsg) {
