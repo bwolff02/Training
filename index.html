@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.52</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.53</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1769,94 +1769,97 @@ async function saveDay() {
   const day = PROGRAM[currentDay];
   if (day.rest) return;
   const variant = getCurrentVariant(currentDay);
-  const dateEl = document.getElementById('sessionDate');
-  sessionLogs._date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
-  const feelEl = document.getElementById('feelSlider');
-  const notesEl = document.getElementById('sessionNotes');
-  if (feelEl) sessionLogs._feel = parseInt(feelEl.value);
-  if (notesEl) sessionLogs._notes = notesEl.value;
-  await saveToDB('log_' + variant.id, sessionLogs);
-  variant.sections.forEach(section => {
-    section.exercises.forEach(ex => {
-      const exercises = ex.superset ? ex.exercises : [ex];
-      exercises.forEach(e => {
-        if (sessionLogs[e.id] && sessionLogs[e.id].sets && sessionLogs[e.id].sets.length) {
-          const hist = JSON.parse(localStorage.getItem('hist_' + e.id) || '[]');
-          hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[e.id].sets || []).map(s => s.note || '').filter(Boolean) });
-          if (hist.length > 12) hist.shift();
-          localStorage.setItem('hist_' + e.id, JSON.stringify(hist));
-        }
-      });
-    });
-  });
-  // Save full session to history for past sessions view
-  const histKey = getHistKey(variant);
-  const allSessions = JSON.parse(localStorage.getItem(histKey) || '[]');
-  
-  // Build exercise list for this session
-  const sessionExercises = [];
-  let supersetGroupCounter = 0;
-  variant.sections.forEach(section => {
-    section.exercises.forEach(ex => {
-      const exList = ex.superset ? ex.exercises : [ex];
-      const groupId = ex.superset ? ('ss-' + (supersetGroupCounter++)) : null;
-      exList.forEach(e => {
-        const log = sessionLogs[e.id];
-        if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
-          const customName = localStorage.getItem('name_' + e.id);
-          sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: groupId });
-        }
-      });
-    });
-  });
+  const savedDayIndex = currentDay;
+  let prMsg = null;
 
-  // Add custom exercises - detect superset pairing from DOM structure
-  const customList = document.getElementById('custom-list-' + currentDay);
-  const customSupersetMap = {}; // custom array index -> group id
-  if (customList) {
-    let domGroupCounter = 1000; // offset to avoid collision with preset group ids
-    customList.querySelectorAll('.superset-block').forEach(block => {
-      const groupId = 'ss-custom-' + (domGroupCounter++);
-      block.querySelectorAll('.custom-exercise-card').forEach(card => {
-        const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
-        if (idx !== null && !isNaN(idx)) customSupersetMap[idx] = groupId;
+  try {
+    const dateEl = document.getElementById('sessionDate');
+    sessionLogs._date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
+    const feelEl = document.getElementById('feelSlider');
+    const notesEl = document.getElementById('sessionNotes');
+    if (feelEl) sessionLogs._feel = parseInt(feelEl.value);
+    if (notesEl) sessionLogs._notes = notesEl.value;
+    await saveToDB('log_' + variant.id, sessionLogs);
+
+    variant.sections.forEach(section => {
+      section.exercises.forEach(ex => {
+        const exercises = ex.superset ? ex.exercises : [ex];
+        exercises.forEach(e => {
+          if (sessionLogs[e.id] && sessionLogs[e.id].sets && sessionLogs[e.id].sets.length) {
+            const hist = JSON.parse(localStorage.getItem('hist_' + e.id) || '[]');
+            hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[e.id].sets || []).map(s => s.note || '').filter(Boolean) });
+            if (hist.length > 12) hist.shift();
+            localStorage.setItem('hist_' + e.id, JSON.stringify(hist));
+          }
+        });
       });
     });
-  }
 
-  (sessionLogs._custom || []).filter(Boolean).forEach((ex, idx) => {
-    if (ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
-      sessionExercises.push({ ...ex, supersetGroup: customSupersetMap[idx] || null });
+    const histKey = getHistKey(variant);
+    const allSessions = JSON.parse(localStorage.getItem(histKey) || '[]');
+
+    const sessionExercises = [];
+    let supersetGroupCounter = 0;
+    variant.sections.forEach(section => {
+      section.exercises.forEach(ex => {
+        const exList = ex.superset ? ex.exercises : [ex];
+        const groupId = ex.superset ? ('ss-' + (supersetGroupCounter++)) : null;
+        exList.forEach(e => {
+          const log = sessionLogs[e.id];
+          if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
+            const customName = localStorage.getItem('name_' + e.id);
+            sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: groupId });
+          }
+        });
+      });
+    });
+
+    const customList = document.getElementById('custom-list-' + savedDayIndex);
+    const customSupersetMap = {};
+    if (customList) {
+      let domGroupCounter = 1000;
+      customList.querySelectorAll('.superset-block').forEach(block => {
+        const groupId = 'ss-custom-' + (domGroupCounter++);
+        block.querySelectorAll('.custom-exercise-card').forEach(card => {
+          const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
+          if (idx !== null && !isNaN(idx)) customSupersetMap[idx] = groupId;
+        });
+      });
     }
-  });
 
-  if (sessionExercises.length) {
-    allSessions.push({
-      date: sessionLogs._date,
-      week: (variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B'),
-      feel: sessionLogs._feel || null,
-      notes: sessionLogs._notes || '',
-      exercises: sessionExercises
+    (sessionLogs._custom || []).filter(Boolean).forEach((ex, idx) => {
+      if (ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
+        sessionExercises.push({ ...ex, supersetGroup: customSupersetMap[idx] || null });
+      }
     });
-    if (allSessions.length > 8) allSessions.shift();
-    localStorage.setItem(histKey, JSON.stringify(allSessions));
+
+    if (sessionExercises.length) {
+      allSessions.push({
+        date: sessionLogs._date,
+        week: (variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B'),
+        feel: sessionLogs._feel || null,
+        notes: sessionLogs._notes || '',
+        exercises: sessionExercises
+      });
+      if (allSessions.length > 8) allSessions.shift();
+      localStorage.setItem(histKey, JSON.stringify(allSessions));
+    }
+
+    const newPRs = checkForPRs(variant, sessionLogs);
+    prMsg = newPRs.length > 0
+      ? (newPRs.length === 1 ? '🏆 New PR — ' + newPRs[0].name + ' ' + newPRs[0].weight + 'lbs × ' + newPRs[0].reps + '!' : '🏆 ' + newPRs.length + ' New PRs this session!')
+      : null;
+  } catch (err) {
+    console.error('saveDay error (data was still saved, continuing to clear):', err);
   }
 
-  // Check for PRs
-  const newPRs = checkForPRs(variant, sessionLogs);
-  const dot = document.getElementById('dot-' + currentDay);
+  // ALWAYS run, even if something above threw an error
+  const dot = document.getElementById('dot-' + savedDayIndex);
   if (dot) dot.classList.add('has-log');
-
-  const prMsg = newPRs.length > 0
-    ? (newPRs.length === 1 ? '🏆 New PR — ' + newPRs[0].name + ' ' + newPRs[0].weight + 'lbs × ' + newPRs[0].reps + '!' : '🏆 ' + newPRs.length + ' New PRs this session!')
-    : null;
-
   showSaveSuccess(prMsg);
-
-  // Clear the session inputs since this workout is now saved - render immediately
   sessionLogs = {};
-  justSavedDay = currentDay;
-  renderDay(currentDay); // immediate re-render with blank inputs, no delay
+  justSavedDay = savedDayIndex;
+  renderDay(savedDayIndex);
 }
 
 function showSaveSuccess(prMsg) {
