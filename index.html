@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.53</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.56</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1219,8 +1219,12 @@ function renderDay(index) {
       oninput="sessionLogs._notes = this.value">${savedNotes}</textarea>
   </div>`;
 
-  variant.sections.forEach(section => {
-    html += `<div class="section"><div class="section-label">${section.label}</div>`;
+  let accessoriesSectionId = null;
+  variant.sections.forEach((section, sIdx) => {
+    const isLastSection = sIdx === variant.sections.length - 1;
+    const sectionId = isLastSection ? `section-accessories-${index}` : '';
+    if (isLastSection) accessoriesSectionId = sectionId;
+    html += `<div class="section"${sectionId ? ` id="${sectionId}"` : ''}><div class="section-label">${section.label}</div>`;
     section.exercises.forEach(ex => {
       if (ex.superset) {
         html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
@@ -1253,15 +1257,17 @@ function renderDay(index) {
 
 function appendHistoryAndAddExercise(index, variant) {
   const main = document.getElementById('mainContent');
-  
+  const accessoriesId = `section-accessories-${index}`;
+
   // --- ADD EXERCISE SECTION ---
+  // New exercises append directly into the Accessories section so they're mixed
+  // in with everything else and can be moved up/down relative to other cards.
   const addSection = document.createElement('div');
   addSection.className = 'add-exercise-section';
   addSection.innerHTML = `
-    <button class="add-exercise-btn" onclick="addCustomExercise('custom-list-${index}')">+ Add Exercise</button>
-    <button class="add-superset-btn" onclick="addCustomSuperset('custom-list-${index}', ${index})">⚡ Add Superset</button>
+    <button class="add-exercise-btn" onclick="addCustomExercise('${accessoriesId}')">+ Add Exercise</button>
+    <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">⚡ Add Superset</button>
     <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">🔗 Pair Existing Exercises</button>
-    <div id="custom-list-${index}"></div>
     <div id="superset-mode-banner-${index}"></div>
   `;
   main.appendChild(addSection);
@@ -1269,7 +1275,7 @@ function appendHistoryAndAddExercise(index, variant) {
   // Restore any already-added custom exercises for this session
   const customExercises = sessionLogs._custom || [];
   customExercises.forEach((ex, i) => {
-    appendCustomExerciseCard(index, i, ex.name, ex.sets);
+    appendCustomExerciseCard(index, i, ex.name, ex.sets, accessoriesId);
   });
 
   // --- HISTORY SECTION ---
@@ -1362,11 +1368,11 @@ function addCustomExercise(listId) {
   if (!sessionLogs._custom) sessionLogs._custom = [];
   const idx = sessionLogs._custom.length;
   sessionLogs._custom.push({ name: 'Exercise Name', sets: [{ weight: '', reps: '' }] });
-  appendCustomExerciseCard(currentDay, idx, 'Exercise Name', []);
+  appendCustomExerciseCard(currentDay, idx, 'Exercise Name', [], listId);
 }
 
-function appendCustomExerciseCard(dayIndex, idx, name, existingSets) {
-  const list = document.getElementById('custom-list-' + dayIndex);
+function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
+  const list = document.getElementById(listId || ('custom-list-' + dayIndex));
   if (!list) return;
   const card = document.createElement('div');
   card.className = 'custom-exercise-card';
@@ -1798,38 +1804,46 @@ async function saveDay() {
     const histKey = getHistKey(variant);
     const allSessions = JSON.parse(localStorage.getItem(histKey) || '[]');
 
+    // Build superset group map by reading the LIVE DOM, not the static program data.
+    // This captures the actual on-screen arrangement including any pairs made via
+    // "Pair Existing Exercises" or "Add Superset", and reflects manual reordering.
+    const mainEl = document.getElementById('mainContent');
+    const exIdToGroup = {};       // preset exercise id -> group id
+    const customIdxToGroup = {};  // custom exercise array index -> group id
+    let domGroupCounter = 0;
+
+    if (mainEl) {
+      mainEl.querySelectorAll('.superset-block').forEach(block => {
+        const groupId = 'ss-' + (domGroupCounter++);
+        // Preset cards inside this block
+        block.querySelectorAll('.exercise-card[data-exid]').forEach(card => {
+          exIdToGroup[card.dataset.exid] = groupId;
+        });
+        // Custom cards inside this block
+        block.querySelectorAll('.custom-exercise-card').forEach(card => {
+          const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
+          if (idx !== null && !isNaN(idx)) customIdxToGroup[idx] = groupId;
+        });
+      });
+    }
+
     const sessionExercises = [];
-    let supersetGroupCounter = 0;
     variant.sections.forEach(section => {
       section.exercises.forEach(ex => {
         const exList = ex.superset ? ex.exercises : [ex];
-        const groupId = ex.superset ? ('ss-' + (supersetGroupCounter++)) : null;
         exList.forEach(e => {
           const log = sessionLogs[e.id];
           if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
             const customName = localStorage.getItem('name_' + e.id);
-            sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: groupId });
+            sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: exIdToGroup[e.id] || null });
           }
         });
       });
     });
 
-    const customList = document.getElementById('custom-list-' + savedDayIndex);
-    const customSupersetMap = {};
-    if (customList) {
-      let domGroupCounter = 1000;
-      customList.querySelectorAll('.superset-block').forEach(block => {
-        const groupId = 'ss-custom-' + (domGroupCounter++);
-        block.querySelectorAll('.custom-exercise-card').forEach(card => {
-          const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
-          if (idx !== null && !isNaN(idx)) customSupersetMap[idx] = groupId;
-        });
-      });
-    }
-
     (sessionLogs._custom || []).filter(Boolean).forEach((ex, idx) => {
       if (ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
-        sessionExercises.push({ ...ex, supersetGroup: customSupersetMap[idx] || null });
+        sessionExercises.push({ ...ex, supersetGroup: customIdxToGroup[idx] || null });
       }
     });
 
@@ -2702,7 +2716,7 @@ function updateSetNote(exId, setIdx, value) {
 
 
 function toggleAnchor(btn) {
-  const card = btn.closest('.exercise-card');
+  const card = btn.closest('.exercise-card, .custom-exercise-card');
   if (!card) return;
   const isAnchor = card.dataset.anchor === '1';
   if (isAnchor) {
@@ -2762,14 +2776,13 @@ function moveCard(btn, direction) {
 function addCustomSuperset(listId, dayIndex) {
   if (!sessionLogs._custom) sessionLogs._custom = [];
   const idx = sessionLogs._custom.length;
-  // Add two blank exercises as a superset pair
   sessionLogs._custom.push({ name: 'Exercise A', sets: [{ weight: '', reps: '' }], supersetPair: idx + 1 });
   sessionLogs._custom.push({ name: 'Exercise B', sets: [{ weight: '', reps: '' }], supersetPair: idx });
-  appendCustomSupersetCard(dayIndex, idx, idx + 1, '', '', [], []);
+  appendCustomSupersetCard(dayIndex, idx, idx + 1, '', '', [], [], listId);
 }
 
-function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, setsB) {
-  const list = document.getElementById('custom-list-' + dayIndex);
+function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, setsB, listId) {
+  const list = document.getElementById(listId || ('custom-list-' + dayIndex));
   if (!list) return;
 
   const wrapper = document.createElement('div');
