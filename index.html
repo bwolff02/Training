@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.56</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.60</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1221,9 +1221,11 @@ function renderDay(index) {
 
   let accessoriesSectionId = null;
   variant.sections.forEach((section, sIdx) => {
-    const isLastSection = sIdx === variant.sections.length - 1;
-    const sectionId = isLastSection ? `section-accessories-${index}` : '';
-    if (isLastSection) accessoriesSectionId = sectionId;
+    // Target the actual "Accessories" section by label, not just whichever
+    // section happens to be last (legs days have an Abs section after it).
+    const isAccessoriesSection = section.label === 'Accessories';
+    const sectionId = isAccessoriesSection ? `section-accessories-${index}` : '';
+    if (isAccessoriesSection) accessoriesSectionId = sectionId;
     html += `<div class="section"${sectionId ? ` id="${sectionId}"` : ''}><div class="section-label">${section.label}</div>`;
     section.exercises.forEach(ex => {
       if (ex.superset) {
@@ -1239,6 +1241,12 @@ function renderDay(index) {
     });
     html += `</div>`;
   });
+
+  // Fallback: if no section was labeled "Accessories", use the last rendered
+  // section so the Add Exercise / Add Superset buttons always have a target.
+  if (!accessoriesSectionId && variant.sections.length) {
+    accessoriesSectionId = `section-accessories-${index}`;
+  }
 
   // Deload extras - extra accessories only shown during deload week
   if (isDeloadWeek) {
@@ -1282,8 +1290,7 @@ function appendHistoryAndAddExercise(index, variant) {
   const histSection = document.createElement('div');
   histSection.className = 'history-section';
   
-  const histKey = variant ? getHistKey(variant) : null;
-  const sessions = histKey ? JSON.parse(localStorage.getItem(histKey) || '[]') : [];
+  const sessions = variant ? getMuscleGroupHistory(variant) : [];
   const recent = sessions.slice(-4).reverse();
 
   let histHtml = `<div class="history-section-label"><span>Past Sessions</span><button class="history-toggle-btn" onclick="toggleHistory(this)">HIDE</button></div>`;
@@ -1292,18 +1299,18 @@ function appendHistoryAndAddExercise(index, variant) {
   if (!recent.length) {
     histHtml += `<div style="font-size:12px;color:var(--muted);padding:8px 0;">No sessions logged yet — this will populate after you save workouts.</div>`;
   } else {
-    recent.forEach(session => {
+    recent.forEach((session, displayIdx) => {
       const feelStr = session.feel ? `${getFeel(session.feel)} ${session.feel}/10` : '';
-      const sessionIdx = recent.length - 1 - recent.indexOf(session);
-      histHtml += `<div class="history-entry" id="hist-entry-${sessionIdx}">
+
+      histHtml += `<div class="history-entry" id="hist-entry-${displayIdx}">
         <div class="history-entry-header">
           <span class="history-entry-date">${session.date}</span>
           <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
         </div>
         ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:8px;">
-          <button class="history-edit-btn" onclick="editSession('${histKey}', ${sessionIdx})">✏️ Edit Notes</button>
-          <button class="history-edit-btn" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3);" onclick="confirmDeleteSession('${histKey}', ${sessionIdx})">🗑 Delete</button>
+          <button class="history-edit-btn" onclick="editSession('${session._srcKey}', ${session._srcIdx})">✏️ Edit Notes</button>
+          <button class="history-edit-btn" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3);" onclick="confirmDeleteSession('${session._srcKey}', ${session._srcIdx})">🗑 Delete</button>
         </div>`;
       let lastGroup = null;
       (session.exercises || []).forEach((ex, exIdx) => {
@@ -2691,6 +2698,21 @@ function getHistKey(variant) {
   return 'hist_session_' + muscleGroup + '-' + variant.tag;
 }
 
+// Combined heavy + volume session history for a muscle group, for DISPLAY only.
+// Saving still files sessions under their specific heavy/volume key (getHistKey).
+function getMuscleGroupHistory(variant) {
+  const muscleGroup = getMuscleGroupFromId(variant.id);
+  const heavyKey = 'hist_session_' + muscleGroup + '-heavy';
+  const volumeKey = 'hist_session_' + muscleGroup + '-volume';
+  const heavySessions = JSON.parse(localStorage.getItem(heavyKey) || '[]');
+  const volumeSessions = JSON.parse(localStorage.getItem(volumeKey) || '[]');
+  const tagged = [
+    ...heavySessions.map((s, i) => ({ ...s, _srcKey: heavyKey, _srcIdx: i })),
+    ...volumeSessions.map((s, i) => ({ ...s, _srcKey: volumeKey, _srcIdx: i })),
+  ];
+  return tagged.sort((a, b) => a.date > b.date ? 1 : -1);
+}
+
 
 // ─── MOVE CARDS UP/DOWN ───────────────────────────────────────
 function toggleSetNote(btn, exId, setIdx) {
@@ -2742,6 +2764,14 @@ function toggleAnchor(btn) {
 }
 
 
+function getMovableSiblings(container) {
+  return [...container.children].filter(el =>
+    el.classList.contains('exercise-card') ||
+    el.classList.contains('custom-exercise-card') ||
+    el.classList.contains('superset-block')
+  );
+}
+
 function moveCard(btn, direction) {
   let card = btn.closest('.exercise-card, .custom-exercise-card');
   if (!card) return;
@@ -2754,20 +2784,49 @@ function moveCard(btn, direction) {
   const parent = card.parentNode;
   if (!parent) return;
 
-  const siblings = [...parent.children].filter(el =>
-    el.classList.contains('exercise-card') ||
-    el.classList.contains('custom-exercise-card') ||
-    el.classList.contains('superset-block')
-  );
-
+  const siblings = getMovableSiblings(parent);
   const idx = siblings.indexOf(card);
   if (idx === -1) return;
 
+  // Normal move within the same section
   if (direction === -1 && idx > 0) {
     parent.insertBefore(card, siblings[idx - 1]);
-  } else if (direction === 1 && idx < siblings.length - 1) {
+    return;
+  }
+  if (direction === 1 && idx < siblings.length - 1) {
     const nextSibling = siblings[idx + 1];
     parent.insertBefore(card, nextSibling.nextSibling);
+    return;
+  }
+
+  // At the edge of this section — cross into the adjacent section if one exists.
+  // parent here is a .section div (or the add-exercise area); find its sibling section.
+  const currentSection = parent.closest('.section') || parent;
+  if (!currentSection.classList.contains('section')) return;
+
+  if (direction === -1) {
+    // Moving up past the top of this section: find the previous .section,
+    // drop the card at the END of it (just before that section closes).
+    let prevSection = currentSection.previousElementSibling;
+    while (prevSection && !prevSection.classList.contains('section')) {
+      prevSection = prevSection.previousElementSibling;
+    }
+    if (!prevSection) return; // already at the very first section
+    prevSection.appendChild(card);
+  } else {
+    // Moving down past the bottom of this section: find the next .section,
+    // drop the card at the START of it (right after the section-label).
+    let nextSection = currentSection.nextElementSibling;
+    while (nextSection && !nextSection.classList.contains('section')) {
+      nextSection = nextSection.nextElementSibling;
+    }
+    if (!nextSection) return; // already at the very last section
+    const label = nextSection.querySelector('.section-label');
+    if (label && label.nextSibling) {
+      nextSection.insertBefore(card, label.nextSibling);
+    } else {
+      nextSection.appendChild(card);
+    }
   }
 }
 
