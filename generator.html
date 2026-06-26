@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0d">
+<title>Program Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --black:#0d0d0d;--dark:#151515;--card:#1c1c1c;--card2:#222;--border:#2a2a2a;
+    --accent:#c8f135;--accent-dim:rgba(200,241,53,0.12);
+    --blue:#64b4ff;--blue-dim:rgba(100,180,255,0.08);
+    --orange:#ff9f43;--orange-dim:rgba(255,159,67,0.1);
+    --green:#4ade80;--white:#f0f0f0;--muted:#6b6b6b;--input-bg:#252525;
+    --red:#ff6b6b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--black);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;padding-bottom:100px;}
+
+  header{background:var(--dark);border-bottom:1px solid var(--border);padding:48px 20px 20px;}
+  .header-top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .program-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.03em;line-height:1;}
+  h1 span{color:var(--accent);}
+  .version{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;}
+
+  main{padding:20px;max-width:640px;margin:0 auto;}
+
+  /* Steps */
+  .step{display:none;}
+  .step.active{display:block;}
+  .step-indicator{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.2em;margin-bottom:8px;}
+  .step-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;margin-bottom:4px;}
+  .step-desc{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+
+  /* Option cards */
+  .option-group{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+  .option-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s;}
+  .option-card:hover{border-color:var(--muted);}
+  .option-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+  .option-card .option-label{font-weight:500;font-size:14px;margin-bottom:2px;}
+  .option-card .option-desc{font-size:12px;color:var(--muted);line-height:1.4;}
+  .option-card.selected .option-label{color:var(--accent);}
+
+  /* Checkbox grid */
+  .checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+  .checkbox-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;}
+  .checkbox-card:hover{border-color:var(--muted);}
+  .checkbox-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+  .checkbox-card .check-box{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;}
+  .checkbox-card.selected .check-box{border-color:var(--accent);background:var(--accent);color:var(--black);}
+  .checkbox-card .check-label{font-size:13px;}
+
+  /* Inputs */
+  .field-group{margin-bottom:16px;}
+  .field-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
+  .field-input{width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;padding:10px 14px;border-radius:8px;outline:none;transition:border-color .15s;}
+  .field-input:focus{border-color:var(--accent);}
+  textarea.field-input{resize:vertical;min-height:60px;}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* Baseline inputs */
+  .baseline-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;}
+  .baseline-name{font-weight:500;font-size:14px;margin-bottom:8px;}
+  .baseline-inputs{display:flex;gap:8px;align-items:center;}
+  .baseline-inputs input{width:80px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-size:14px;padding:8px 10px;border-radius:6px;outline:none;text-align:center;}
+  .baseline-inputs input:focus{border-color:var(--accent);}
+  .baseline-inputs span{color:var(--muted);font-size:13px;}
+  .baseline-1rm{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);margin-top:6px;}
+
+  /* Buttons */
+  .btn{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;transition:all .15s;text-transform:uppercase;}
+  .btn-accent{background:var(--accent);color:var(--black);font-weight:600;}
+  .btn-accent:hover{filter:brightness(1.1);}
+  .btn-accent:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-ghost:hover{color:var(--white);border-color:var(--muted);}
+  .nav-buttons{display:flex;justify-content:space-between;margin-top:24px;gap:12px;}
+
+  /* Inline select */
+  .inline-select{display:flex;gap:6px;flex-wrap:wrap;}
+  .inline-select .option-pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;transition:all .15s;}
+  .inline-select .option-pill:hover{border-color:var(--muted);}
+  .inline-select .option-pill.selected{border-color:var(--accent);background:var(--accent-dim);color:var(--accent);}
+
+  /* Periodzation explainer */
+  .period-explainer{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic;}
+  .period-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);margin-top:6px;}
+
+  /* Program display */
+  .program-day{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .program-day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .program-day-label{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;padding:3px 8px;border-radius:4px;text-transform:uppercase;}
+  .tag-heavy{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,241,53,.3);}
+  .tag-volume{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,159,67,.3);}
+
+  .section-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin:12px 0 8px;padding-top:8px;border-top:1px solid var(--border);}
+  .section-label:first-child{border-top:none;margin-top:0;padding-top:0;}
+
+  .exercise-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;gap:8px;}
+  .exercise-info{flex:1;min-width:0;}
+  .exercise-name{font-size:14px;font-weight:500;}
+  .exercise-prescription{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:2px;}
+  .exercise-reasoning{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;font-style:italic;}
+  .exercise-controls{display:flex;gap:4px;flex-shrink:0;}
+  .edit-btn{background:var(--card2);border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 8px;border-radius:4px;cursor:pointer;}
+  .edit-btn:hover{color:var(--white);border-color:var(--muted);}
+
+  /* Edit modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--dark);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:400px;width:100%;}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;}
+  .modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+
+  /* Program-level settings display */
+  .setting-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;}
+  .setting-info{flex:1;}
+  .setting-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;}
+  .setting-value{font-size:16px;font-weight:500;}
+  .setting-reasoning{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic;}
+  .setting-source{font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px;}
+  .source-generated{color:var(--blue);}
+  .source-override{color:var(--orange);}
+
+  /* Week toggle */
+  .week-toggle{display:flex;gap:0;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .week-toggle-btn{flex:1;padding:10px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;background:var(--card);color:var(--muted);border:none;transition:all .15s;}
+  .week-toggle-btn.active{background:var(--accent-dim);color:var(--accent);}
+
+  /* Loading */
+  .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px;}
+  .spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-bottom:12px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Back link */
+  .back-link{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;letter-spacing:.1em;margin-top:8px;}
+  .back-link:hover{color:var(--white);}
+
+  /* Injury section */
+  .injury-checkboxes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="program-label">AI Program Generator</div>
+      <h1>BUILD YOUR <span>PROGRAM</span></h1>
+      <div class="version">v1.0.0 · MVP</div>
+    </div>
+  </div>
+  <a href="index.html" class="back-link">← Back to tracker</a>
+</header>
+
+<main id="mainContent">
+  <!-- STEP 1: Experience -->
+  <div class="step active" id="step-1">
+    <div class="step-indicator">STEP 1 OF 8</div>
+    <div class="step-title">Training Experience</div>
+    <div class="step-desc">How long have you been lifting consistently?</div>
+    <div class="option-group" id="experience-options">
+      <div class="option-card" data-value="beginner" onclick="selectOption('experience', 'beginner', this)">
+        <div class="option-label">Under 6 months</div>
+        <div class="option-desc">New to structured lifting or just getting started.</div>
+      </div>
+      <div class="option-card" data-value="intermediate" onclick="selectOption('experience', 'intermediate', this)">
+        <div class="option-label">6 months – 2 years</div>
+        <div class="option-desc">Comfortable with the main lifts, building strength.</div>
+      </div>
+      <div class="option-card" data-value="advanced" onclick="selectOption('experience', 'advanced', this)">
+        <div class="option-label">2+ years</div>
+        <div class="option-desc">Experienced lifter, looking to optimize programming.</div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <div></div>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-1" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Goal -->
+  <div class="step" id="step-2">
+    <div class="step-indicator">STEP 2 OF 8</div>
+    <div class="step-title">Primary Goal</div>
+    <div class="step-desc">What are you training for right now?</div>
+    <div class="option-group" id="goal-options">
+      <div class="option-card" data-value="hypertrophy" onclick="selectOption('goal', 'hypertrophy', this)">
+        <div class="option-label">Build Muscle</div>
+        <div class="option-desc">Maximize hypertrophy — more volume, moderate intensity.</div>
+      </div>
+      <div class="option-card" data-value="strength" onclick="selectOption('goal', 'strength', this)">
+        <div class="option-label">Get Stronger on Specific Lifts</div>
+        <div class="option-desc">Peak performance on your key lifts — lower reps, higher intensity.</div>
+      </div>
+      <div class="option-card" data-value="recomp" onclick="selectOption('goal', 'recomp', this)">
+        <div class="option-label">Lose Fat, Maintain Muscle</div>
+        <div class="option-desc">Body recomposition — training to preserve while cutting.</div>
+      </div>
+      <div class="option-card" data-value="general" onclick="selectOption('goal', 'general', this)">
+        <div class="option-label">General Fitness</div>
+        <div class="option-desc">Balanced training — strength, endurance, and health.</div>
+      </div>
+    </div>
+    <div id="strength-lifts-section" style="display:none;">
+      <div class="field-label">Which lifts matter most?</div>
+      <div class="checkbox-grid" id="strength-lift-checks">
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'squat')">
+          <div class="check-box"></div><div class="check-label">Squat</div>
+        </div>
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'bench')">
+          <div class="check-box"></div><div class="check-label">Bench Press</div>
+        </div>
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'deadlift')">
+          <div class="check-box"></div><div class="check-label">Deadlift</div>
+        </div>
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'overhead_press')">
+          <div class="check-box"></div><div class="check-label">Overhead Press</div>
+        </div>
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'pull_up')">
+          <div class="check-box"></div><div class="check-label">Pull-Up</div>
+        </div>
+        <div class="checkbox-card" onclick="toggleCheck(this, 'strengthLifts', 'row')">
+          <div class="check-box"></div><div class="check-label">Barbell Row</div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-2" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Schedule -->
+  <div class="step" id="step-3">
+    <div class="step-indicator">STEP 3 OF 8</div>
+    <div class="step-title">Schedule</div>
+    <div class="step-desc">How many days per week can you train, and how long per session?</div>
+    <div class="field-group">
+      <div class="field-label">Days per week</div>
+      <div class="inline-select" id="days-options">
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 2, this)">2</div>
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 3, this)">3</div>
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 4, this)">4</div>
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 5, this)">5</div>
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 6, this)">6</div>
+        <div class="option-pill" onclick="selectOption('daysPerWeek', 7, this)">7</div>
+      </div>
+      <div id="seven-day-warning" style="display:none;color:var(--orange);font-size:12px;margin-top:8px;">Rest days matter. We'll build a 6-day program + 1 rest day.</div>
+    </div>
+    <div class="field-group" style="margin-top:16px;">
+      <div class="field-label">Session length</div>
+      <div class="inline-select" id="session-options">
+        <div class="option-pill" onclick="selectOption('sessionMinutes', 45, this)">45 min</div>
+        <div class="option-pill" onclick="selectOption('sessionMinutes', 60, this)">60 min</div>
+        <div class="option-pill" onclick="selectOption('sessionMinutes', 90, this)">90+ min</div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-3" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Equipment -->
+  <div class="step" id="step-4">
+    <div class="step-indicator">STEP 4 OF 8</div>
+    <div class="step-title">Equipment Access</div>
+    <div class="step-desc">Select everything available at your gym. We'll filter exercises to match.</div>
+    <div class="checkbox-grid" id="equipment-checks"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-4" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Baselines -->
+  <div class="step" id="step-5">
+    <div class="step-indicator">STEP 5 OF 8</div>
+    <div class="step-title">Lift Baselines</div>
+    <div class="step-desc">Enter a recent working set for your main lifts. We'll estimate your 1RM from here — no need to guess your max. Skip any you don't do.</div>
+    <div id="baseline-inputs"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: Injuries -->
+  <div class="step" id="step-6">
+    <div class="step-indicator">STEP 6 OF 8</div>
+    <div class="step-title">Injuries & Limitations</div>
+    <div class="step-desc">Anything we should work around? Check what applies and add details if needed.</div>
+    <div class="injury-checkboxes" id="injury-checks">
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'shoulders')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Shoulders</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'lower_back')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Lower Back</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'knees')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Knees</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'elbows')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Elbows</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'wrists')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Wrists</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'injuryFlags', 'hips')" style="width:auto;">
+        <div class="check-box"></div><div class="check-label">Hips</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Additional details (optional)</div>
+      <textarea class="field-input" id="injury-notes" placeholder="e.g., right shoulder impingement, avoid overhead pressing"></textarea>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: Split -->
+  <div class="step" id="step-7">
+    <div class="step-indicator">STEP 7 OF 8</div>
+    <div class="step-title">Training Split</div>
+    <div class="step-desc">Choose how to organize your training days, or let us pick based on your schedule.</div>
+    <div class="option-group" id="split-options">
+      <div class="option-card" data-value="auto" onclick="selectOption('splitPreference', 'auto', this)">
+        <div class="option-label">You Decide</div>
+        <div class="option-desc">We'll pick the best split for your schedule.</div>
+      </div>
+      <div class="option-card" data-value="full_body" onclick="selectOption('splitPreference', 'full_body', this)">
+        <div class="option-label">Full Body</div>
+        <div class="option-desc">Every muscle group each session. Best for 2-3 days/week.</div>
+      </div>
+      <div class="option-card" data-value="upper_lower" onclick="selectOption('splitPreference', 'upper_lower', this)">
+        <div class="option-label">Upper / Lower</div>
+        <div class="option-desc">Alternate upper and lower body days. Best for 4 days/week.</div>
+      </div>
+      <div class="option-card" data-value="ppl" onclick="selectOption('splitPreference', 'ppl', this)">
+        <div class="option-label">Push / Pull / Legs</div>
+        <div class="option-desc">Each day targets pushing, pulling, or legs. Best for 5-6 days/week.</div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-7" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 8: Periodization -->
+  <div class="step" id="step-8">
+    <div class="step-indicator">STEP 8 OF 8</div>
+    <div class="step-title">Periodization</div>
+    <div class="step-desc">How should intensity vary week to week?</div>
+    <div class="option-group" id="period-options">
+      <div class="option-card" data-value="linear" onclick="selectOption('periodization', 'linear', this)">
+        <div class="option-label">Linear</div>
+        <div class="option-desc">Same structure each week. Gradually increase weight over time. Simple and effective.</div>
+      </div>
+      <div class="option-card" data-value="wave" onclick="selectOption('periodization', 'wave', this)">
+        <div class="option-label">Wave (Heavy / Volume)</div>
+        <div class="option-desc">Alternate between heavier and higher-rep weeks. Manages fatigue, prevents plateaus.</div>
+      </div>
+    </div>
+    <div id="period-suggestion" class="period-default"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="buildProgram()" id="btn-generate" disabled>Generate Program →</button>
+    </div>
+  </div>
+
+  <!-- PROGRAM DISPLAY -->
+  <div class="step" id="step-program">
+    <div class="step-indicator">YOUR PROGRAM</div>
+    <div class="step-title">Review & Edit</div>
+    <div class="step-desc">Every number has a reason. Tap the info icon to see why, or edit anything — your changes are always respected.</div>
+
+    <div id="program-settings"></div>
+
+    <div class="week-toggle" id="week-toggle" style="display:none;">
+      <button class="week-toggle-btn active" onclick="showWeek('A')">Week A</button>
+      <button class="week-toggle-btn" onclick="showWeek('B')">Week B</button>
+    </div>
+
+    <div id="program-days"></div>
+
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="goToStep(1)">← Start Over</button>
+      <button class="btn btn-accent" onclick="activateProgram()">Use This Program →</button>
+    </div>
+  </div>
+</main>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Edit Exercise</div>
+    <div id="modal-body"></div>
+    <div class="nav-buttons" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="generator/data-structures.js"></script>
+<script src="generator/volume-config.js"></script>
+<script src="generator/exercise-database.js"></script>
+<script src="generator/program-generator.js"></script>
+<script src="generator/reasoning.js"></script>
+<script>
+// ─── STATE ────────────────────────────────────────────────────
+let currentStep = 1;
+const totalSteps = 8;
+let answers = {
+  experience: null,
+  goal: null,
+  strengthLifts: [],
+  daysPerWeek: null,
+  sessionMinutes: null,
+  equipment: [],
+  baselines: {},
+  injuryFlags: [],
+  injuryNotes: '',
+  splitPreference: null,
+  periodization: null,
+};
+let generatedProgram = null;
+let currentWeekView = 'A';
+let editContext = null;
+
+// ─── NAVIGATION ───────────────────────────────────────────────
+function goToStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const step = document.getElementById(n === 'program' ? 'step-program' : `step-${n}`);
+  if (step) step.classList.add('active');
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (currentStep === 4) buildEquipmentStep();
+  if (currentStep === 4) buildBaselineStep();
+  if (currentStep === 7) updatePeriodSuggestion();
+  goToStep(currentStep + 1);
+  if (currentStep === 5) buildBaselineStep();
+}
+
+function prevStep() {
+  goToStep(currentStep - 1);
+}
+
+// ─── OPTION SELECTION ─────────────────────────────────────────
+function selectOption(field, value, el) {
+  answers[field] = value;
+  const parent = el.closest('.option-group, .inline-select');
+  parent.querySelectorAll('.option-card, .option-pill').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Enable next button
+  updateNextButton();
+
+  // Goal-specific: show strength lift selection
+  if (field === 'goal') {
+    document.getElementById('strength-lifts-section').style.display = value === 'strength' ? 'block' : 'none';
+  }
+
+  // Days: show 7-day warning
+  if (field === 'daysPerWeek') {
+    document.getElementById('seven-day-warning').style.display = value === 7 ? 'block' : 'none';
+  }
+}
+
+function toggleCheck(el, field, value) {
+  el.classList.toggle('selected');
+  const box = el.querySelector('.check-box');
+  if (el.classList.contains('selected')) {
+    if (!answers[field].includes(value)) answers[field].push(value);
+    box.textContent = '✓';
+  } else {
+    answers[field] = answers[field].filter(v => v !== value);
+    box.textContent = '';
+  }
+  updateNextButton();
+}
+
+function updateNextButton() {
+  const btn1 = document.getElementById('btn-next-1');
+  const btn2 = document.getElementById('btn-next-2');
+  const btn3 = document.getElementById('btn-next-3');
+  const btn4 = document.getElementById('btn-next-4');
+  const btn7 = document.getElementById('btn-next-7');
+  const btnGen = document.getElementById('btn-generate');
+
+  if (btn1) btn1.disabled = !answers.experience;
+  if (btn2) btn2.disabled = !answers.goal;
+  if (btn3) btn3.disabled = !answers.daysPerWeek || !answers.sessionMinutes;
+  if (btn4) btn4.disabled = answers.equipment.length === 0;
+  if (btn7) btn7.disabled = !answers.splitPreference;
+  if (btnGen) btnGen.disabled = !answers.periodization;
+}
+
+// ─── EQUIPMENT STEP ───────────────────────────────────────────
+function buildEquipmentStep() {
+  const container = document.getElementById('equipment-checks');
+  if (container.children.length > 0) return;
+  EQUIPMENT_OPTIONS.forEach(eq => {
+    const card = document.createElement('div');
+    card.className = 'checkbox-card';
+    card.onclick = () => toggleCheck(card, 'equipment', eq.id);
+    card.innerHTML = `<div class="check-box"></div><div class="check-label">${eq.label}</div>`;
+    container.appendChild(card);
+  });
+}
+buildEquipmentStep();
+
+// ─── BASELINE STEP ────────────────────────────────────────────
+const BASELINE_LIFTS = [
+  { id: 'barbell_squat', name: 'Squat', equipment: ['barbell'] },
+  { id: 'barbell_bench', name: 'Bench Press', equipment: ['barbell', 'bench'] },
+  { id: 'rdl', name: 'Romanian Deadlift', equipment: ['barbell'] },
+  { id: 'military_press', name: 'Overhead Press', equipment: ['barbell'] },
+  { id: 'barbell_row', name: 'Barbell Row', equipment: ['barbell'] },
+  { id: 'wtd_pullup', name: 'Weighted Pull-Up', equipment: ['pull_up_bar'] },
+  { id: 'incline_smith', name: 'Incline Smith Press', equipment: ['smith_machine', 'bench'] },
+  { id: 'smith_squat', name: 'Smith Machine Squat', equipment: ['smith_machine'] },
+  { id: 'leg_press_exercise', name: 'Leg Press', equipment: ['leg_press'] },
+  { id: 'lat_pulldown_machine', name: 'Lat Pulldown', equipment: ['lat_pulldown'] },
+];
+
+function buildBaselineStep() {
+  const container = document.getElementById('baseline-inputs');
+  container.innerHTML = '';
+  const available = BASELINE_LIFTS.filter(lift =>
+    lift.equipment.every(eq => answers.equipment.includes(eq))
+  );
+  if (available.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;">No baseline lifts match your equipment. No worries — we\'ll start you with conservative weights.</div>';
+    return;
+  }
+  available.forEach(lift => {
+    const row = document.createElement('div');
+    row.className = 'baseline-row';
+    row.innerHTML = `
+      <div class="baseline-name">${lift.name}</div>
+      <div class="baseline-inputs">
+        <input type="number" inputmode="decimal" placeholder="lbs" id="bl-weight-${lift.id}" onchange="updateBaseline('${lift.id}')">
+        <span>×</span>
+        <input type="number" inputmode="numeric" placeholder="reps" id="bl-reps-${lift.id}" onchange="updateBaseline('${lift.id}')">
+        <span style="color:var(--muted);font-size:12px;">recent set</span>
+      </div>
+      <div class="baseline-1rm" id="bl-1rm-${lift.id}"></div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function updateBaseline(liftId) {
+  const weight = parseFloat(document.getElementById(`bl-weight-${liftId}`).value);
+  const reps = parseInt(document.getElementById(`bl-reps-${liftId}`).value);
+  const display = document.getElementById(`bl-1rm-${liftId}`);
+  if (!isNaN(weight) && !isNaN(reps) && weight > 0 && reps > 0) {
+    const est = epley1RM(weight, reps);
+    answers.baselines[liftId] = { weight, reps, estimated1RM: est };
+    display.textContent = `Est. 1RM: ${Math.round(est)} lbs`;
+  } else {
+    delete answers.baselines[liftId];
+    display.textContent = '';
+  }
+}
+
+// ─── PERIODIZATION SUGGESTION ─────────────────────────────────
+function updatePeriodSuggestion() {
+  const el = document.getElementById('period-suggestion');
+  if (answers.experience === 'beginner') {
+    el.textContent = '💡 Suggested: Linear — build a consistent base before alternating intensity.';
+  } else {
+    el.textContent = '💡 Suggested: Wave — at your experience level, alternating heavy/volume weeks helps manage fatigue.';
+  }
+  // Pre-select the suggestion if nothing chosen yet
+  if (!answers.periodization) {
+    const suggested = answers.experience === 'beginner' ? 'linear' : 'wave';
+    const card = document.querySelector(`#period-options .option-card[data-value="${suggested}"]`);
+    if (card) selectOption('periodization', suggested, card);
+  }
+}
+
+// ─── PROGRAM GENERATION ───────────────────────────────────────
+async function buildProgram() {
+  answers.injuryNotes = document.getElementById('injury-notes')?.value || '';
+  const profile = createProfile(answers);
+  generatedProgram = generateProgram(profile);
+
+  // Show loading then program
+  goToStep('program');
+  document.getElementById('program-days').innerHTML = '<div class="loading"><div class="spinner"></div><div>Generating reasoning...</div></div>';
+
+  await attachReasoningToProgram(generatedProgram);
+  renderProgram();
+
+  // Save to localStorage
+  localStorage.setItem('generated_program', JSON.stringify(generatedProgram));
+  localStorage.setItem('generator_profile', JSON.stringify(profile));
+}
+
+function renderProgram() {
+  renderProgramSettings();
+  renderProgramDays();
+
+  // Show week toggle if wave periodization
+  const toggle = document.getElementById('week-toggle');
+  toggle.style.display = generatedProgram.periodization.value === 'wave' ? 'flex' : 'none';
+}
+
+function renderProgramSettings() {
+  const container = document.getElementById('program-settings');
+  const p = generatedProgram;
+  const splitLabels = { full_body: 'Full Body', upper_lower: 'Upper / Lower', ppl: 'Push / Pull / Legs' };
+  const goalLabels = { hypertrophy: 'Build Muscle', strength: 'Get Stronger', recomp: 'Lose Fat, Maintain Muscle', general: 'General Fitness' };
+  const periodLabels = { wave: 'Wave (Heavy / Volume)', linear: 'Linear' };
+
+  const settings = [
+    { label: 'Goal', tracked: p.goal, displayValue: goalLabels[p.goal.value] || p.goal.value },
+    { label: 'Split', tracked: p.split, displayValue: splitLabels[p.split.value] || p.split.value },
+    { label: 'Periodization', tracked: p.periodization, displayValue: periodLabels[p.periodization.value] || p.periodization.value },
+  ];
+
+  container.innerHTML = settings.map(s => `
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-label">${s.label}</div>
+        <div class="setting-value">${s.displayValue}</div>
+        <div class="setting-reasoning">${s.tracked.reasoning || ''}</div>
+        <div class="setting-source ${s.tracked.source === 'generated' ? 'source-generated' : 'source-override'}">${s.tracked.source === 'generated' ? '● generated' : '● you set this'}</div>
+      </div>
+      <button class="edit-btn" onclick="editSetting('${s.label.toLowerCase()}')">✎</button>
+    </div>
+  `).join('');
+}
+
+function renderProgramDays() {
+  const container = document.getElementById('program-days');
+  const days = generatedProgram.days;
+  const weekKey = currentWeekView === 'A' ? 'weekA' : 'weekB';
+
+  container.innerHTML = days.map((day, di) => {
+    if (day.dayType === 'rest') {
+      return `<div class="program-day"><div class="program-day-label">REST DAY</div><div style="color:var(--muted);font-size:13px;">Recovery is part of the program.</div></div>`;
+    }
+    const variant = day[weekKey];
+    if (!variant) return '';
+    const tag = variant.tag?.value || 'heavy';
+
+    const sectionsHtml = variant.sections.map(sec => {
+      if (sec.exercises.length === 0) return '';
+      const exHtml = sec.exercises.map((ex, ei) => {
+        const weightDisplay = ex.weight.value > 0 ? ` @ ${ex.weight.value}lbs` : '';
+        return `
+          <div class="exercise-row">
+            <div class="exercise-info">
+              <div class="exercise-name">${ex.name.value}</div>
+              <div class="exercise-prescription">${ex.sets.value} × ${ex.reps.value}${weightDisplay}</div>
+              <div class="exercise-reasoning">${ex.sets.reasoning || ex.reps.reasoning || ''}</div>
+            </div>
+            <div class="exercise-controls">
+              <button class="edit-btn" onclick="editExercise(${di}, '${weekKey}', ${variant.sections.indexOf(sec)}, ${ei})">✎</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="section-label">${sec.label}</div>${exHtml}`;
+    }).join('');
+
+    return `
+      <div class="program-day">
+        <div class="program-day-header">
+          <div class="program-day-label">${day.label}</div>
+          <span class="tag tag-${tag}">${tag}</span>
+        </div>
+        ${sectionsHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function showWeek(week) {
+  currentWeekView = week;
+  document.querySelectorAll('.week-toggle-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && week === 'A') || (i === 1 && week === 'B'));
+  });
+  renderProgramDays();
+}
+
+// ─── EDITING ──────────────────────────────────────────────────
+function editExercise(dayIndex, weekKey, sectionIndex, exerciseIndex) {
+  const day = generatedProgram.days[dayIndex];
+  const variant = day[weekKey];
+  const section = variant.sections[sectionIndex];
+  const ex = section.exercises[exerciseIndex];
+
+  editContext = { dayIndex, weekKey, sectionIndex, exerciseIndex };
+
+  document.getElementById('modal-title').textContent = `Edit: ${ex.name.value}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-group">
+      <div class="field-label">Sets</div>
+      <input class="field-input" type="number" id="edit-sets" value="${ex.sets.value}" min="1" max="10">
+      <div class="field-hint">${ex.sets.reasoning || ''}</div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Reps</div>
+      <input class="field-input" type="text" id="edit-reps" value="${ex.reps.value}">
+      <div class="field-hint">${ex.reps.reasoning || ''}</div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Weight (lbs)</div>
+      <input class="field-input" type="number" id="edit-weight" value="${ex.weight.value}" min="0" step="5">
+      <div class="field-hint">${ex.weight.reasoning || ''}</div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Swap Exercise</div>
+      <select class="field-input" id="edit-swap">
+        <option value="">Keep current</option>
+        ${getSwapOptions(ex)}
+      </select>
+    </div>
+  `;
+  document.getElementById('editModal').classList.add('active');
+}
+
+function getSwapOptions(ex) {
+  const muscles = [];
+  const dbEx = getExerciseById(ex.id);
+  if (dbEx) muscles.push(...dbEx.muscles.primary);
+  const options = [];
+  for (const muscle of muscles) {
+    const candidates = getExercisesForMuscle(muscle, generatedProgram.profile.equipment);
+    for (const c of candidates) {
+      if (c.id !== ex.id) {
+        options.push(`<option value="${c.id}">${c.name}</option>`);
+      }
+    }
+  }
+  return [...new Set(options)].join('');
+}
+
+function saveEdit() {
+  if (!editContext) return;
+  const { dayIndex, weekKey, sectionIndex, exerciseIndex } = editContext;
+  const ex = generatedProgram.days[dayIndex][weekKey].sections[sectionIndex].exercises[exerciseIndex];
+
+  const newSets = parseInt(document.getElementById('edit-sets').value);
+  const newReps = document.getElementById('edit-reps').value;
+  const newWeight = parseFloat(document.getElementById('edit-weight').value);
+  const swapId = document.getElementById('edit-swap').value;
+
+  if (!isNaN(newSets) && newSets !== ex.sets.value) {
+    ex.sets = overrideValue(ex.sets, newSets);
+  }
+  if (newReps && newReps !== ex.reps.value) {
+    ex.reps = overrideValue(ex.reps, newReps);
+  }
+  if (!isNaN(newWeight) && newWeight !== ex.weight.value) {
+    ex.weight = overrideValue(ex.weight, newWeight);
+  }
+  if (swapId) {
+    const swapEx = getExerciseById(swapId);
+    if (swapEx) {
+      ex.name = overrideValue(ex.name, swapEx.name);
+      ex.id = swapId;
+    }
+  }
+
+  closeModal();
+  renderProgramDays();
+  localStorage.setItem('generated_program', JSON.stringify(generatedProgram));
+}
+
+function editSetting(setting) {
+  // Simple inline editing for program-level settings
+  editContext = { setting };
+  const p = generatedProgram;
+
+  let optionsHtml = '';
+  if (setting === 'goal') {
+    const goals = { hypertrophy: 'Build Muscle', strength: 'Get Stronger', recomp: 'Lose Fat, Maintain Muscle', general: 'General Fitness' };
+    optionsHtml = Object.entries(goals).map(([k, v]) =>
+      `<option value="${k}" ${k === p.goal.value ? 'selected' : ''}>${v}</option>`
+    ).join('');
+  } else if (setting === 'split') {
+    const splits = { full_body: 'Full Body', upper_lower: 'Upper / Lower', ppl: 'Push / Pull / Legs' };
+    optionsHtml = Object.entries(splits).map(([k, v]) =>
+      `<option value="${k}" ${k === p.split.value ? 'selected' : ''}>${v}</option>`
+    ).join('');
+  } else if (setting === 'periodization') {
+    const periods = { wave: 'Wave (Heavy / Volume)', linear: 'Linear' };
+    optionsHtml = Object.entries(periods).map(([k, v]) =>
+      `<option value="${k}" ${k === p.periodization.value ? 'selected' : ''}>${v}</option>`
+    ).join('');
+  }
+
+  document.getElementById('modal-title').textContent = `Edit ${setting.charAt(0).toUpperCase() + setting.slice(1)}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-group">
+      <select class="field-input" id="edit-setting-value">${optionsHtml}</select>
+      <div class="field-hint" style="margin-top:8px;color:var(--orange);">Changing this will regenerate your program. Your exercise-level edits will be reset.</div>
+    </div>
+  `;
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('active');
+  editContext = null;
+}
+
+// ─── ACTIVATE PROGRAM ─────────────────────────────────────────
+function activateProgram() {
+  const legacy = programToLegacyFormat(generatedProgram);
+  localStorage.setItem('active_generated_program', JSON.stringify(legacy));
+  localStorage.setItem('generated_program', JSON.stringify(generatedProgram));
+  alert('Program saved! Head back to the tracker to start logging.');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+// Check for existing program
+const saved = localStorage.getItem('generated_program');
+if (saved) {
+  try {
+    generatedProgram = JSON.parse(saved);
+    // Offer to show existing or start fresh
+    if (confirm('You have a saved program. Load it?')) {
+      goToStep('program');
+      renderProgram();
+    }
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
