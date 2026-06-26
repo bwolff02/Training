@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.60</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.61</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1834,25 +1834,41 @@ async function saveDay() {
       });
     }
 
+    // Build sessionExercises by walking the LIVE DOM in actual visual order,
+    // so preset and custom exercises that are supersetted together end up
+    // consecutive in the saved array regardless of which type they are or
+    // which "loop" they'd normally come from.
     const sessionExercises = [];
-    variant.sections.forEach(section => {
-      section.exercises.forEach(ex => {
-        const exList = ex.superset ? ex.exercises : [ex];
-        exList.forEach(e => {
-          const log = sessionLogs[e.id];
+    if (mainEl) {
+      const allCards = [...mainEl.querySelectorAll('.exercise-card[data-exid], .custom-exercise-card')];
+      allCards.forEach(card => {
+        if (card.classList.contains('exercise-card')) {
+          const eId = card.dataset.exid;
+          const log = sessionLogs[eId];
           if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
-            const customName = localStorage.getItem('name_' + e.id);
-            sessionExercises.push({ name: customName || e.name, sets: log.sets, supersetGroup: exIdToGroup[e.id] || null });
+            const customName = localStorage.getItem('name_' + eId);
+            // Look up the original exercise object for its default name as fallback
+            let defaultName = customName;
+            if (!defaultName) {
+              variant.sections.forEach(section => {
+                section.exercises.forEach(ex => {
+                  const exList = ex.superset ? ex.exercises : [ex];
+                  exList.forEach(e => { if (e.id === eId) defaultName = e.name; });
+                });
+              });
+            }
+            sessionExercises.push({ name: defaultName || eId, sets: log.sets, supersetGroup: exIdToGroup[eId] || null });
           }
-        });
+        } else if (card.classList.contains('custom-exercise-card')) {
+          const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
+          if (idx === null || isNaN(idx)) return;
+          const ex = (sessionLogs._custom || [])[idx];
+          if (ex && ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
+            sessionExercises.push({ ...ex, supersetGroup: customIdxToGroup[idx] || null });
+          }
+        }
       });
-    });
-
-    (sessionLogs._custom || []).filter(Boolean).forEach((ex, idx) => {
-      if (ex.name && ex.sets && ex.sets.some(s => s.weight || s.reps)) {
-        sessionExercises.push({ ...ex, supersetGroup: customIdxToGroup[idx] || null });
-      }
-    });
+    }
 
     if (sessionExercises.length) {
       allSessions.push({
