@@ -1437,6 +1437,7 @@ async function switchDay(index) {
 }
 
 async function loadDay(index) {
+  if (isTrackingOnly) return; // Skip normal day loading in tracking-only mode
   const variant = getCurrentVariant(index);
   if (!variant) { renderDay(index); return; }
   const saved = await loadFromDB('log_' + variant.id);
