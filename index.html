@@ -667,12 +667,17 @@
       <h1>MY <span>PROGRAM</span></h1>
       <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.62</div>
     </div>
+    <a href="generator.html" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);text-decoration:none;letter-spacing:.1em;padding:6px 12px;border:1px solid rgba(200,241,53,.3);border-radius:6px;background:var(--accent-dim);">⚡ BUILD PROGRAM</a>
   </div>
   <div class="week-indicator">
     <span class="week-badge" id="weekBadge" onclick="toggleWeek()" style="cursor:pointer;user-select:none;"></span>
     <span class="week-label" id="weekLabel"></span>
     <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px;cursor:pointer;" onclick="toggleWeek()">↺ tap to flip</span>
     <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,159,67,0.6);margin-left:8px;cursor:pointer;" onclick="toggleDeload()">🔋 deload</span>
+  </div>
+  <div id="generated-banner" style="display:none;background:rgba(200,241,53,0.08);border:1px solid rgba(200,241,53,.2);border-radius:6px;padding:8px 12px;margin-bottom:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);align-items:center;justify-content:space-between;">
+    <span>⚡ Using AI-generated program</span>
+    <span style="color:var(--muted);cursor:pointer;text-decoration:underline;" onclick="if(confirm('Switch back to the default program? Your generated program will still be saved.')){localStorage.removeItem('active_generated_program');location.reload();}">reset to default</span>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
 </header>
@@ -700,8 +705,17 @@ let isWeekA = isoWeek % 2 === 1; // odd weeks = Week A (tappable to override)
 let isDeloadWeek = isoWeek % 4 === 0; // every 4th week = deload
 
 // ─── PROGRAM DATA ─────────────────────────────────────────────
+// Load generated program from localStorage if available, otherwise use hardcoded default.
+const _generatedProgram = (() => {
+  try {
+    const saved = localStorage.getItem('active_generated_program');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+})();
+
 // Each day has weekA and weekB variants
-const PROGRAM = [
+const PROGRAM = _generatedProgram || [
   // MON — LEGS
   {
     label: 'MON · Legs',
@@ -1098,6 +1112,10 @@ let justSavedDay = null; // index of day just saved, to force blank reload
 
 // ─── INIT ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  if (_generatedProgram) {
+    const banner = document.getElementById('generated-banner');
+    if (banner) banner.style.display = 'flex';
+  }
   setWeekBadge();
   buildTabs();
   await loadDay(0);
@@ -2161,23 +2179,48 @@ function closeEditModal() {
 
 
 // ─── ANCHOR LIFTS FOR PROGRESS ────────────────────────────────
-const ANCHOR_LIFTS = [
-  { id: 'squat', name: 'Barbell Squat' },
-  { id: 'rdl', name: 'Romanian Deadlift' },
-  { id: 'rdl-thu-heavy', name: 'RDL (Heavy)' },
-  { id: 'smith-lunge', name: 'Smith Lunges' },
-  { id: 'bulgarian', name: 'Bulgarian Split Squat' },
-  { id: 'incline-smith', name: 'Incline Smith Press' },
-  { id: 'flat-smith', name: 'Flat Smith Press' },
-  { id: 'military-press', name: 'Military Press' },
-  { id: 'smith-shoulder-press', name: 'Smith Shoulder Press' },
-  { id: 'wtd-pullup', name: 'Weighted Pull Ups' },
-  { id: 'barbell-row', name: 'Barbell Row' },
-  { id: 'lat-pulldown', name: 'Lat Pulldown' },
-  { id: 'cable-row-close', name: 'Seated Cable Row' },
-  { id: 'barbell-row-vol-wed', name: 'Barbell Row (Volume)' },
-  { id: 'skull-crusher', name: 'Skull Crusher' },
-];
+const ANCHOR_LIFTS = (() => {
+  // If using a generated program, extract anchors dynamically
+  if (_generatedProgram) {
+    const seen = new Set();
+    const anchors = [];
+    _generatedProgram.forEach(day => {
+      if (day.rest) return;
+      [day.weekA, day.weekB].forEach(variant => {
+        if (!variant || !variant.sections) return;
+        variant.sections.forEach(sec => {
+          sec.exercises.forEach(ex => {
+            const exList = ex.superset ? ex.exercises : [ex];
+            exList.forEach(e => {
+              if (e.anchor && !seen.has(e.id)) {
+                seen.add(e.id);
+                anchors.push({ id: e.id, name: e.name });
+              }
+            });
+          });
+        });
+      });
+    });
+    return anchors;
+  }
+  return [
+    { id: 'squat', name: 'Barbell Squat' },
+    { id: 'rdl', name: 'Romanian Deadlift' },
+    { id: 'rdl-thu-heavy', name: 'RDL (Heavy)' },
+    { id: 'smith-lunge', name: 'Smith Lunges' },
+    { id: 'bulgarian', name: 'Bulgarian Split Squat' },
+    { id: 'incline-smith', name: 'Incline Smith Press' },
+    { id: 'flat-smith', name: 'Flat Smith Press' },
+    { id: 'military-press', name: 'Military Press' },
+    { id: 'smith-shoulder-press', name: 'Smith Shoulder Press' },
+    { id: 'wtd-pullup', name: 'Weighted Pull Ups' },
+    { id: 'barbell-row', name: 'Barbell Row' },
+    { id: 'lat-pulldown', name: 'Lat Pulldown' },
+    { id: 'cable-row-close', name: 'Seated Cable Row' },
+    { id: 'barbell-row-vol-wed', name: 'Barbell Row (Volume)' },
+    { id: 'skull-crusher', name: 'Skull Crusher' },
+  ];
+})();
 
 // Real logged data always wins over the built-in seed/placeholder history.
 // Seed data is ONLY used as a fallback when an exercise has never been logged
