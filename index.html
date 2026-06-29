@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.61</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.62</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1538,9 +1538,7 @@ function removeCustomExercise(idx) {
 function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   // Deload week: drop weight, higher reps
   if (isDeloadWeek) {
-    const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
-    const builtin = HISTORY[exId] || [];
-    const all = [...builtin, ...stored];
+    const all = getAllHistory(exId);
     let bestWeight = 0;
     all.forEach(s => {
       if (!s.sets) return;
@@ -1579,9 +1577,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
       }
     }
   }
-  const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
-  const builtin = HISTORY[exId] || [];
-  const all = [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
+  const all = getAllHistory(exId);
   if (!all.length) return null;
 
   const last = all[all.length - 1];
@@ -2183,10 +2179,17 @@ const ANCHOR_LIFTS = [
   { id: 'skull-crusher', name: 'Skull Crusher' },
 ];
 
+// Real logged data always wins over the built-in seed/placeholder history.
+// Seed data is ONLY used as a fallback when an exercise has never been logged
+// for real, so old placeholder dates can never contaminate or out-rank actual
+// sessions once they exist.
 function getAllHistory(exId) {
   const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+  if (stored.length > 0) {
+    return [...stored].sort((a, b) => a.date > b.date ? 1 : -1);
+  }
   const builtin = HISTORY[exId] || [];
-  return [...builtin, ...stored].sort((a, b) => a.date > b.date ? 1 : -1);
+  return [...builtin].sort((a, b) => a.date > b.date ? 1 : -1);
 }
 
 function epley1RM(weight, reps) {
