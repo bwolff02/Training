@@ -1,20 +1,41 @@
 // ─── EQUIPMENT LIST ───────────────────────────────────────────
 
 const EQUIPMENT_OPTIONS = [
-  { id: 'barbell',       label: 'Barbell + Plates' },
-  { id: 'dumbbells',     label: 'Dumbbells' },
-  { id: 'cables',        label: 'Cable Machine' },
-  { id: 'smith_machine', label: 'Smith Machine' },
-  { id: 'pull_up_bar',   label: 'Pull-Up Bar' },
-  { id: 'leg_press',     label: 'Leg Press Machine' },
-  { id: 'leg_curl',      label: 'Leg Curl / Extension Machine' },
-  { id: 'lat_pulldown',  label: 'Lat Pulldown Machine' },
-  { id: 'seated_row',    label: 'Seated Row Machine' },
-  { id: 'chest_press',   label: 'Chest Press Machine' },
-  { id: 'pec_deck',      label: 'Pec Deck / Fly Machine' },
-  { id: 'dip_station',   label: 'Dip Station' },
-  { id: 'bench',         label: 'Adjustable Bench' },
-  { id: 'bodyweight',    label: 'Bodyweight Only' },
+  // Free weights
+  { id: 'barbell',         label: 'Barbell + Plates', category: 'free_weights' },
+  { id: 'dumbbells',       label: 'Dumbbells', category: 'free_weights' },
+  { id: 'ez_bar',          label: 'EZ Curl Bar', category: 'free_weights' },
+  { id: 'trap_bar',        label: 'Trap / Hex Bar', category: 'free_weights' },
+  { id: 'kettlebells',     label: 'Kettlebells', category: 'free_weights' },
+  // Benches & racks
+  { id: 'bench',           label: 'Adjustable Bench', category: 'benches' },
+  { id: 'squat_rack',      label: 'Squat Rack / Power Rack', category: 'benches' },
+  { id: 'smith_machine',   label: 'Smith Machine', category: 'benches' },
+  // Cable & pulley
+  { id: 'cables',          label: 'Cable Machine', category: 'cables' },
+  { id: 'cable_crossover', label: 'Cable Crossover Station', category: 'cables' },
+  // Pull & bodyweight
+  { id: 'pull_up_bar',     label: 'Pull-Up Bar', category: 'bodyweight' },
+  { id: 'dip_station',     label: 'Dip Station', category: 'bodyweight' },
+  { id: 'bodyweight',      label: 'Bodyweight Only', category: 'bodyweight' },
+  // Leg machines
+  { id: 'leg_press',       label: 'Leg Press', category: 'machines' },
+  { id: 'hack_squat',      label: 'Hack Squat Machine', category: 'machines' },
+  { id: 'leg_curl',        label: 'Leg Curl / Extension', category: 'machines' },
+  { id: 'hip_thrust_machine', label: 'Hip Thrust Machine', category: 'machines' },
+  { id: 'calf_machine',    label: 'Calf Raise Machine', category: 'machines' },
+  { id: 'adductor_abductor', label: 'Adductor / Abductor Machine', category: 'machines' },
+  // Upper body machines
+  { id: 'lat_pulldown',    label: 'Lat Pulldown', category: 'machines' },
+  { id: 'seated_row',      label: 'Seated Row Machine', category: 'machines' },
+  { id: 'chest_press',     label: 'Chest Press Machine', category: 'machines' },
+  { id: 'shoulder_press_machine', label: 'Shoulder Press Machine', category: 'machines' },
+  { id: 'pec_deck',        label: 'Pec Deck / Fly Machine', category: 'machines' },
+  { id: 'chest_supported_row', label: 'Chest-Supported Row', category: 'machines' },
+  { id: 'rear_delt_machine', label: 'Rear Delt / Reverse Fly Machine', category: 'machines' },
+  { id: 'preacher_curl',   label: 'Preacher Curl Bench', category: 'machines' },
+  // Cardio / other
+  { id: 'bands',           label: 'Resistance Bands', category: 'other' },
 ];
 
 // ─── EXERCISE DATABASE ────────────────────────────────────────

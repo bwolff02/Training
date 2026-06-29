@@ -161,7 +161,7 @@
 <main id="mainContent">
   <!-- STEP 1: Experience -->
   <div class="step active" id="step-1">
-    <div class="step-indicator">STEP 1 OF 8</div>
+    <div class="step-indicator">STEP 1 OF 10</div>
     <div class="step-title">Training Experience</div>
     <div class="step-desc">How long have you been lifting consistently?</div>
     <div class="option-group" id="experience-options">
@@ -186,7 +186,7 @@
 
   <!-- STEP 2: Goal -->
   <div class="step" id="step-2">
-    <div class="step-indicator">STEP 2 OF 8</div>
+    <div class="step-indicator">STEP 2 OF 10</div>
     <div class="step-title">Primary Goal</div>
     <div class="step-desc">What are you training for right now?</div>
     <div class="option-group" id="goal-options">
@@ -238,7 +238,7 @@
 
   <!-- STEP 3: Schedule -->
   <div class="step" id="step-3">
-    <div class="step-indicator">STEP 3 OF 8</div>
+    <div class="step-indicator">STEP 3 OF 10</div>
     <div class="step-title">Schedule</div>
     <div class="step-desc">How many days per week can you train, and how long per session?</div>
     <div class="field-group">
@@ -258,6 +258,7 @@
       <div class="inline-select" id="session-options">
         <div class="option-pill" onclick="selectOption('sessionMinutes', 45, this)">45 min</div>
         <div class="option-pill" onclick="selectOption('sessionMinutes', 60, this)">60 min</div>
+        <div class="option-pill" onclick="selectOption('sessionMinutes', 75, this)">75 min</div>
         <div class="option-pill" onclick="selectOption('sessionMinutes', 90, this)">90+ min</div>
       </div>
     </div>
@@ -269,10 +270,15 @@
 
   <!-- STEP 4: Equipment -->
   <div class="step" id="step-4">
-    <div class="step-indicator">STEP 4 OF 8</div>
+    <div class="step-indicator">STEP 4 OF 10</div>
     <div class="step-title">Equipment Access</div>
     <div class="step-desc">Select everything available at your gym. We'll filter exercises to match.</div>
     <div class="checkbox-grid" id="equipment-checks"></div>
+    <div class="field-group" style="margin-top:16px;">
+      <div class="field-label">Dumbbell max weight (lbs)</div>
+      <input class="field-input" type="number" id="db-max-weight" inputmode="numeric" placeholder="e.g., 100" style="max-width:160px;" onchange="answers.dbMaxWeight=parseInt(this.value)||0">
+      <div class="field-hint">Heaviest dumbbell pair at your gym. Helps us avoid prescribing weights you can't load.</div>
+    </div>
     <div class="nav-buttons">
       <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
       <button class="btn btn-accent" onclick="nextStep()" id="btn-next-4" disabled>Next →</button>
@@ -281,7 +287,7 @@
 
   <!-- STEP 5: Baselines -->
   <div class="step" id="step-5">
-    <div class="step-indicator">STEP 5 OF 8</div>
+    <div class="step-indicator">STEP 5 OF 10</div>
     <div class="step-title">Lift Baselines</div>
     <div class="step-desc">Enter a recent working set for your main lifts. We'll estimate your 1RM from here — no need to guess your max. Skip any you don't do.</div>
     <div id="baseline-inputs"></div>
@@ -293,7 +299,7 @@
 
   <!-- STEP 6: Injuries -->
   <div class="step" id="step-6">
-    <div class="step-indicator">STEP 6 OF 8</div>
+    <div class="step-indicator">STEP 6 OF 10</div>
     <div class="step-title">Injuries & Limitations</div>
     <div class="step-desc">Anything we should work around? Check what applies and add details if needed.</div>
     <div class="injury-checkboxes" id="injury-checks">
@@ -326,9 +332,76 @@
     </div>
   </div>
 
-  <!-- STEP 7: Split -->
+  <!-- STEP 7: Workout Style (intermediate/advanced only) -->
   <div class="step" id="step-7">
-    <div class="step-indicator">STEP 7 OF 8</div>
+    <div class="step-indicator">STEP 7 OF 10</div>
+    <div class="step-title">Workout Density</div>
+    <div class="step-desc">How big are your typical workouts? This helps us build sessions that match your training style.</div>
+    <div class="field-group">
+      <div class="field-label">Exercises per session</div>
+      <div class="inline-select" id="exercises-per-session-options">
+        <div class="option-pill" onclick="selectOption('exercisesPerSession', 5, this)">5-6</div>
+        <div class="option-pill" onclick="selectOption('exercisesPerSession', 7, this)">7-8</div>
+        <div class="option-pill" onclick="selectOption('exercisesPerSession', 9, this)">9-10</div>
+        <div class="option-pill" onclick="selectOption('exercisesPerSession', 11, this)">11+</div>
+      </div>
+    </div>
+    <div class="field-group" style="margin-top:16px;">
+      <div class="field-label">Working sets per session</div>
+      <div class="inline-select" id="sets-per-session-options">
+        <div class="option-pill" onclick="selectOption('setsPerSession', 15, this)">15-20</div>
+        <div class="option-pill" onclick="selectOption('setsPerSession', 22, this)">20-25</div>
+        <div class="option-pill" onclick="selectOption('setsPerSession', 27, this)">25-30</div>
+        <div class="option-pill" onclick="selectOption('setsPerSession', 32, this)">30+</div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-7" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 8: Training Techniques (intermediate/advanced only) -->
+  <div class="step" id="step-8">
+    <div class="step-indicator">STEP 8 OF 10</div>
+    <div class="step-title">Training Techniques</div>
+    <div class="step-desc">What techniques do you like to use? We'll weave these into your program where they make sense.</div>
+    <div class="checkbox-grid" id="technique-checks">
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'supersets')">
+        <div class="check-box"></div><div class="check-label">Supersets</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'drop_sets')">
+        <div class="check-box"></div><div class="check-label">Drop Sets</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'rest_pause')">
+        <div class="check-box"></div><div class="check-label">Rest-Pause</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'myo_reps')">
+        <div class="check-box"></div><div class="check-label">Myo-Reps</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'partials')">
+        <div class="check-box"></div><div class="check-label">Partials</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'slow_eccentrics')">
+        <div class="check-box"></div><div class="check-label">Slow Eccentrics</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'pause_reps')">
+        <div class="check-box"></div><div class="check-label">Pause Reps</div>
+      </div>
+      <div class="checkbox-card" onclick="toggleCheck(this, 'techniques', 'giant_sets')">
+        <div class="check-box"></div><div class="check-label">Giant Sets</div>
+      </div>
+    </div>
+    <div class="field-hint" style="margin-top:8px;">Skip this if you prefer straight sets — that's a valid choice too.</div>
+    <div class="nav-buttons">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-accent" onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 9: Split -->
+  <div class="step" id="step-9">
+    <div class="step-indicator">STEP 9 OF 10</div>
     <div class="step-title">Training Split</div>
     <div class="step-desc">Choose how to organize your training days, or let us pick based on your schedule.</div>
     <div class="option-group" id="split-options">
@@ -351,13 +424,13 @@
     </div>
     <div class="nav-buttons">
       <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
-      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-7" disabled>Next →</button>
+      <button class="btn btn-accent" onclick="nextStep()" id="btn-next-9" disabled>Next →</button>
     </div>
   </div>
 
-  <!-- STEP 8: Periodization -->
-  <div class="step" id="step-8">
-    <div class="step-indicator">STEP 8 OF 8</div>
+  <!-- STEP 10: Periodization -->
+  <div class="step" id="step-10">
+    <div class="step-indicator">STEP 10 OF 10</div>
     <div class="step-title">Periodization</div>
     <div class="step-desc">How should intensity vary week to week?</div>
     <div class="option-group" id="period-options">
@@ -419,7 +492,7 @@
 <script>
 // ─── STATE ────────────────────────────────────────────────────
 let currentStep = 1;
-const totalSteps = 8;
+const totalSteps = 10;
 let answers = {
   experience: null,
   goal: null,
@@ -427,9 +500,13 @@ let answers = {
   daysPerWeek: null,
   sessionMinutes: null,
   equipment: [],
+  dbMaxWeight: 0,
   baselines: {},
   injuryFlags: [],
   injuryNotes: '',
+  exercisesPerSession: null,
+  setsPerSession: null,
+  techniques: [],
   splitPreference: null,
   periodization: null,
 };
@@ -449,12 +526,22 @@ function goToStep(n) {
 function nextStep() {
   if (currentStep === 4) buildEquipmentStep();
   if (currentStep === 4) buildBaselineStep();
-  if (currentStep === 7) updatePeriodSuggestion();
+  // Skip steps 7-8 (workout density + techniques) for beginners
+  if (currentStep === 6 && answers.experience === 'beginner') {
+    goToStep(9);
+    return;
+  }
+  if (currentStep === 9) updatePeriodSuggestion();
   goToStep(currentStep + 1);
   if (currentStep === 5) buildBaselineStep();
 }
 
 function prevStep() {
+  // Skip steps 7-8 going backwards for beginners
+  if (currentStep === 9 && answers.experience === 'beginner') {
+    goToStep(6);
+    return;
+  }
   goToStep(currentStep - 1);
 }
 
@@ -498,13 +585,15 @@ function updateNextButton() {
   const btn3 = document.getElementById('btn-next-3');
   const btn4 = document.getElementById('btn-next-4');
   const btn7 = document.getElementById('btn-next-7');
+  const btn9 = document.getElementById('btn-next-9');
   const btnGen = document.getElementById('btn-generate');
 
   if (btn1) btn1.disabled = !answers.experience;
   if (btn2) btn2.disabled = !answers.goal;
   if (btn3) btn3.disabled = !answers.daysPerWeek || !answers.sessionMinutes;
   if (btn4) btn4.disabled = answers.equipment.length === 0;
-  if (btn7) btn7.disabled = !answers.splitPreference;
+  if (btn7) btn7.disabled = !answers.exercisesPerSession || !answers.setsPerSession;
+  if (btn9) btn9.disabled = !answers.splitPreference;
   if (btnGen) btnGen.disabled = !answers.periodization;
 }
 

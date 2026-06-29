@@ -71,13 +71,34 @@ const SPLIT_LAYOUTS = {
   },
 };
 
-// ─── SESSION TIME BUDGETS ─────────────────────────────────────
+// ─── SESSION EXERCISE LIMITS ──────────────────────────────────
+// Default limits by session time. Overridden by user's exercisesPerSession if provided.
 
-const SESSION_EXERCISE_LIMITS = {
-  45: { anchors: 2, accessories: 2 },
-  60: { anchors: 2, accessories: 3 },
-  90: { anchors: 3, accessories: 5 },
+const SESSION_EXERCISE_DEFAULTS = {
+  45: { anchors: 2, accessories: 3 },
+  60: { anchors: 2, accessories: 4 },
+  75: { anchors: 3, accessories: 5 },
+  90: { anchors: 3, accessories: 6 },
 };
+
+function getSessionLimits(profile) {
+  const defaults = SESSION_EXERCISE_DEFAULTS[profile.sessionMinutes] || SESSION_EXERCISE_DEFAULTS[60];
+  if (profile.exercisesPerSession) {
+    const total = profile.exercisesPerSession;
+    const anchors = Math.min(Math.ceil(total * 0.3), 4);
+    const accessories = total - anchors;
+    return { anchors, accessories };
+  }
+  return defaults;
+}
+
+function getSetsPerExercise(profile, isAnchor) {
+  if (profile.setsPerSession && profile.exercisesPerSession) {
+    const avgSets = Math.round(profile.setsPerSession / profile.exercisesPerSession);
+    return Math.max(2, Math.min(avgSets, 5));
+  }
+  return isAnchor ? 3 : 3;
+}
 
 // ─── WAVE PERIODIZATION TAG ASSIGNMENT ────────────────────────
 
@@ -106,11 +127,16 @@ function pickExercisesForDay(dayType, tag, profile, limits) {
   const equipment = profile.equipment;
   const goal = profile.goal;
   const usedIds = new Set();
+  const anchorSets = getSetsPerExercise(profile, true);
+  const accessorySets = getSetsPerExercise(profile, false);
+  const techniques = profile.techniques || [];
 
-  // Pick anchors
+  // Pick anchors — cycle through anchor muscles, picking multiple per muscle if needed
   const anchors = [];
-  for (const muscle of muscleMap.anchors) {
-    if (anchors.length >= limits.anchors) break;
+  let anchorMuscleIdx = 0;
+  while (anchors.length < limits.anchors && anchorMuscleIdx < muscleMap.anchors.length * 2) {
+    const muscle = muscleMap.anchors[anchorMuscleIdx % muscleMap.anchors.length];
+    anchorMuscleIdx++;
     const candidates = getAnchorsForMuscle(muscle, equipment);
     for (const c of candidates) {
       if (!usedIds.has(c.id)) {
@@ -118,19 +144,28 @@ function pickExercisesForDay(dayType, tag, profile, limits) {
         const baseline = profile.baselines[c.id];
         const pct = getWeightPercentage(goal, tag);
         const est1RM = baseline ? epley1RM(baseline.weight, baseline.reps) : 0;
-        const wt = est1RM > 0 ? workingWeight(est1RM, pct) : 0;
+        let wt = est1RM > 0 ? workingWeight(est1RM, pct) : 0;
+
+        // Cap dumbbell exercises to gym's max DB weight
+        if (profile.dbMaxWeight > 0 && c.equipment.includes('dumbbells') && wt > profile.dbMaxWeight) {
+          wt = profile.dbMaxWeight;
+        }
+
+        let note = '';
+        if (techniques.includes('slow_eccentrics') && tag === 'heavy') note = '3-sec eccentric on each rep.';
+        if (techniques.includes('pause_reps') && tag === 'heavy') note = '1-sec pause at bottom.';
 
         anchors.push(createProgramExercise({
           id: c.id,
           name: c.name,
-          sets: tag === 'heavy' ? 3 : 3,
+          sets: anchorSets,
           setsRule: 'anchor_set_count',
           reps: `${repRange.min}-${repRange.max}`,
           repsRule: 'rep_range_for_goal',
           weight: wt,
           weightRule: est1RM > 0 ? 'percentage_of_1rm' : 'no_baseline',
           anchor: true,
-          note: '',
+          note,
           equipmentRequired: c.equipment,
         }));
         usedIds.add(c.id);
@@ -139,33 +174,53 @@ function pickExercisesForDay(dayType, tag, profile, limits) {
     }
   }
 
-  // Pick accessories
+  // Pick accessories — cycle through accessory muscles, filling to limit
   const accessories = [];
-  const accessoryMuscles = [...muscleMap.accessories];
-  for (const muscle of accessoryMuscles) {
-    if (accessories.length >= limits.accessories) break;
+  let accMuscleIdx = 0;
+  while (accessories.length < limits.accessories && accMuscleIdx < muscleMap.accessories.length * 3) {
+    const muscle = muscleMap.accessories[accMuscleIdx % muscleMap.accessories.length];
+    accMuscleIdx++;
     const candidates = getAccessoriesForMuscle(muscle, equipment);
     for (const c of candidates) {
       if (!usedIds.has(c.id)) {
         const repRange = getRepRange(goal, tag, false);
-        const volTarget = getVolumeTarget(profile.experience, goal, muscle);
+
+        let note = '';
+        // Apply technique annotations to later accessories
+        if (techniques.includes('drop_sets') && accessories.length >= limits.accessories - 2) {
+          note = 'Drop set on final set — reduce weight ~20%, rep to failure.';
+        } else if (techniques.includes('myo_reps') && tag === 'volume' && accessories.length >= limits.accessories - 2) {
+          note = 'Myo-rep set: activation set to near failure, then 3-5 mini-sets of 3-5 reps with short rest.';
+        } else if (techniques.includes('rest_pause') && accessories.length >= limits.accessories - 1) {
+          note = 'Rest-pause on last set: hit failure, rest 10-15 sec, go again x2.';
+        } else if (techniques.includes('partials') && tag === 'volume') {
+          note = 'Partials after final set — 5-6 partial reps through the hardest range.';
+        }
 
         accessories.push(createProgramExercise({
           id: c.id,
           name: c.name,
-          sets: 3,
+          sets: accessorySets,
           setsRule: 'volume_target',
           reps: `${repRange.min}-${repRange.max}`,
           repsRule: 'rep_range_for_goal',
           weight: 0,
           weightRule: 'no_baseline',
           anchor: false,
-          note: '',
+          note,
           equipmentRequired: c.equipment,
         }));
         usedIds.add(c.id);
         break;
       }
+    }
+  }
+
+  // Apply superset pairing if user likes supersets
+  if (techniques.includes('supersets') && accessories.length >= 4) {
+    for (let i = 0; i < accessories.length - 1; i += 2) {
+      accessories[i].note = (accessories[i].note ? accessories[i].note + ' ' : '') + `Superset with ${accessories[i+1].name.value}.`;
+      accessories[i+1].note = (accessories[i+1].note ? accessories[i+1].note + ' ' : '') + `Superset with ${accessories[i].name.value}.`;
     }
   }
 
@@ -191,7 +246,7 @@ function generateProgram(profile) {
 }
 
 function generateProgramWithLayouts(profile, split, splitRule, layouts) {
-  const limits = SESSION_EXERCISE_LIMITS[profile.sessionMinutes] || SESSION_EXERCISE_LIMITS[60];
+  const limits = getSessionLimits(profile);
   const tagged = assignWaveTags(layouts, profile.periodization);
 
   const days = tagged.map(layout => {

@@ -29,13 +29,17 @@ function createProfile(answers) {
     goal: answers.goal,                        // 'hypertrophy' | 'strength' | 'recomp' | 'general'
     strengthLifts: answers.strengthLifts || [],// e.g. ['squat','bench','deadlift'] — only if goal=strength
     daysPerWeek: answers.daysPerWeek,          // 2-7
-    sessionMinutes: answers.sessionMinutes,    // 45 | 60 | 90
+    sessionMinutes: answers.sessionMinutes,    // 45 | 60 | 75 | 90
     equipment: answers.equipment,              // string[] from equipment list
+    dbMaxWeight: answers.dbMaxWeight || 0,     // max dumbbell weight at gym (lbs)
     baselines: answers.baselines || {},        // { exerciseId: { weight, reps, estimated1RM } }
     injuries: {
       flags: answers.injuryFlags || [],        // ['shoulders','lower_back','knees']
       notes: answers.injuryNotes || ''         // free text
     },
+    exercisesPerSession: answers.exercisesPerSession || null, // 5-11+
+    setsPerSession: answers.setsPerSession || null,           // 15-32+
+    techniques: answers.techniques || [],      // ['supersets','drop_sets','rest_pause', etc.]
     splitPreference: answers.splitPreference,  // 'full_body' | 'upper_lower' | 'ppl' | 'auto'
     periodization: answers.periodization,      // 'wave' | 'linear'
     createdAt: Date.now()
