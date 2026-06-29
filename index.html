@@ -660,6 +660,19 @@
 </head>
 <body>
 <div class="toast" id="toast">Workout saved!</div>
+
+<!-- Landing Page Modal -->
+<div id="landingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--dark);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:500px;text-align:center;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;margin-bottom:12px;">MY TRAINING</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.5;">Choose how you want to use the app. Build a personalized program with AI, or start logging workouts right away.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="startTracking()" style="background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;padding:14px 20px;border-radius:8px;border:none;cursor:pointer;font-weight:600;text-transform:uppercase;">📝 Start Tracking</button>
+      <button onclick="window.location.href='generator.html'" style="background:var(--card);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;padding:14px 20px;border-radius:8px;border:1px solid rgba(200,241,53,.3);cursor:pointer;text-transform:uppercase;">⚡ Build Program</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-top">
     <div>
@@ -679,8 +692,29 @@
     <span>⚡ Using AI-generated program</span>
     <span style="color:var(--muted);cursor:pointer;text-decoration:underline;" onclick="if(confirm('Switch back to the default program? Your generated program will still be saved.')){localStorage.removeItem('active_generated_program');location.reload();}">reset to default</span>
   </div>
+  <div id="tracking-only-controls" style="display:none;padding:12px 20px;border-top:1px solid var(--border);background:var(--dark);">
+    <div style="max-width:640px;margin:0 auto;display:flex;gap:8px;align-items:center;">
+      <select id="daySelector" onchange="switchDay(this.value)" style="flex:1;background:var(--input-bg);border:1px solid var(--border);color:var(--white);padding:8px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;outline:none;">
+        <option value="">Select a day...</option>
+      </select>
+      <button onclick="showCreateDayModal()" style="background:var(--accent);color:var(--black);padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;font-weight:600;">+ New Day</button>
+    </div>
+  </div>
   <div class="day-tabs" id="dayTabs"></div>
 </header>
+
+<!-- Create Day Modal -->
+<div id="createDayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--dark);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:400px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:12px;">Name Your Day</div>
+    <input id="dayNameInput" type="text" placeholder="e.g., Push Day, Leg Day, Upper Body" style="width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--white);padding:10px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:16px;" onkeypress="if(event.key==='Enter')saveDayName()">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeCreateDayModal()" style="flex:1;background:var(--card);color:var(--muted);padding:10px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;">Cancel</button>
+      <button onclick="saveDayName()" style="flex:1;background:var(--accent);color:var(--black);padding:10px;border-radius:6px;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;font-weight:600;">Create</button>
+    </div>
+  </div>
+</div>
+
 <main id="mainContent"></main>
 <div class="save-bar">
   <button class="btn btn-ghost" onclick="clearDay()">Clear</button>
@@ -1109,17 +1143,248 @@ const HISTORY = {
 let currentDay = 0;
 let sessionLogs = {};
 let justSavedDay = null; // index of day just saved, to force blank reload
+let isTrackingOnly = localStorage.getItem('trackingOnly') === 'true';
+let trackingDays = JSON.parse(localStorage.getItem('trackingDays') || '[]');
+let currentTrackingDay = null;
 
 // ─── INIT ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  // Show landing modal if this is first load and no program/tracking mode
+  const hasProgram = !!_generatedProgram || localStorage.getItem('active_generated_program');
+  const isFirstLoad = !localStorage.getItem('appState_initialized');
+
+  if (isFirstLoad && !hasProgram && !isTrackingOnly) {
+    document.getElementById('landingModal').style.display = 'flex';
+    localStorage.setItem('appState_initialized', 'true');
+    return;
+  }
+
+  if (isTrackingOnly) {
+    initTrackingOnly();
+  } else {
+    initNormalTracker();
+  }
+});
+
+function initTrackingOnly() {
+  document.getElementById('tracking-only-controls').style.display = 'block';
+  document.getElementById('dayTabs').style.display = 'none';
+  document.getElementById('weekBadge').style.display = 'none';
+  document.getElementById('weekLabel').style.display = 'none';
+
+  // Load tracking days into selector
+  const selector = document.getElementById('daySelector');
+  trackingDays.forEach((day, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = day.name;
+    selector.appendChild(opt);
+  });
+
+  if (trackingDays.length > 0) {
+    currentTrackingDay = 0;
+    selector.value = 0;
+    switchDay(0);
+  } else {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div style="max-width:640px;margin:0 auto;padding:40px 20px;text-align:center;color:var(--muted);"><div style="font-size:14px;">No days created yet. Click "+ New Day" to get started!</div></div>';
+  }
+}
+
+function initNormalTracker() {
   if (_generatedProgram) {
     const banner = document.getElementById('generated-banner');
     if (banner) banner.style.display = 'flex';
   }
   setWeekBadge();
   buildTabs();
-  await loadDay(0);
-});
+  loadDay(0);
+}
+
+function startTracking() {
+  localStorage.setItem('trackingOnly', 'true');
+  localStorage.setItem('appState_initialized', 'true');
+  isTrackingOnly = true;
+  document.getElementById('landingModal').style.display = 'none';
+  initTrackingOnly();
+}
+
+function showCreateDayModal() {
+  document.getElementById('createDayModal').style.display = 'flex';
+  document.getElementById('dayNameInput').focus();
+}
+
+function closeCreateDayModal() {
+  document.getElementById('createDayModal').style.display = 'none';
+  document.getElementById('dayNameInput').value = '';
+}
+
+function saveDayName() {
+  const name = document.getElementById('dayNameInput').value.trim();
+  if (!name) return;
+
+  const newDay = { name, exercises: [], createdAt: Date.now() };
+  trackingDays.push(newDay);
+  localStorage.setItem('trackingDays', JSON.stringify(trackingDays));
+
+  const selector = document.getElementById('daySelector');
+  const opt = document.createElement('option');
+  opt.value = trackingDays.length - 1;
+  opt.textContent = name;
+  selector.appendChild(opt);
+  selector.value = trackingDays.length - 1;
+
+  closeCreateDayModal();
+  switchDay(trackingDays.length - 1);
+}
+
+function switchDay(dayIdx) {
+  if (!isTrackingOnly) return;
+  currentTrackingDay = parseInt(dayIdx);
+  if (isNaN(currentTrackingDay) || currentTrackingDay >= trackingDays.length) return;
+
+  const day = trackingDays[currentTrackingDay];
+  sessionLogs = { _date: new Date().toISOString().split('T')[0], _feel: 7, _notes: '', _custom: [] };
+
+  const main = document.getElementById('mainContent');
+  let html = `
+    <div style="max-width:640px;margin:0 auto;padding:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;margin-bottom:4px;">${day.name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Log your exercises</div>
+
+      <div class="field-group">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;display:block;">Add Exercise</label>
+        <input type="text" id="exerciseSearch" placeholder="Search exercises..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--white);padding:10px 12px;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeyup="updateExerciseDropdown()">
+        <div id="exerciseDropdown" style="margin-top:4px;max-height:200px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:6px;display:none;"></div>
+      </div>
+
+      <div id="trackingExercises" style="margin-top:20px;"></div>
+    </div>
+  `;
+  main.innerHTML = html;
+  renderTrackingExercises();
+}
+
+function updateExerciseDropdown() {
+  const query = document.getElementById('exerciseSearch').value.toLowerCase();
+  const dropdown = document.getElementById('exerciseDropdown');
+
+  if (!query) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  const baselineExercises = getBaselineExercises();
+  const customExercises = getCustomExercises();
+  const allExercises = [...baselineExercises, ...customExercises];
+
+  const filtered = allExercises.filter(ex => ex.name.toLowerCase().includes(query));
+
+  if (filtered.length === 0) {
+    dropdown.innerHTML = `<div style="padding:8px 12px;color:var(--muted);font-size:12px;">No matches. <span style="color:var(--accent);cursor:pointer;" onclick="addCustomExercise('${document.getElementById('exerciseSearch').value}')">Create custom</span></div>`;
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = filtered.map((ex, idx) =>
+    `<div onclick="selectExercise('${ex.id}','${ex.name}')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">${ex.name}</div>`
+  ).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectExercise(id, name) {
+  if (!sessionLogs._custom) sessionLogs._custom = [];
+
+  sessionLogs._custom.push({
+    id: id,
+    name: name,
+    sets: [{ weight: '', reps: '' }]
+  });
+
+  document.getElementById('exerciseSearch').value = '';
+  document.getElementById('exerciseDropdown').style.display = 'none';
+  renderTrackingExercises();
+}
+
+function addCustomExercise(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  // Save custom exercise to localStorage
+  const custom = JSON.parse(localStorage.getItem('customExercises') || '[]');
+  if (!custom.find(e => e.name === trimmed)) {
+    custom.push({ id: 'custom_' + Date.now(), name: trimmed });
+    localStorage.setItem('customExercises', JSON.stringify(custom));
+  }
+
+  selectExercise('custom_' + Date.now(), trimmed);
+}
+
+function getBaselineExercises() {
+  // Return a curated list of baseline exercises
+  return [
+    { id: 'barbell_squat', name: 'Barbell Squat' },
+    { id: 'barbell_bench', name: 'Barbell Bench Press' },
+    { id: 'rdl', name: 'Romanian Deadlift' },
+    { id: 'military_press', name: 'Military Press' },
+    { id: 'barbell_row', name: 'Barbell Row' },
+    { id: 'wtd_pullup', name: 'Weighted Pull-Up' },
+    { id: 'lat_pulldown_machine', name: 'Lat Pulldown' },
+    { id: 'seated_row', name: 'Seated Row' },
+    { id: 'leg_press_exercise', name: 'Leg Press' },
+    { id: 'leg_extension', name: 'Leg Extension' },
+    { id: 'prone_leg_curl', name: 'Prone Leg Curl' },
+    { id: 'cable_fly_htl', name: 'Cable Fly (High to Low)' },
+    { id: 'cable_lateral_raise', name: 'Cable Lateral Raise' },
+    { id: 'face_pull', name: 'Face Pull' },
+    { id: 'db_curl', name: 'Dumbbell Curl' },
+    { id: 'rope_pushdown', name: 'Rope Pushdown' },
+    { id: 'cable_crunch', name: 'Cable Crunch' },
+    { id: 'incline_smith', name: 'Incline Smith Press' },
+    { id: 'hammer_curl', name: 'Hammer Curl' },
+    { id: 'skull_crusher', name: 'Skull Crusher' }
+  ];
+}
+
+function getCustomExercises() {
+  return JSON.parse(localStorage.getItem('customExercises') || '[]');
+}
+
+function renderTrackingExercises() {
+  const container = document.getElementById('trackingExercises');
+  if (!sessionLogs._custom || sessionLogs._custom.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">No exercises logged yet. Search above to add one.</div>';
+    return;
+  }
+
+  container.innerHTML = sessionLogs._custom.map((ex, idx) => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-weight:500;font-size:14px;">${ex.name}</div>
+        <button onclick="removeExercise(${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="number" placeholder="lbs" value="${ex.sets[0]?.weight || ''}" onchange="updateExerciseSet(${idx},0,'weight',this.value)" style="width:80px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);padding:6px;border-radius:4px;font-size:12px;">
+        <span style="color:var(--muted);font-size:12px;align-self:center;">×</span>
+        <input type="number" placeholder="reps" value="${ex.sets[0]?.reps || ''}" onchange="updateExerciseSet(${idx},0,'reps',this.value)" style="width:60px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);padding:6px;border-radius:4px;font-size:12px;">
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeExercise(idx) {
+  if (sessionLogs._custom) {
+    sessionLogs._custom.splice(idx, 1);
+    renderTrackingExercises();
+  }
+}
+
+function updateExerciseSet(exIdx, setIdx, field, value) {
+  if (!sessionLogs._custom || !sessionLogs._custom[exIdx]) return;
+  const ex = sessionLogs._custom[exIdx];
+  if (!ex.sets[setIdx]) ex.sets[setIdx] = {};
+  ex.sets[setIdx][field] = value;
+}
 
 function setWeekBadge() {
   const badge = document.getElementById('weekBadge');
@@ -1793,6 +2058,35 @@ function addSet(exId) {
 }
 
 async function saveDay() {
+  // Handle tracking-only mode
+  if (isTrackingOnly) {
+    if (currentTrackingDay === null || currentTrackingDay >= trackingDays.length) return;
+
+    const day = trackingDays[currentTrackingDay];
+    day.exercises = sessionLogs._custom || [];
+    day.lastLogged = new Date().toISOString().split('T')[0];
+
+    localStorage.setItem('trackingDays', JSON.stringify(trackingDays));
+
+    // Save to exercise history
+    if (sessionLogs._custom) {
+      sessionLogs._custom.forEach(ex => {
+        const hist = JSON.parse(localStorage.getItem('hist_' + ex.id) || '[]');
+        const sets = ex.sets.filter(s => s.weight || s.reps);
+        if (sets.length > 0) {
+          hist.push({ date: new Date().toISOString().split('T')[0], sets: sets });
+          if (hist.length > 50) hist.shift();
+          localStorage.setItem('hist_' + ex.id, JSON.stringify(hist));
+        }
+      });
+    }
+
+    showSaveSuccess();
+    sessionLogs = { _date: new Date().toISOString().split('T')[0], _feel: 7, _notes: '', _custom: [] };
+    renderTrackingExercises();
+    return;
+  }
+
   const day = PROGRAM[currentDay];
   if (day.rest) return;
   const variant = getCurrentVariant(currentDay);
@@ -1947,8 +2241,13 @@ function showSaveSuccess(prMsg) {
 
 function clearDay() {
   if (!confirm('Clear this day\'s log?')) return;
-  sessionLogs = {};
-  renderDay(currentDay);
+  if (isTrackingOnly) {
+    sessionLogs = { _date: new Date().toISOString().split('T')[0], _feel: 7, _notes: '', _custom: [] };
+    renderTrackingExercises();
+  } else {
+    sessionLogs = {};
+    renderDay(currentDay);
+  }
 }
 
 async function saveToDB(key, value) {
