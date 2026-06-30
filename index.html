@@ -665,7 +665,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.62</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.64</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -781,7 +781,7 @@ const PROGRAM = [
       sections: [
         { label: 'Anchors', exercises: [
           { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press (Volume)', note:'2 working sets + 1 back-off. Week B. Lighter than heavy day, higher reps.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'incline-smith-tue-b', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'incline-smith-vol', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           { id:'hex-press-b', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top every rep.', target:'3 × 12–15', defaultSets:3 },
@@ -894,7 +894,7 @@ const PROGRAM = [
       sections: [
         { label: 'Anchors', exercises: [
           { id:'military-press-vol', name:'Military Press (Volume)', note:'2 working sets + 1 back-off. Week A. Lighter than heavy day, higher reps. Strict form.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'incline-smith-fri', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'incline-smith-vol', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3 },
@@ -912,13 +912,13 @@ const PROGRAM = [
       id: 'fri-push-b', title: 'PUSH', subtitle: 'Chest Primary — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith-fri-b', name:'Incline Smith Press', note:'2 top sets then 1 back-off at 85–90%. 2 sec descent, blades pinched.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'flat-smith-fri-b', name:'Flat Smith Press', note:'2 top sets then 1 back-off at 85–90%. Slightly wider grip, full range.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'incline-smith', name:'Incline Smith Press', note:'2 top sets then 1 back-off at 85–90%. 2 sec descent, blades pinched.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'flat-smith', name:'Flat Smith Press', note:'2 top sets then 1 back-off at 85–90%. Slightly wider grip, full range.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-shoulder-press', name:'Smith Machine Shoulder Press', note:'2 top sets then 1 back-off at 85–90%. Week B. Full lockout, core braced.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'cable-fly-htl-b', name:'Cable Fly (High to Low)', note:'Stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-lat-raise-fri-b', name:'Cable Lateral Raise', note:'One arm, constant tension. Don\'t shrug.', target:'4 × 10–12 / side', defaultSets:4 },
+          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'One arm, constant tension. Don\'t shrug.', target:'4 × 10–12 / side', defaultSets:4 },
           { superset:true, exercises:[
             { id:'skull-crusher-b', name:'Skull Crusher', note:'Long head. Slow down, explode up.', target:'3 × 8–10', defaultSets:3 },
             { id:'rope-pushdown-b', name:'Rope Pushdown', note:'Split the rope at bottom for full contraction.', target:'3 × 10–12', defaultSets:3 },
@@ -1018,11 +1018,8 @@ const HISTORY = {
   'oblique-ext':     [{ date:'2026-05-29', sets:[{weight:0,reps:12},{weight:0,reps:12}]}],
   'oblique-ext-mon': [{ date:'2026-05-29', sets:[{weight:0,reps:12},{weight:0,reps:12}]}],
   'incline-smith':   [{ date:'2026-05-27', sets:[{weight:225,reps:6},{weight:225,reps:5}]}, {date:'2026-06-02', sets:[{weight:225,reps:4},{weight:205,reps:6}]}],
-  'incline-smith-tue-b':[{ date:'2026-05-27', sets:[{weight:185,reps:7},{weight:185,reps:7}]}],
-  'incline-smith-fri':[{ date:'2026-05-23', sets:[{weight:185,reps:7},{weight:185,reps:5}]}],
-  'incline-smith-fri-b':[{ date:'2026-05-27', sets:[{weight:225,reps:6},{weight:225,reps:5}]}, {date:'2026-06-02', sets:[{weight:225,reps:4},{weight:205,reps:6}]}],
+  'incline-smith-vol':[{ date:'2026-05-23', sets:[{weight:185,reps:7},{weight:185,reps:5}]}, {date:'2026-05-27', sets:[{weight:185,reps:7},{weight:185,reps:7}]}],
   'flat-smith':      [{ date:'2026-05-27', sets:[{weight:185,reps:8},{weight:185,reps:10}]}],
-  'flat-smith-fri-b':[{ date:'2026-05-27', sets:[{weight:185,reps:8},{weight:185,reps:10}]}],
   'military-press':      [{ date:'2026-05-23', sets:[{weight:115,reps:4},{weight:115,reps:4}]}],
   'military-press-vol':  [{ date:'2026-05-23', sets:[{weight:115,reps:4},{weight:115,reps:4}]}],
   'smith-shoulder-press':[{ date:'2026-05-27', sets:[{weight:165,reps:7},{weight:165,reps:7}]}, {date:'2026-06-02', sets:[{weight:155,reps:4},{weight:155,reps:6}]}],
@@ -1030,7 +1027,6 @@ const HISTORY = {
   'cable-fly-htl':   [{ date:'2026-05-23', sets:[{weight:70,reps:7},{weight:70,reps:5}]}],
   'cable-fly-htl-b': [{ date:'2026-05-23', sets:[{weight:70,reps:7},{weight:70,reps:5}]}],
   'cable-lat-raise-tue':[{ date:'2026-06-02', sets:[{weight:30,reps:9},{weight:30,reps:9}]}],
-  'cable-lat-raise-fri-b':[{ date:'2026-06-02', sets:[{weight:30,reps:9},{weight:30,reps:9}]}],
   'skull-crusher':   [{ date:'2026-06-02', sets:[{weight:95,reps:7},{weight:95,reps:6}]}],
   'skull-crusher-b': [{ date:'2026-06-02', sets:[{weight:95,reps:7},{weight:95,reps:6}]}],
   'rope-pushdown':   [{ date:'2026-05-13', sets:[{weight:62,reps:8},{weight:62,reps:5}]}],
@@ -1098,10 +1094,58 @@ let justSavedDay = null; // index of day just saved, to force blank reload
 
 // ─── INIT ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  migrateOldExerciseIds();
   setWeekBadge();
   buildTabs();
   await loadDay(0);
 });
+
+// One-time migration: fold any history still sitting under old, now-removed
+// exercise IDs into their unified canonical replacements, so nothing logged
+// before the ID consolidation gets silently orphaned.
+function migrateOldExerciseIds() {
+  if (localStorage.getItem('_migrated_v2_6_64')) return; // already done
+
+  const idMap = {
+    'incline-smith-fri-b': 'incline-smith',
+    'flat-smith-fri-b': 'flat-smith',
+    'cable-lat-raise-fri-b': 'cable-lat-raise-tue',
+    'incline-smith-tue-b': 'incline-smith-vol',
+    'incline-smith-fri': 'incline-smith-vol',
+  };
+
+  Object.entries(idMap).forEach(([oldId, newId]) => {
+    const oldKey = 'hist_' + oldId;
+    const newKey = 'hist_' + newId;
+    const oldData = localStorage.getItem(oldKey);
+    if (!oldData) return;
+
+    let oldSessions;
+    try { oldSessions = JSON.parse(oldData); } catch(e) { return; }
+    if (!Array.isArray(oldSessions) || !oldSessions.length) return;
+
+    const newData = localStorage.getItem(newKey);
+    let newSessions = [];
+    if (newData) {
+      try { newSessions = JSON.parse(newData); } catch(e) { newSessions = []; }
+    }
+
+    // Merge, dedupe by date+weight+reps signature, sort by date, cap at 12
+    const combined = [...newSessions, ...oldSessions];
+    const seen = new Set();
+    const deduped = combined.filter(s => {
+      const sig = s.date + '_' + JSON.stringify(s.sets);
+      if (seen.has(sig)) return false;
+      seen.add(sig);
+      return true;
+    }).sort((a, b) => a.date > b.date ? 1 : -1).slice(-12);
+
+    localStorage.setItem(newKey, JSON.stringify(deduped));
+    localStorage.removeItem(oldKey);
+  });
+
+  localStorage.setItem('_migrated_v2_6_64', 'true');
+}
 
 function setWeekBadge() {
   const badge = document.getElementById('weekBadge');
@@ -1619,7 +1663,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   }
 
   if (isVolumeDay) {
-    const looksLikeHeavy = avgReps <= 7;
+    const looksLikeHeavy = avgReps <= 5; // 6+ reps avg is solidly volume territory
     if (looksLikeHeavy) {
       const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
       return { note: 'Est. from heavy —', arrow: '→', recWeight: volWeight, lastWeight, maxReps, lastDate: last.date, repTarget: '8–12 reps', isVolume: true };
