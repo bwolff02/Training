@@ -654,6 +654,28 @@
     line-height: 1.6;
   }
 
+
+  .randomize-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid rgba(200,241,53,0.25);
+    border-radius: 10px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+  }
+  .randomize-btn:active { background: rgba(200,241,53,0.08); }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -665,7 +687,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.64</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.66</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1317,6 +1339,7 @@ function appendHistoryAndAddExercise(index, variant) {
   const addSection = document.createElement('div');
   addSection.className = 'add-exercise-section';
   addSection.innerHTML = `
+    <button class="randomize-btn" onclick="randomizeAccessories()">🔀 Randomize Accessories</button>
     <button class="add-exercise-btn" onclick="addCustomExercise('${accessoriesId}')">+ Add Exercise</button>
     <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">⚡ Add Superset</button>
     <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">🔗 Pair Existing Exercises</button>
@@ -1335,7 +1358,7 @@ function appendHistoryAndAddExercise(index, variant) {
   histSection.className = 'history-section';
   
   const sessions = variant ? getMuscleGroupHistory(variant) : [];
-  const recent = sessions.slice(-4).reverse();
+  const recent = sessions.slice(-8).reverse();
 
   let histHtml = `<div class="history-section-label"><span>Past Sessions</span><button class="history-toggle-btn" onclick="toggleHistory(this)">HIDE</button></div>`;
   histHtml += `<div id="history-entries">`;
@@ -2567,6 +2590,109 @@ function getDeloadExtras(variantId) {
   return extras[base] || [];
 }
 
+
+// ─── ACCESSORY RANDOMIZER ─────────────────────────────────────
+
+const ACCESSORY_POOLS = {
+  push: [
+    // Chest
+    { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
+    { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
+    { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
+    { id:'db-flat-fly', name:'Flat DB Flys', note:'Full stretch at bottom. Control the eccentric.', target:'3 × 12', defaultSets:3, muscle:'chest' },
+    // Delts
+    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'db-front-raise', name:'Plate / DB Front Raise', note:'Controlled — alternate or together.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
+    // Triceps
+    { id:'skull-crusher-b', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
+    { id:'rope-pushdown', name:'Rope Pushdown', note:'Elbows pinned, flare at bottom.', target:'3 × 12–15', defaultSets:3, muscle:'triceps' },
+    { id:'tri-lth', name:'Cable Low-to-High Tricep Extension', note:'Overhead stretch position — great long head stimulus.', target:'3 × 12', defaultSets:3, muscle:'triceps' },
+    { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
+  ],
+  pull: [
+    // Lats
+    { id:'cable-pullover', name:'Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
+    { id:'close-pulldown', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
+    // Rear delts
+    { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
+    { id:'db-rev-fly', name:'Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
+    { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt)', note:'Rear delt variation. Controlled pull.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
+    // Biceps
+    { id:'db-curl', name:'Dumbbell Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'hammer-curl-wed', name:'Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'incline-curl', name:'Bayesian / Incline Curl', note:'Stretch position. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'reverse-curl', name:'Reverse Curl', note:'Forearm and brachialis. Keep elbows pinned.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    // Traps
+    { id:'shrug-wed', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
+  ],
+  legs: [
+    // Hamstrings
+    { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric, full range.', target:'3 × 10–12', defaultSets:3, muscle:'hamstrings' },
+    { id:'seated-curl-mon', name:'Seated Leg Curl', note:'Upper hamstring emphasis. High reps.', target:'3 × 12–15', defaultSets:3, muscle:'hamstrings' },
+    // Quads
+    { id:'leg-ext-mon', name:'Leg Extension', note:'Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+    // Glutes/Hip
+    { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled. Glute med isolation.', target:'3 × 15 / side', defaultSets:3, muscle:'glutes' },
+    // Posterior
+    { id:'good-mornings', name:'Good Mornings (Smith)', note:'Hinge at hips, soft knee bend, feel the hamstring stretch.', target:'3 × 10–12', defaultSets:3, muscle:'posterior' },
+    // Calves (vertical only)
+    { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Full stretch at bottom, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'calves' },
+  ],
+};
+
+function getMuscleGroup(variantId) {
+  if (variantId.includes('push')) return 'push';
+  if (variantId.includes('pull')) return 'pull';
+  if (variantId.includes('legs')) return 'legs';
+  return null;
+}
+
+function randomizeAccessories() {
+  const variant = getCurrentVariant(currentDay);
+  if (!variant) return;
+  const muscleGroup = getMuscleGroup(variant.id);
+  if (!muscleGroup) return;
+
+  const pool = ACCESSORY_POOLS[muscleGroup];
+  if (!pool) return;
+
+  // Group pool by muscle tag
+  const byMuscle = {};
+  pool.forEach(ex => {
+    if (!byMuscle[ex.muscle]) byMuscle[ex.muscle] = [];
+    byMuscle[ex.muscle].push(ex);
+  });
+
+  // Pick one exercise per muscle group, shuffle within each group
+  const picked = [];
+  Object.values(byMuscle).forEach(group => {
+    const shuffled = group.sort(() => Math.random() - 0.5);
+    picked.push(shuffled[0]);
+  });
+
+  // Shuffle the final list
+  picked.sort(() => Math.random() - 0.5);
+
+  // Find the Accessories section in the DOM and replace its exercise cards
+  const accessoriesSection = document.getElementById('section-accessories-' + currentDay);
+  if (!accessoriesSection) { showToast('No accessories section found'); return; }
+
+  // Remove all existing exercise cards from accessories section
+  const existingCards = [...accessoriesSection.querySelectorAll('.exercise-card, .custom-exercise-card, .superset-block')];
+  existingCards.forEach(card => card.remove());
+
+  // Clear sessionLogs for old accessory IDs that are no longer on screen
+  // (we don't clear anchor logs since anchors stay)
+
+  // Render fresh cards for each picked exercise
+  const isVol = variant.tag === 'volume';
+  picked.forEach(ex => {
+    accessoriesSection.insertAdjacentHTML('beforeend', renderExercise(ex, isVol));
+  });
+
+  showToast('Accessories randomized!');
+}
 
 // ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
 function exportData() {
