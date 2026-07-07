@@ -687,7 +687,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.66</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.70</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1605,9 +1605,17 @@ function removeCustomExercise(idx) {
 function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   // Deload week: drop weight, higher reps
   if (isDeloadWeek) {
-    const all = getAllHistory(exId);
+    // For deload, always reference the HEAVY variant's history if this exercise
+    // has one, since deload weight should be based on your true strength ceiling,
+    // not your lighter volume-day numbers. Map known volume IDs -> heavy IDs.
+    const volToHeavy = {
+      'incline-smith-vol': 'incline-smith',
+    };
+    const heavyId = volToHeavy[exId] || exId.replace(/-vol(-\w+)?$/, '').replace(/-vol$/, '');
+    // Combine this exercise's own history + its heavy counterpart's history
+    const combined = [...getAllHistory(exId), ...(heavyId !== exId ? getAllHistory(heavyId) : [])];
     let bestWeight = 0;
-    all.forEach(s => {
+    combined.forEach(s => {
       if (!s.sets) return;
       s.sets.forEach(set => {
         const w = parseFloat(set.weight);
@@ -1750,10 +1758,15 @@ function renderExercise(ex, isVol) {
     const weightDisplay = sugg.recWeight > 0 ? `${sugg.recWeight}lbs` : 'BW';
     const lastDisplay = sugg.lastWeight > 0 ? `${sugg.lastWeight}lbs` : 'BW';
     const repHint = (sugg.isVolume || sugg.isDeload) ? `<span style="color:${sugg.isDeload ? 'var(--orange)' : 'var(--orange)'};font-size:11px;margin-left:6px;">@ ${sugg.repTarget}</span>` : '';
+    // Deload suggestions reference "best" not "last session", so show a cleaner line
+    // without the "× reps (date)" tail that only makes sense for normal suggestions.
+    const lastLine = sugg.isDeload
+      ? `${sugg.note} (best: ${lastDisplay})`
+      : `${sugg.note} — last: ${lastDisplay} × ${sugg.maxReps}${sugg.lastDate ? ' (' + sugg.lastDate + ')' : ''}`;
     suggHtml = `<div class="suggestion-box">
       <div class="sugg-title">💡 Suggested</div>
       <div class="sugg-val">${sugg.arrow} ${weightDisplay}${repHint}</div>
-      <div class="sugg-last">${sugg.note} — last: ${lastDisplay} × ${sugg.maxReps} (${sugg.lastDate})</div>
+      <div class="sugg-last">${lastLine}</div>
     </div>`;
   }
 
@@ -1936,7 +1949,7 @@ async function saveDay() {
     if (sessionExercises.length) {
       allSessions.push({
         date: sessionLogs._date,
-        week: (variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B'),
+        week: isDeloadWeek ? '🔋 DELOAD' : ((variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B')),
         feel: sessionLogs._feel || null,
         notes: sessionLogs._notes || '',
         exercises: sessionExercises
