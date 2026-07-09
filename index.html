@@ -676,6 +676,41 @@
   }
   .randomize-btn:active { background: rgba(200,241,53,0.08); }
 
+
+  .picker-search {
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+  .picker-search:focus { outline: none; border-color: var(--accent); }
+  .picker-options {
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .picker-option {
+    text-align: left;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--white);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .picker-option:active { background: var(--accent-dim); border-color: var(--accent); }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -687,7 +722,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.70</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.74</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1325,6 +1360,17 @@ function renderDay(index) {
       html += `</div>`;
     }
   }
+
+  // Burn finisher - one high-rep exercise on volume days only, not during deload
+  // (deload is already low-intensity everywhere, so a burn finisher would be redundant)
+  if (!isDeloadWeek && variant.tag === 'volume') {
+    const burnFinisher = getBurnFinisher(variant.id);
+    if (burnFinisher) {
+      html += `<div class="section"><div class="section-label" style="color:#ff6b4a;">🔥 Burn Finisher</div>`;
+      html += renderExercise(burnFinisher, true);
+      html += `</div>`;
+    }
+  }
   main.innerHTML = html;
   appendHistoryAndAddExercise(index, variant);
 }
@@ -1340,7 +1386,7 @@ function appendHistoryAndAddExercise(index, variant) {
   addSection.className = 'add-exercise-section';
   addSection.innerHTML = `
     <button class="randomize-btn" onclick="randomizeAccessories()">🔀 Randomize Accessories</button>
-    <button class="add-exercise-btn" onclick="addCustomExercise('${accessoriesId}')">+ Add Exercise</button>
+    <button class="add-exercise-btn" onclick="openExercisePicker('${accessoriesId}', ${index})">+ Add Exercise</button>
     <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">⚡ Add Superset</button>
     <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">🔗 Pair Existing Exercises</button>
     <div id="superset-mode-banner-${index}"></div>
@@ -1603,6 +1649,28 @@ function removeCustomExercise(idx) {
 
 
 function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
+  // Burn finisher: 60-70% of the related exercise's best weight, high reps.
+  // Checked before the deload branch since a burn finisher can appear on a
+  // normal volume day too, not just during deload weeks.
+  if (exId.startsWith('burn-')) {
+    const ownHistory = getAllHistory(exId);
+    const relHistory = relatedId ? getAllHistory(relatedId) : [];
+    const combined = [...ownHistory, ...relHistory];
+    let bestWeight = 0;
+    combined.forEach(s => {
+      if (!s.sets) return;
+      s.sets.forEach(set => {
+        const w = parseFloat(set.weight);
+        if (!isNaN(w) && w > bestWeight) bestWeight = w;
+      });
+    });
+    if (bestWeight > 0) {
+      const burnWeight = Math.round((bestWeight * 0.65) / 5) * 5;
+      return { note: '🔥 Burn — 65% of working weight', arrow: '↓', recWeight: burnWeight, lastWeight: bestWeight, maxReps: 0, lastDate: '', repTarget: '15–20 reps', isVolume: true, isDeload: true };
+    }
+    return null;
+  }
+
   // Deload week: drop weight, higher reps
   if (isDeloadWeek) {
     // For deload, always reference the HEAVY variant's history if this exercise
@@ -1923,7 +1991,9 @@ async function saveDay() {
           const log = sessionLogs[eId];
           if (log && log.sets && log.sets.some(s => s.weight || s.reps)) {
             const customName = localStorage.getItem('name_' + eId);
-            // Look up the original exercise object for its default name as fallback
+            // Look up the original exercise object for its default name as fallback.
+            // Checks the normal program sections first, then deload extras and the
+            // burn finisher, since those exercises aren't part of variant.sections.
             let defaultName = customName;
             if (!defaultName) {
               variant.sections.forEach(section => {
@@ -1932,6 +2002,13 @@ async function saveDay() {
                   exList.forEach(e => { if (e.id === eId) defaultName = e.name; });
                 });
               });
+            }
+            if (!defaultName) {
+              getDeloadExtras(variant.id).forEach(e => { if (e.id === eId) defaultName = e.name; });
+            }
+            if (!defaultName) {
+              const bf = getBurnFinisher(variant.id);
+              if (bf && bf.id === eId) defaultName = bf.name;
             }
             sessionExercises.push({ name: defaultName || eId, sets: log.sets, supersetGroup: exIdToGroup[eId] || null });
           }
@@ -2601,6 +2678,118 @@ function getDeloadExtras(variantId) {
     ],
   };
   return extras[base] || [];
+}
+
+// One dedicated high-rep "burn" exercise per volume day, run at 60-70% of
+// normal working weight for 15-20 reps. Additive novelty layered onto the
+// existing program — everything else on the day stays exactly as programmed.
+function getBurnFinisher(variantId) {
+  const base = variantId.replace(/-[ab]$/, '');
+  const finishers = {
+    'mon-legs': { id:'burn-leg-ext', name:'Leg Extension (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn, no rest between the last few reps.', target:'2 × 15–20', defaultSets:2, relatedId:'leg-ext-mon' },
+    'thu-legs': { id:'burn-leg-curl', name:'Leg Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'seated-curl' },
+    'tue-push': { id:'burn-cable-fly', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Keep going past where you\'d normally stop.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-htl' },
+    'fri-push': { id:'burn-cable-fly-fri', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Push through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-lth' },
+    'wed-pull': { id:'burn-hammer-curl', name:'Hammer Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Full range, no rest-pausing.', target:'2 × 15–20', defaultSets:2, relatedId:'hammer-curl-wed' },
+    'sat-pull': { id:'burn-face-pull', name:'Face Pull (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Rear delt and upper back on fire by the end.', target:'2 × 15–20', defaultSets:2, relatedId:'face-pull-wed' },
+  };
+  return finishers[base] || null;
+}
+
+
+// ─── PICK EXISTING EXERCISE ────────────────────────────────────
+
+// Scans localStorage for every distinct exercise name the person has ever
+// logged, so "+ Add Exercise" can offer a pick-list instead of always
+// starting blank. Pulls from hist_* keys (session-level, which store the
+// display name directly) plus any custom name_* overrides.
+function getAllLoggedExerciseNames() {
+  const names = new Set();
+
+  // Session-level history keys store exercises with real display names already
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    try {
+      const sessions = JSON.parse(localStorage.getItem(key));
+      sessions.forEach(session => {
+        (session.exercises || []).forEach(ex => {
+          if (ex.name && !ex.name.startsWith('dl-') && !ex.name.startsWith('burn-')) {
+            names.add(ex.name);
+          }
+        });
+      });
+    } catch(e) {}
+  });
+
+  // Custom name overrides (renamed preset exercises)
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('name_')) return;
+    const val = localStorage.getItem(key);
+    if (val) names.add(val);
+  });
+
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function openExercisePicker(listId, dayIndex) {
+  const names = getAllLoggedExerciseNames();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-modal-overlay';
+  overlay.id = 'exercise-picker-overlay';
+
+  const optionsHtml = names.length
+    ? names.map(n => `<button class="picker-option" onclick="pickExistingExercise('${listId}', ${dayIndex}, this)">${n}</button>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);padding:12px 0;">No logged exercises yet — type a new name instead.</div>`;
+
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-title">
+        <span>Pick an Exercise</span>
+        <button class="edit-modal-close" onclick="closeExercisePicker()">✕</button>
+      </div>
+      <input type="text" class="picker-search" id="pickerSearch" placeholder="Search or type a new name..." oninput="filterPickerOptions(this.value)" autofocus>
+      <div class="picker-options" id="pickerOptionsList">${optionsHtml}</div>
+      <button class="edit-save-btn" onclick="addBrandNewExercise('${listId}', ${dayIndex})">+ Use as New Exercise</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeExercisePicker(); });
+  setTimeout(() => { const s = document.getElementById('pickerSearch'); if (s) s.focus(); }, 50);
+}
+
+function filterPickerOptions(query) {
+  const q = query.trim().toLowerCase();
+  const options = document.querySelectorAll('.picker-option');
+  options.forEach(btn => {
+    const match = btn.textContent.toLowerCase().includes(q);
+    btn.style.display = match ? 'block' : 'none';
+  });
+}
+
+function closeExercisePicker() {
+  const overlay = document.getElementById('exercise-picker-overlay');
+  if (overlay) overlay.remove();
+}
+
+function pickExistingExercise(listId, dayIndex, btn) {
+  const name = btn.textContent;
+  closeExercisePicker();
+  if (!sessionLogs._custom) sessionLogs._custom = [];
+  const idx = sessionLogs._custom.length;
+  sessionLogs._custom.push({ name: name, sets: [{ weight: '', reps: '' }] });
+  appendCustomExerciseCard(dayIndex, idx, name, [], listId);
+}
+
+function addBrandNewExercise(listId, dayIndex) {
+  const searchEl = document.getElementById('pickerSearch');
+  const typedName = searchEl ? searchEl.value.trim() : '';
+  closeExercisePicker();
+  if (!sessionLogs._custom) sessionLogs._custom = [];
+  const idx = sessionLogs._custom.length;
+  const name = typedName || 'Exercise Name';
+  sessionLogs._custom.push({ name: name, sets: [{ weight: '', reps: '' }] });
+  appendCustomExerciseCard(dayIndex, idx, name, [], listId);
 }
 
 
