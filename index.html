@@ -711,6 +711,19 @@
   }
   .picker-option:active { background: var(--accent-dim); border-color: var(--accent); }
 
+
+  .edit-pair-btn {
+    background: var(--card2);
+    border: 1px solid rgba(100,180,255,0.3);
+    border-radius: 6px;
+    color: var(--blue);
+    font-size: 13px;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+  .edit-pair-btn:active { background: rgba(100,180,255,0.15); }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -722,7 +735,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.74</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.81</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1321,6 +1334,7 @@ function renderDay(index) {
   </div>`;
 
   let accessoriesSectionId = null;
+  const savedSnapshot = typeof getAccessoriesSnapshot === 'function' ? getAccessoriesSnapshot(variant.id) : null;
   variant.sections.forEach((section, sIdx) => {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
@@ -1328,18 +1342,45 @@ function renderDay(index) {
     const sectionId = isAccessoriesSection ? `section-accessories-${index}` : '';
     if (isAccessoriesSection) accessoriesSectionId = sectionId;
     html += `<div class="section"${sectionId ? ` id="${sectionId}"` : ''}><div class="section-label">${section.label}</div>`;
-    section.exercises.forEach(ex => {
-      if (ex.superset) {
-        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
-        ex.exercises.forEach((sex, si) => {
-          html += renderExercise(sex, isVol);
-          if (si < ex.exercises.length - 1) html += `<div class="superset-divider">↕ then immediately</div>`;
-        });
-        html += `</div>`;
-      } else {
+
+    // If this is the Accessories section AND a snapshot exists from a prior
+    // logged session of this exact day variant, render the snapshot instead
+    // of the static program list — so the day defaults to what was actually
+    // done last time. Randomize Accessories still works on top of this.
+    if (isAccessoriesSection && savedSnapshot && savedSnapshot.length) {
+      const rendered = new Set();
+      savedSnapshot.forEach(ex => {
+        if (rendered.has(ex.id)) return;
+        if (ex.supersetGroup) {
+          const partner = savedSnapshot.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id));
+          if (partner) {
+            html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
+            html += renderExercise(ex, isVol);
+            html += `<div class="superset-divider">↕ then immediately</div>`;
+            html += renderExercise(partner, isVol);
+            html += `</div>`;
+            rendered.add(ex.id);
+            rendered.add(partner.id);
+            return;
+          }
+        }
         html += renderExercise(ex, isVol);
-      }
-    });
+        rendered.add(ex.id);
+      });
+    } else {
+      section.exercises.forEach(ex => {
+        if (ex.superset) {
+          html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
+          ex.exercises.forEach((sex, si) => {
+            html += renderExercise(sex, isVol);
+            if (si < ex.exercises.length - 1) html += `<div class="superset-divider">↕ then immediately</div>`;
+          });
+          html += `</div>`;
+        } else {
+          html += renderExercise(ex, isVol);
+        }
+      });
+    }
     html += `</div>`;
   });
 
@@ -1938,18 +1979,30 @@ async function saveDay() {
     if (notesEl) sessionLogs._notes = notesEl.value;
     await saveToDB('log_' + variant.id, sessionLogs);
 
+    // Collect exercise ids from BOTH the static program AND any dynamically
+    // added exercise cards (picked from history, deload extras, burn finisher,
+    // or randomized accessories) so per-exercise history is written for all of
+    // them, not just exercises defined in the original weekly program.
+    const staticIds = new Set();
     variant.sections.forEach(section => {
       section.exercises.forEach(ex => {
         const exercises = ex.superset ? ex.exercises : [ex];
-        exercises.forEach(e => {
-          if (sessionLogs[e.id] && sessionLogs[e.id].sets && sessionLogs[e.id].sets.length) {
-            const hist = JSON.parse(localStorage.getItem('hist_' + e.id) || '[]');
-            hist.push({ date: sessionLogs._date, sets: sessionLogs[e.id].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[e.id].sets || []).map(s => s.note || '').filter(Boolean) });
-            if (hist.length > 12) hist.shift();
-            localStorage.setItem('hist_' + e.id, JSON.stringify(hist));
-          }
-        });
+        exercises.forEach(e => staticIds.add(e.id));
       });
+    });
+    const domIds = new Set();
+    document.querySelectorAll('.exercise-card[data-exid]').forEach(card => {
+      if (card.dataset.exid) domIds.add(card.dataset.exid);
+    });
+    const allExerciseIds = new Set([...staticIds, ...domIds]);
+
+    allExerciseIds.forEach(exId => {
+      if (sessionLogs[exId] && sessionLogs[exId].sets && sessionLogs[exId].sets.length) {
+        const hist = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+        hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
+        if (hist.length > 12) hist.shift();
+        localStorage.setItem('hist_' + exId, JSON.stringify(hist));
+      }
     });
 
     const histKey = getHistKey(variant);
@@ -2039,6 +2092,11 @@ async function saveDay() {
     prMsg = newPRs.length > 0
       ? (newPRs.length === 1 ? '🏆 New PR — ' + newPRs[0].name + ' ' + newPRs[0].weight + 'lbs × ' + newPRs[0].reps + '!' : '🏆 ' + newPRs.length + ' New PRs this session!')
       : null;
+
+    // Save a snapshot of today's accessories so next time this exact day type
+    // comes around, it defaults to what was actually logged instead of the
+    // static program list — while Randomize Accessories still works on top.
+    captureAccessoriesSnapshot(variant, savedDayIndex);
   } catch (err) {
     console.error('saveDay error (data was still saved, continuing to clear):', err);
   }
@@ -2202,10 +2260,15 @@ function editSession(histKey, sessionIdx) {
         <button class="drop-set-remove" onclick="removeEditSet(${exIdx},${si},this)" style="font-size:13px;">✕</button>
       </div>`).join('');
 
+    const groupLabel = ex.supersetGroup
+      ? `<div style="font-size:9px;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">⚡ superset</div>`
+      : '';
     exercisesHtml += `
-      <div class="custom-exercise-card" style="margin-bottom:8px;" id="edit-ex-${exIdx}">
+      <div class="custom-exercise-card edit-pair-target" style="margin-bottom:8px;" id="edit-ex-${exIdx}" data-group="${ex.supersetGroup || ''}">
+        ${groupLabel}
         <div class="custom-exercise-header">
           <input class="custom-exercise-input" type="text" value="${ex.name}" oninput="updateEditExName(${exIdx}, this.value)"/>
+          <button class="edit-pair-btn" onclick="toggleEditPairMode(${exIdx}, this)" title="Pair with another exercise">🔗</button>
           <button class="remove-exercise-btn" onclick="document.getElementById('edit-ex-${exIdx}').remove()" title="Remove exercise">✕</button>
         </div>
         <div class="log-area">
@@ -2286,6 +2349,49 @@ function removeEditSet(exIdx, setIdx, btn) {
   }
 }
 
+let editPairModeActive = false;
+let editPairFirstIdx = null;
+
+function toggleEditPairMode(exIdx, btn) {
+  if (!editPairModeActive) {
+    // Start pairing mode - mark this card as "selected" and wait for a second pick
+    editPairModeActive = true;
+    editPairFirstIdx = exIdx;
+    document.getElementById('edit-ex-' + exIdx).style.outline = '2px solid var(--blue)';
+    showToast('Now tap another exercise to pair with it');
+  } else if (editPairFirstIdx === exIdx) {
+    // Tapped the same card again - cancel
+    document.getElementById('edit-ex-' + exIdx).style.outline = '';
+    editPairModeActive = false;
+    editPairFirstIdx = null;
+  } else {
+    // Second pick - pair them
+    const groupId = 'ss-edit-' + Date.now();
+    if (window._editSessionData) {
+      if (window._editSessionData[editPairFirstIdx]) window._editSessionData[editPairFirstIdx].supersetGroup = groupId;
+      if (window._editSessionData[exIdx]) window._editSessionData[exIdx].supersetGroup = groupId;
+    }
+    const firstCard = document.getElementById('edit-ex-' + editPairFirstIdx);
+    if (firstCard) {
+      firstCard.style.outline = '';
+      firstCard.dataset.group = groupId;
+      if (!firstCard.querySelector('.superset-tag-inline')) {
+        firstCard.insertAdjacentHTML('afterbegin', `<div class="superset-tag-inline" style="font-size:9px;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">⚡ superset</div>`);
+      }
+    }
+    const secondCard = document.getElementById('edit-ex-' + exIdx);
+    if (secondCard) {
+      secondCard.dataset.group = groupId;
+      if (!secondCard.querySelector('.superset-tag-inline')) {
+        secondCard.insertAdjacentHTML('afterbegin', `<div class="superset-tag-inline" style="font-size:9px;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">⚡ superset</div>`);
+      }
+    }
+    editPairModeActive = false;
+    editPairFirstIdx = null;
+    showToast('Paired as superset!');
+  }
+}
+
 function saveEditSession(histKey, sessionIdx) {
   const sessions = JSON.parse(localStorage.getItem(histKey) || '[]');
   if (!sessions[sessionIdx]) return;
@@ -2298,7 +2404,7 @@ function saveEditSession(histKey, sessionIdx) {
   if (window._editSessionData) {
     const updatedExercises = window._editSessionData.filter((ex, exIdx) => {
       return !!document.getElementById('edit-ex-' + exIdx);
-    }).map(ex => ({
+    }).map((ex, exIdx) => ({
       ...ex,
       sets: (ex.sets || []).filter(s => s.weight || s.reps)
     })).filter(ex => ex.sets.length > 0);
@@ -2703,32 +2809,104 @@ function getBurnFinisher(variantId) {
 // logged, so "+ Add Exercise" can offer a pick-list instead of always
 // starting blank. Pulls from hist_* keys (session-level, which store the
 // display name directly) plus any custom name_* overrides.
-function getAllLoggedExerciseNames() {
-  const names = new Set();
+// Collapses names that only differ by casing, punctuation, or extra spaces
+// into a single canonical key, so "Cable Fly (High to Low)" and "Cable Fly
+// High to Low" are treated as the same exercise instead of showing twice.
+function normalizeExerciseName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[().,]/g, '')      // strip parentheses, commas, periods
+    .replace(/\s+/g, ' ')        // collapse multiple spaces
+    .trim();
+}
 
-  // Session-level history keys store exercises with real display names already
+function getAllLoggedExerciseNames() {
+  // Map of normalized-key -> the "best" original-cased name to actually show.
+  // When duplicates collide, prefer the longer name (usually the more
+  // descriptive one, e.g. keeps "(High to Low)" over a bare version).
+  const byNormalized = {};
+
+  const consider = (name) => {
+    if (!name || name.startsWith('dl-') || name.startsWith('burn-')) return;
+    const key = normalizeExerciseName(name);
+    if (!byNormalized[key] || name.length > byNormalized[key].length) {
+      byNormalized[key] = name;
+    }
+  };
+
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('hist_session_')) return;
     try {
       const sessions = JSON.parse(localStorage.getItem(key));
       sessions.forEach(session => {
-        (session.exercises || []).forEach(ex => {
-          if (ex.name && !ex.name.startsWith('dl-') && !ex.name.startsWith('burn-')) {
-            names.add(ex.name);
-          }
-        });
+        (session.exercises || []).forEach(ex => consider(ex.name));
       });
     } catch(e) {}
   });
 
-  // Custom name overrides (renamed preset exercises)
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('name_')) return;
-    const val = localStorage.getItem(key);
-    if (val) names.add(val);
+    consider(localStorage.getItem(key));
   });
 
-  return [...names].sort((a, b) => a.localeCompare(b));
+  return Object.values(byNormalized).sort((a, b) => a.localeCompare(b));
+}
+
+// Builds a name -> exercise-id lookup table from every known exercise
+// definition in the app: the full weekly PROGRAM, the accessory pools used
+// by the randomizer, deload extras, and the burn finisher. This is what lets
+// the exercise picker attach REAL history to a picked exercise instead of
+// creating a fresh, historyless custom entry with the same display name.
+function buildExerciseNameToIdMap() {
+  const map = {};
+
+  // 1. Every exercise across the full weekly program (all variants, all days)
+  PROGRAM.forEach(day => {
+    if (day.rest) return;
+    ['weekA', 'weekB'].forEach(wk => {
+      const variant = day[wk];
+      if (!variant || !variant.sections) return;
+      variant.sections.forEach(section => {
+        section.exercises.forEach(ex => {
+          const list = ex.superset ? ex.exercises : [ex];
+          list.forEach(e => { if (e.name && e.id) map[normalizeExerciseName(e.name)] = e.id; });
+        });
+      });
+    });
+  });
+
+  // 2. Accessory randomizer pools
+  if (typeof ACCESSORY_POOLS !== 'undefined') {
+    Object.values(ACCESSORY_POOLS).forEach(pool => {
+      pool.forEach(ex => { if (ex.name && ex.id) map[normalizeExerciseName(ex.name)] = ex.id; });
+    });
+  }
+
+  // 3. Deload extras (all six day types)
+  if (typeof getDeloadExtras === 'function') {
+    ['mon-legs', 'thu-legs', 'tue-push', 'fri-push', 'wed-pull', 'sat-pull'].forEach(base => {
+      getDeloadExtras(base).forEach(ex => { if (ex.name && ex.id) map[normalizeExerciseName(ex.name)] = ex.id; });
+    });
+  }
+
+  // 4. Burn finishers
+  if (typeof getBurnFinisher === 'function') {
+    ['mon-legs', 'thu-legs', 'tue-push', 'fri-push', 'wed-pull', 'sat-pull'].forEach(base => {
+      const bf = getBurnFinisher(base);
+      if (bf && bf.name && bf.id) map[normalizeExerciseName(bf.name)] = bf.id;
+    });
+  }
+
+  // 5. Custom name overrides (renamed presets) — map the CURRENT display name
+  // back to the underlying preset id it was renamed from.
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('name_')) return;
+    const originalId = key.replace('name_', '');
+    const displayName = localStorage.getItem(key);
+    if (displayName) map[normalizeExerciseName(displayName)] = originalId;
+  });
+
+  return map;
 }
 
 function openExercisePicker(listId, dayIndex) {
@@ -2775,6 +2953,26 @@ function closeExercisePicker() {
 function pickExistingExercise(listId, dayIndex, btn) {
   const name = btn.textContent;
   closeExercisePicker();
+
+  // Check if this exercise name maps to a known exercise ID with real history.
+  // If so, render it as a REAL exercise card (same path as preset exercises)
+  // so it gets an actual weight suggestion instead of starting blank.
+  const nameToId = buildExerciseNameToIdMap();
+  const knownId = nameToId[normalizeExerciseName(name)];
+
+  if (knownId) {
+    const variant = getCurrentVariant(dayIndex);
+    const isVol = variant && variant.tag === 'volume';
+    const exDef = { id: knownId, name: name, note: 'Added from your logged history.', target: '', defaultSets: 3 };
+    const listEl = document.getElementById(listId);
+    if (listEl) {
+      listEl.insertAdjacentHTML('beforeend', renderExercise(exDef, isVol));
+      showToast('Added with your history!');
+      return;
+    }
+  }
+
+  // Fallback: no known ID for this name, add as a plain custom exercise
   if (!sessionLogs._custom) sessionLogs._custom = [];
   const idx = sessionLogs._custom.length;
   sessionLogs._custom.push({ name: name, sets: [{ weight: '', reps: '' }] });
@@ -2850,6 +3048,184 @@ function getMuscleGroup(variantId) {
   return null;
 }
 
+// Target slot counts per muscle group, based on Bryce's actual logged accessory
+// patterns (averaged across real sessions) — NOT an even 1-per-muscle split.
+// Push: chest-heavy + tricep-heavy. Pull: bicep-heavy. Legs: ab-heavy.
+const MUSCLE_SLOT_COUNTS = {
+  push:  { chest: 2, delts: 2, triceps: 3 },
+  pull:  { lats: 1, rear_delt: 1, biceps: 3, traps: 1 },
+  legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, abs: 2 },
+};
+
+
+// ─── SMART RANDOMIZER: sentiment + volume-gap analysis ─────────
+
+const POSITIVE_WORDS = ['great', 'amazing', 'love', 'loved', 'awesome', 'wow', 'insane',
+  'perfect', 'best', 'fantastic', 'incredible', 'crushed', 'good', 'nice', 'strong'];
+
+// Scans all session-level history for notes mentioning an exercise (or superset
+// pairing) alongside positive language, and returns a score per exercise name +
+// per superset pairing (as a "nameA + nameB" key). Higher score = mentioned
+// positively more often, which nudges the randomizer to favor it.
+function getSentimentScores() {
+  const exerciseScores = {};   // exercise name -> count of positive mentions
+  const pairScores = {};       // "nameA|||nameB" (sorted) -> count of positive mentions
+
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key)); } catch(e) { return; }
+    if (!Array.isArray(sessions)) return;
+
+    sessions.forEach(session => {
+      const sessionNoteLower = (session.notes || '').toLowerCase();
+      const sessionIsPositive = POSITIVE_WORDS.some(w => sessionNoteLower.includes(w));
+
+      // Track which exercises appear in this session, grouped by supersetGroup
+      const groupMembers = {};
+      (session.exercises || []).forEach(ex => {
+        if (ex.supersetGroup) {
+          if (!groupMembers[ex.supersetGroup]) groupMembers[ex.supersetGroup] = [];
+          groupMembers[ex.supersetGroup].push(ex.name);
+        }
+
+        // Check per-set notes AND the exercise appearing in a positive overall session
+        const setNotes = (ex.sets || []).map(s => (s.note || '').toLowerCase()).join(' ');
+        const exercisePositive = POSITIVE_WORDS.some(w => setNotes.includes(w));
+
+        if (exercisePositive) {
+          exerciseScores[ex.name] = (exerciseScores[ex.name] || 0) + 2; // direct mention weighted higher
+        } else if (sessionIsPositive) {
+          exerciseScores[ex.name] = (exerciseScores[ex.name] || 0) + 0.5; // weak signal from overall session vibe
+        }
+      });
+
+      // Score superset pairs that appeared in a positively-noted session
+      Object.values(groupMembers).forEach(names => {
+        if (names.length < 2) return;
+        const key = [...names].sort().join('|||');
+        if (sessionIsPositive) {
+          pairScores[key] = (pairScores[key] || 0) + 1;
+        }
+      });
+    });
+  });
+
+  return { exerciseScores, pairScores };
+}
+
+// Looks at the last 4 weeks of session history for a muscle group and counts
+// how many times each muscle sub-group (chest, delts, triceps, etc.) actually
+// got trained, so slot counts can rebalance toward whatever's been neglected.
+function getRecentMuscleVolume(muscleGroup, allExercisesInPool) {
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  const cutoff = fourWeeksAgo.toISOString().split('T')[0];
+
+  // Build a name -> muscle lookup from the pool
+  const nameToMuscle = {};
+  allExercisesInPool.forEach(ex => { nameToMuscle[ex.name] = ex.muscle; });
+
+  const muscleCounts = {};
+  const heavyKey = 'hist_session_' + muscleGroup + '-heavy';
+  const volKey = 'hist_session_' + muscleGroup + '-volume';
+  [heavyKey, volKey].forEach(key => {
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { sessions = []; }
+    sessions.forEach(session => {
+      if (session.date < cutoff) return;
+      (session.exercises || []).forEach(ex => {
+        const muscle = nameToMuscle[ex.name];
+        if (muscle) muscleCounts[muscle] = (muscleCounts[muscle] || 0) + 1;
+      });
+    });
+  });
+  return muscleCounts;
+}
+
+// Weighted random pick from an array, using a score map (higher score = more
+// likely to be picked, but never impossible for a low-score item to appear).
+function weightedPick(items, scoreFn) {
+  const weights = items.map(item => 1 + Math.max(0, scoreFn(item))); // base weight 1, boosted by score
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+
+// ─── LAST-SESSION ACCESSORY PRESET ──────────────────────────────
+
+// Captures the CURRENT live DOM state of the Accessories section (whatever
+// combination of preset/custom/randomized exercises is on screen right now)
+// and stores it keyed by day variant, so the next time this exact day type
+// comes around (e.g. heavy push Week A), it defaults to what you actually
+// did last time instead of the static program list. Includes superset
+// pairing info so favorite combos replay correctly too.
+function captureAccessoriesSnapshot(variant, dayIndex) {
+  const accessoriesSection = document.getElementById('section-accessories-' + dayIndex);
+  if (!accessoriesSection) return;
+
+  const snapshot = [];
+  let groupCounter = 0;
+
+  const walkCard = (card, groupId) => {
+    if (card.classList.contains('exercise-card')) {
+      const exId = card.dataset.exid;
+      // Find the exercise definition to capture its note/target/defaultSets
+      let exDef = null;
+      ACCESSORY_POOLS && Object.values(ACCESSORY_POOLS).forEach(pool => {
+        pool.forEach(ex => { if (ex.id === exId) exDef = ex; });
+      });
+      // Also check the static program in case it's a normal (non-randomized) accessory
+      if (!exDef) {
+        variant.sections.forEach(section => {
+          section.exercises.forEach(ex => {
+            const list = ex.superset ? ex.exercises : [ex];
+            list.forEach(e => { if (e.id === exId) exDef = e; });
+          });
+        });
+      }
+      if (exDef) snapshot.push({ ...exDef, supersetGroup: groupId });
+    } else if (card.classList.contains('custom-exercise-card')) {
+      const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
+      const customEx = (idx !== null && sessionLogs._custom) ? sessionLogs._custom[idx] : null;
+      if (customEx && customEx.name) {
+        snapshot.push({
+          id: 'custom-' + (customEx.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          name: customEx.name, note: '', target: '', defaultSets: 3,
+          isCustomSnapshot: true, supersetGroup: groupId
+        });
+      }
+    }
+  };
+
+  [...accessoriesSection.children].forEach(child => {
+    if (child.classList.contains('superset-block')) {
+      const groupId = 'ss-snap-' + (groupCounter++);
+      child.querySelectorAll('.exercise-card, .custom-exercise-card').forEach(card => walkCard(card, groupId));
+    } else if (child.classList.contains('exercise-card') || child.classList.contains('custom-exercise-card')) {
+      walkCard(child, null);
+    }
+  });
+
+  if (snapshot.length) {
+    localStorage.setItem('accessory_snapshot_' + variant.id, JSON.stringify(snapshot));
+  }
+}
+
+// Retrieves the last-saved accessory snapshot for this exact day variant, if
+// one exists. Returns null if nothing has ever been logged for this variant
+// yet, so the static program default is used instead.
+function getAccessoriesSnapshot(variantId) {
+  const raw = localStorage.getItem('accessory_snapshot_' + variantId);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
 function randomizeAccessories() {
   const variant = getCurrentVariant(currentDay);
   if (!variant) return;
@@ -2857,7 +3233,28 @@ function randomizeAccessories() {
   if (!muscleGroup) return;
 
   const pool = ACCESSORY_POOLS[muscleGroup];
-  if (!pool) return;
+  const baseSlotCounts = MUSCLE_SLOT_COUNTS[muscleGroup];
+  if (!pool || !baseSlotCounts) return;
+
+  // ── Volume-gap analysis: look at the last 4 weeks of real sessions for this
+  // muscle group and see which sub-muscles have been UNDER their base target.
+  // If a muscle has been getting less than its fair share, bump its slot count
+  // up by 1 (capped) so the randomizer naturally corrects the imbalance.
+  const recentVolume = getRecentMuscleVolume(muscleGroup, pool);
+  const totalRecentSessions = Object.values(recentVolume).reduce((a,b) => a+b, 0);
+  const slotCounts = {};
+  Object.entries(baseSlotCounts).forEach(([muscle, baseCount]) => {
+    const actualCount = recentVolume[muscle] || 0;
+    // Expected count over 4 weeks (roughly 4-8 sessions of this muscle group type)
+    const expectedShare = totalRecentSessions > 0
+      ? (baseCount / Object.values(baseSlotCounts).reduce((a,b)=>a+b,0)) * totalRecentSessions
+      : baseCount;
+    const isUnderTrained = totalRecentSessions >= 3 && actualCount < expectedShare * 0.7;
+    slotCounts[muscle] = isUnderTrained ? baseCount + 1 : baseCount;
+  });
+
+  // ── Sentiment analysis: pull scores for individual exercises and superset pairs
+  const { exerciseScores, pairScores } = getSentimentScores();
 
   // Group pool by muscle tag
   const byMuscle = {};
@@ -2866,15 +3263,46 @@ function randomizeAccessories() {
     byMuscle[ex.muscle].push(ex);
   });
 
-  // Pick one exercise per muscle group, shuffle within each group
+  // For each muscle group, weighted-pick N exercises (N = adjusted slot count),
+  // favoring exercises with higher sentiment scores without ever fully excluding
+  // the rest of the pool.
   const picked = [];
-  Object.values(byMuscle).forEach(group => {
-    const shuffled = group.sort(() => Math.random() - 0.5);
-    picked.push(shuffled[0]);
+  Object.entries(slotCounts).forEach(([muscle, count]) => {
+    const group = byMuscle[muscle] || [];
+    if (!group.length) return;
+    const usedThisRound = new Set();
+    for (let i = 0; i < count; i++) {
+      // Avoid picking the exact same exercise twice in the same muscle slot
+      // unless the pool is smaller than the slot count.
+      const available = group.filter(ex => !usedThisRound.has(ex.id));
+      const pickFrom = available.length ? available : group;
+      const chosen = weightedPick(pickFrom, ex => exerciseScores[ex.name] || 0);
+      usedThisRound.add(chosen.id);
+      picked.push(chosen);
+    }
   });
 
-  // Shuffle the final list
+  // Shuffle the final list order
   picked.sort(() => Math.random() - 0.5);
+
+  // ── Recreate favorite superset pairings: if two picked exercises match a
+  // pairing you've praised in notes before, tag them with a shared group ID
+  // so they render as a superset instead of standalone.
+  const supersetAssignments = {}; // exercise id -> group id
+  let groupCounter = 0;
+  for (let i = 0; i < picked.length; i++) {
+    if (supersetAssignments[picked[i].id]) continue;
+    for (let j = i + 1; j < picked.length; j++) {
+      if (supersetAssignments[picked[j].id]) continue;
+      const key = [picked[i].name, picked[j].name].sort().join('|||');
+      if (pairScores[key] && pairScores[key] > 0) {
+        const groupId = 'ss-fav-' + (groupCounter++);
+        supersetAssignments[picked[i].id] = groupId;
+        supersetAssignments[picked[j].id] = groupId;
+        break;
+      }
+    }
+  }
 
   // Find the Accessories section in the DOM and replace its exercise cards
   const accessoriesSection = document.getElementById('section-accessories-' + currentDay);
@@ -2884,16 +3312,36 @@ function randomizeAccessories() {
   const existingCards = [...accessoriesSection.querySelectorAll('.exercise-card, .custom-exercise-card, .superset-block')];
   existingCards.forEach(card => card.remove());
 
-  // Clear sessionLogs for old accessory IDs that are no longer on screen
-  // (we don't clear anchor logs since anchors stay)
-
-  // Render fresh cards for each picked exercise
+  // Render fresh cards — pairs flagged in supersetAssignments render together
+  // inside a superset-block, matching the visual style used everywhere else.
   const isVol = variant.tag === 'volume';
+  const rendered = new Set();
+  let html = '';
   picked.forEach(ex => {
-    accessoriesSection.insertAdjacentHTML('beforeend', renderExercise(ex, isVol));
+    if (rendered.has(ex.id)) return;
+    const groupId = supersetAssignments[ex.id];
+    if (groupId) {
+      const partner = picked.find(p => p.id !== ex.id && supersetAssignments[p.id] === groupId && !rendered.has(p.id));
+      if (partner) {
+        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back (a favorite pairing)</div>`;
+        html += renderExercise(ex, isVol);
+        html += `<div class="superset-divider">↕ then immediately</div>`;
+        html += renderExercise(partner, isVol);
+        html += `</div>`;
+        rendered.add(ex.id);
+        rendered.add(partner.id);
+        return;
+      }
+    }
+    html += renderExercise(ex, isVol);
+    rendered.add(ex.id);
   });
+  accessoriesSection.insertAdjacentHTML('beforeend', html);
 
-  showToast('Accessories randomized!');
+  const favoritePairCount = new Set(Object.values(supersetAssignments)).size;
+  showToast(favoritePairCount > 0
+    ? `Randomized — kept ${favoritePairCount} favorite pairing${favoritePairCount > 1 ? 's' : ''}!`
+    : 'Accessories randomized!');
 }
 
 // ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
