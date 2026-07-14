@@ -735,7 +735,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.81</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.82</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1767,11 +1767,21 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   const last = all[all.length - 1];
   if (!last.sets || !last.sets.length) return null;
 
-  const lastWeights = last.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
-  const lastReps = last.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
-  if (!lastReps.length) return null;
-  const lastWeight = lastWeights.length ? Math.max(...lastWeights) : 0;
-  const maxReps = Math.max(...lastReps);
+  // Find the TOP WORKING SET — the set with the heaviest weight — and pull
+  // both weight and reps from THAT SAME SET, rather than taking the max
+  // weight from one set and the max reps from a different set independently.
+  // (Previously, logging 235x3 + a 135x30 burnout set in the same session
+  // would incorrectly report "235 x 30" since weight and reps were computed
+  // separately across all sets.)
+  const validSets = last.sets
+    .map(s => ({ weight: parseFloat(s.weight), reps: parseInt(s.reps) }))
+    .filter(s => !isNaN(s.weight) && s.weight > 0 && !isNaN(s.reps));
+  if (!validSets.length) return null;
+
+  const topSet = validSets.reduce((best, s) => s.weight > best.weight ? s : best, validSets[0]);
+  const lastWeight = topSet.weight;
+  const maxReps = topSet.reps;
+  const lastReps = validSets.map(s => s.reps);
   const avgReps = lastReps.reduce((a,b) => a+b, 0) / lastReps.length;
 
   // Epley 1RM estimate: weight * (1 + reps/30)
