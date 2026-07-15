@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.90</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.91</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2686,12 +2686,24 @@ function analyzeLiftTrend(exId, exName) {
   const all = getAllHistory(exId).filter(s => s.sets && s.sets.length);
   if (all.length < 3) return null; // not enough data to call a trend
 
+  // Track which display name each session's sets were logged under (via
+  // localStorage name_ overrides at save time isn't stored per-set, so we
+  // approximate using the CURRENT name override, if any exists, applied
+  // uniformly — this catches the common case of "this ID has been renamed
+  // at some point" without needing per-session name tracking we don't have).
+  const currentDisplayName = localStorage.getItem('name_' + exId) || exName;
+
   let sessionBest1RMs = all.map(session => {
     let best = 0;
     session.sets.forEach(s => {
       const w = parseFloat(s.weight), r = parseInt(s.reps);
       if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
-        const est = w * (1 + r / 30);
+        // Epley 1RM gets increasingly unreliable above ~10 reps. Cap the
+        // effective rep count used in the formula at 10, so a genuinely
+        // higher-rep set (e.g. 14 reps) doesn't get an inflated or wildly
+        // different 1RM estimate compared to a similar-effort lower-rep set.
+        const cappedReps = Math.min(r, 10);
+        const est = w * (1 + cappedReps / 30);
         if (est > best) best = est;
       }
     });
@@ -2701,20 +2713,33 @@ function analyzeLiftTrend(exId, exName) {
   if (sessionBest1RMs.length < 3) return null;
 
   // Filter out sessions that look like contaminated/mislabeled data — e.g. a
-  // renamed lighter exercise that briefly wrote into this exercise's history
-  // (like DB Shoulder Press once being renamed to Smith Shoulder Press).
-  // A single session with an estimated 1RM far below the exercise's typical
-  // range shouldn't be allowed to skew the whole trend. Uses the MEDIAN of
-  // all sessions as the reference point (robust to outliers, unlike a mean),
+  // renamed lighter exercise that briefly wrote into this exercise's history,
+  // or a genuinely different movement variation sharing this ID. A single
+  // session with an estimated 1RM far below the exercise's typical range
+  // shouldn't be allowed to skew the whole trend. Uses the MEDIAN of all
+  // sessions as the reference point (robust to outliers, unlike a mean),
   // and drops anything below 50% of that median.
   const sorted1RMs = [...sessionBest1RMs].map(s => s.est1RM).sort((a, b) => a - b);
   const median1RM = sorted1RMs[Math.floor(sorted1RMs.length / 2)];
   const outlierFloor = median1RM * 0.5;
+  const beforeOutlierFilter = sessionBest1RMs.length;
   sessionBest1RMs = sessionBest1RMs.filter(s => s.est1RM >= outlierFloor);
+  const outliersDropped = beforeOutlierFilter - sessionBest1RMs.length;
 
   if (sessionBest1RMs.length < 3) return null; // not enough clean data left
 
-  const recent = sessionBest1RMs.slice(-4); // last up to 4 sessions
+  // Low-confidence flag: if we had to drop a meaningful chunk of sessions as
+  // outliers, or the remaining data still has wide swings between sessions
+  // (a sign of genuinely different exercise variations sharing this ID that
+  // weren't extreme enough to hit the outlier floor), don't show a confident
+  // up/down verdict — surface it as low-confidence instead of misleading.
+  const recent = sessionBest1RMs.slice(-4);
+  const recentValues = recent.map(s => s.est1RM);
+  const recentMax = Math.max(...recentValues);
+  const recentMin = Math.min(...recentValues);
+  const recentSpread = recentMax > 0 ? (recentMax - recentMin) / recentMax : 0;
+  const isLowConfidence = outliersDropped > 0 || recentSpread > 0.35;
+
   const mostRecent = recent[recent.length - 1].est1RM;
   const priorBest = Math.max(...recent.slice(0, -1).map(s => s.est1RM));
   const priorFirst = recent[0].est1RM;
@@ -2724,7 +2749,7 @@ function analyzeLiftTrend(exId, exName) {
   const isDeclining = mostRecent < priorFirst * 0.97; // more than 3% below where this window started
 
   return {
-    exName,
+    exName: currentDisplayName,
     exId,
     sessionsAnalyzed: recent.length,
     mostRecent: Math.round(mostRecent),
@@ -2732,6 +2757,7 @@ function analyzeLiftTrend(exId, exName) {
     pctChange: Math.round(pctChangeFromStart * 10) / 10,
     isPlateaued,
     isDeclining,
+    isLowConfidence,
   };
 }
 
@@ -2771,9 +2797,14 @@ function generateCoachReport() {
     .map(lift => analyzeLiftTrend(lift.id, lift.name))
     .filter(Boolean);
 
-  const plateaued = liftAnalyses.filter(l => l.isPlateaued && !l.isDeclining);
-  const declining = liftAnalyses.filter(l => l.isDeclining);
-  const progressing = liftAnalyses.filter(l => !l.isPlateaued && !l.isDeclining);
+  // Low-confidence lifts are excluded from ALL trend-based recommendations —
+  // we explicitly don't trust their up/down verdict enough to write a
+  // recommendation about them, even though they still show up in the raw
+  // lift list with a neutral "low confidence" flag.
+  const confidentAnalyses = liftAnalyses.filter(l => !l.isLowConfidence);
+  const plateaued = confidentAnalyses.filter(l => l.isPlateaued && !l.isDeclining);
+  const declining = confidentAnalyses.filter(l => l.isDeclining);
+  const progressing = confidentAnalyses.filter(l => !l.isPlateaued && !l.isDeclining);
 
   const feelTrend = analyzeFeelTrend();
 
@@ -2988,6 +3019,16 @@ function showCoachTab() {
   `).join('');
 
   const liftRowsHtml = report.liftAnalyses.map(l => {
+    // Low-confidence trends (mixed exercise variations, or contaminated
+    // sessions we had to filter out) show a neutral flag instead of a
+    // confident up/down verdict, since the underlying data isn't reliable
+    // enough for a real trend call.
+    if (l.isLowConfidence) {
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--white);">${l.exName}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="Recent sessions vary too much to trend confidently — may include different exercise variations logged under the same name.">❓ low confidence</span>
+      </div>`;
+    }
     const statusIcon = l.isDeclining ? '📉' : l.isPlateaued ? '➡️' : '📈';
     const statusColor = l.isDeclining ? '#ff6b6b' : l.isPlateaued ? 'var(--orange)' : 'var(--accent)';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
