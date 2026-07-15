@@ -724,6 +724,70 @@
   }
   .edit-pair-btn:active { background: rgba(100,180,255,0.15); }
 
+
+  .coach-chat-messages {
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-right: 2px;
+  }
+  .coach-msg { display: flex; }
+  .coach-msg-bubble {
+    max-width: 88%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .coach-bubble-user {
+    background: var(--accent-dim);
+    color: var(--white);
+    margin-left: auto;
+    border: 1px solid rgba(200,241,53,0.3);
+  }
+  .coach-msg:has(.coach-bubble-user) { justify-content: flex-end; }
+  .coach-bubble-assistant {
+    background: var(--card2);
+    color: var(--white);
+    border: 1px solid var(--border);
+  }
+  .coach-msg-loading .coach-bubble-assistant { color: var(--muted); font-style: italic; }
+  .coach-chat-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .coach-chat-input {
+    flex: 1;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 13px;
+    resize: none;
+    max-height: 100px;
+    box-sizing: border-box;
+  }
+  .coach-chat-input:focus { outline: none; border-color: var(--accent); }
+  .coach-chat-send {
+    background: var(--accent);
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    color: var(--black);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .coach-chat-send:active { opacity: 0.8; }
+
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -735,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.87</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.89</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2750,6 +2814,145 @@ function generateCoachReport() {
   return { liftAnalyses, feelTrend, recommendations };
 }
 
+
+// ─── COACH CHAT: DATA SUMMARY FOR AI CONTEXT ────────────────────
+
+// Builds a compact text summary of the person's training data — recent
+// sessions, anchor lift trends, feel ratings — to send as context alongside
+// every chat message, so the AI coach can reference real numbers without
+// needing the full raw history (which would be far too large to send).
+function buildCoachDataSummary() {
+  const report = generateCoachReport();
+  const lines = [];
+
+  lines.push("ANCHOR LIFT TRENDS (estimated 1RM, from most recent real sessions):");
+  report.liftAnalyses.forEach(l => {
+    const status = l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
+    lines.push(`- ${l.exName}: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)`);
+  });
+
+  if (report.feelTrend) {
+    lines.push(`\nFEEL RATING TREND: last 3 sessions averaged ${report.feelTrend.last3Avg}/10 vs ${report.feelTrend.prior3Avg}/10 the 3 before that.`);
+  }
+
+  lines.push("\nRECENT SESSION HISTORY (last few per muscle group):");
+  ['push', 'pull', 'legs'].forEach(muscle => {
+    ['heavy', 'volume'].forEach(tag => {
+      const key = 'hist_session_' + muscle + '-' + tag;
+      let sessions;
+      try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { sessions = []; }
+      sessions.slice(-2).forEach(s => {
+        const exList = (s.exercises || []).map(ex => {
+          const sets = (ex.sets || []).filter(st => st.weight || st.reps).map(st => `${st.weight||'BW'}x${st.reps||'?'}`).join(',');
+          return `${ex.name}(${sets})`;
+        }).join('; ');
+        lines.push(`- ${s.date} [${muscle} ${tag}${s.feel ? ', feel ' + s.feel + '/10' : ''}]: ${exList}${s.notes ? ' | notes: "' + s.notes + '"' : ''}`);
+      });
+    });
+  });
+
+  lines.push(`\nCURRENT WEEK: ${isDeloadWeek ? 'DELOAD week' : (isWeekA ? 'Week A' : 'Week B')}`);
+
+  return lines.join('\n');
+}
+
+// ─── COACH CHAT: CONVERSATION STATE & PERSISTENCE ───────────────
+
+function getCoachChatHistory() {
+  try { return JSON.parse(localStorage.getItem('coach_chat_history') || '[]'); } catch(e) { return []; }
+}
+
+function saveCoachChatHistory(messages) {
+  // Keep last 40 messages (20 exchanges) to avoid unbounded growth while
+  // still preserving plenty of context for follow-up questions.
+  const trimmed = messages.slice(-40);
+  localStorage.setItem('coach_chat_history', JSON.stringify(trimmed));
+}
+
+function clearCoachChat() {
+  if (!confirm('Clear the whole conversation with your Coach? This can\'t be undone.')) return;
+  localStorage.removeItem('coach_chat_history');
+  showCoachTab();
+}
+
+async function sendCoachMessage() {
+  const input = document.getElementById('coachChatInput');
+  if (!input) return;
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  const messages = getCoachChatHistory();
+  messages.push({ role: 'user', content: userText });
+  saveCoachChatHistory(messages);
+  input.value = '';
+  renderCoachChatMessages();
+
+  const chatBody = document.getElementById('coachChatMessages');
+  if (chatBody) {
+    chatBody.insertAdjacentHTML('beforeend', `<div class="coach-msg coach-msg-loading" id="coach-loading-msg">
+      <div class="coach-msg-bubble coach-bubble-assistant">Thinking...</div>
+    </div>`);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  try {
+    const dataSummary = buildCoachDataSummary();
+    const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
+
+BRYCE'S CURRENT TRAINING DATA:
+${dataSummary}`;
+
+    const apiMessages = messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
+
+    // Calls the Cloudflare Worker proxy instead of Anthropic directly, so the
+    // API key stays server-side and never touches the browser/client code.
+    const response = await fetch("https://wandering-shape-ccb7.brycea2002.workers.dev/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: apiMessages,
+      })
+    });
+
+    const data = await response.json();
+    const loadingMsg = document.getElementById('coach-loading-msg');
+    if (loadingMsg) loadingMsg.remove();
+
+    const replyText = data.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n') || "Sorry, I didn't get a response. Try again?";
+
+    const updatedMessages = getCoachChatHistory();
+    updatedMessages.push({ role: 'assistant', content: replyText });
+    saveCoachChatHistory(updatedMessages);
+    renderCoachChatMessages();
+  } catch (err) {
+    console.error('Coach chat error:', err);
+    const loadingMsg = document.getElementById('coach-loading-msg');
+    if (loadingMsg) loadingMsg.remove();
+    const chatBody2 = document.getElementById('coachChatMessages');
+    if (chatBody2) {
+      chatBody2.insertAdjacentHTML('beforeend', `<div class="coach-msg"><div class="coach-msg-bubble coach-bubble-assistant" style="color:#ff6b6b;">Something went wrong reaching the coach. Try again in a moment.</div></div>`);
+    }
+  }
+}
+
+function renderCoachChatMessages() {
+  const chatBody = document.getElementById('coachChatMessages');
+  if (!chatBody) return;
+  const messages = getCoachChatHistory();
+  chatBody.innerHTML = messages.map(m => `
+    <div class="coach-msg">
+      <div class="coach-msg-bubble coach-bubble-${m.role}">${m.content.replace(/\n/g, '<br>')}</div>
+    </div>
+  `).join('');
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
 function showCoachTab() {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const ctab = document.getElementById('coach-tab-btn');
@@ -2788,9 +2991,22 @@ function showCoachTab() {
       <div style="padding:0 20px 20px;">
         ${recsHtml}
         ${liftRowsHtml ? `<div style="margin-top:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Anchor Lift Trends</div>${liftRowsHtml}</div>` : ''}
+
+        <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">Ask Your Coach</div>
+            <button onclick="clearCoachChat()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;padding:3px 8px;font-family:'JetBrains Mono',monospace;cursor:pointer;">Clear</button>
+          </div>
+          <div id="coachChatMessages" class="coach-chat-messages"></div>
+          <div class="coach-chat-input-row">
+            <textarea id="coachChatInput" class="coach-chat-input" placeholder="Ask about your training, a specific lift, recovery, anything..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendCoachMessage();}"></textarea>
+            <button class="coach-chat-send" onclick="sendCoachMessage()">↑</button>
+          </div>
+        </div>
       </div>
     </div>
   `;
+  renderCoachChatMessages();
 }
 
 function showProgressTab() {
