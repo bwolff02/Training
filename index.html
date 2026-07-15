@@ -735,7 +735,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.82</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.87</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1165,6 +1165,7 @@ let justSavedDay = null; // index of day just saved, to force blank reload
 // ─── INIT ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   migrateOldExerciseIds();
+  migrateClosePulldownCollision();
   setWeekBadge();
   buildTabs();
   await loadDay(0);
@@ -1217,6 +1218,77 @@ function migrateOldExerciseIds() {
   localStorage.setItem('_migrated_v2_6_64', 'true');
 }
 
+// One-time migration: hist_close-pulldown was accidentally shared between
+// two DIFFERENT exercises (Close Grip Lat Pulldown, from the real program,
+// and Seated Cable High to Low Row, from the accessory randomizer pool)
+// because they collided on the same exercise ID. This splits the mixed
+// history back into two separate, correctly-named buckets by matching each
+// entry's date + sets against the session-level history, which does store
+// the real exercise name.
+function migrateClosePulldownCollision() {
+  if (localStorage.getItem('_migrated_v2_6_86')) return;
+
+  const mixedRaw = localStorage.getItem('hist_close-pulldown');
+  if (!mixedRaw) { localStorage.setItem('_migrated_v2_6_86', 'true'); return; }
+
+  let mixedEntries;
+  try { mixedEntries = JSON.parse(mixedRaw); } catch(e) { mixedEntries = []; }
+  if (!Array.isArray(mixedEntries) || !mixedEntries.length) {
+    localStorage.setItem('_migrated_v2_6_86', 'true');
+    return;
+  }
+
+  // Build a date -> exercise name lookup from every pull session, checking
+  // for entries that match "Close Grip Lat Pulldown" or "Seated Cable High
+  // to Low Row" specifically.
+  const dateToName = {}; // date -> 'lat-pulldown' | 'high-low-row' | null (ambiguous)
+  ['hist_session_pull-heavy', 'hist_session_pull-volume'].forEach(key => {
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { sessions = []; }
+    sessions.forEach(session => {
+      (session.exercises || []).forEach(ex => {
+        const nameLower = (ex.name || '').toLowerCase();
+        if (nameLower.includes('close grip') && nameLower.includes('pulldown')) {
+          dateToName[session.date] = dateToName[session.date] === undefined ? 'lat-pulldown'
+            : (dateToName[session.date] === 'lat-pulldown' ? 'lat-pulldown' : 'ambiguous');
+        } else if (nameLower.includes('high to low') || nameLower.includes('high-low')) {
+          dateToName[session.date] = dateToName[session.date] === undefined ? 'high-low-row'
+            : (dateToName[session.date] === 'high-low-row' ? 'high-low-row' : 'ambiguous');
+        }
+      });
+    });
+  });
+
+  const lowRowEntries = [];
+  const pulldownEntries = [];
+  const unresolvedEntries = [];
+
+  mixedEntries.forEach(entry => {
+    const match = dateToName[entry.date];
+    if (match === 'high-low-row') lowRowEntries.push(entry);
+    else if (match === 'lat-pulldown') pulldownEntries.push(entry);
+    else unresolvedEntries.push(entry); // ambiguous or no session match found
+  });
+
+  // Close Grip Lat Pulldown keeps the original id (it was there first, in
+  // the real program). Seated Cable High to Low Row moves to its new id.
+  // Anything unresolved stays with Lat Pulldown as the safer default, since
+  // that's the exercise that's been in the program the longest.
+  const finalPulldown = [...pulldownEntries, ...unresolvedEntries];
+
+  if (finalPulldown.length) {
+    localStorage.setItem('hist_close-pulldown', JSON.stringify(finalPulldown));
+  } else {
+    localStorage.removeItem('hist_close-pulldown');
+  }
+  if (lowRowEntries.length) {
+    const existing = JSON.parse(localStorage.getItem('hist_cable-high-low-row') || '[]');
+    localStorage.setItem('hist_cable-high-low-row', JSON.stringify([...existing, ...lowRowEntries]));
+  }
+
+  localStorage.setItem('_migrated_v2_6_86', 'true');
+}
+
 function setWeekBadge() {
   const badge = document.getElementById('weekBadge');
   const label = document.getElementById('weekLabel');
@@ -1256,6 +1328,13 @@ function buildTabs() {
   progressBtn.textContent = '📈 Progress';
   progressBtn.onclick = () => showProgressTab();
   tabsEl.appendChild(progressBtn);
+
+  const coachBtn = document.createElement('button');
+  coachBtn.className = 'tab';
+  coachBtn.id = 'coach-tab-btn';
+  coachBtn.textContent = '🧠 Coach';
+  coachBtn.onclick = () => showCoachTab();
+  tabsEl.appendChild(coachBtn);
 }
 
 async function switchDay(index) {
@@ -1767,21 +1846,43 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   const last = all[all.length - 1];
   if (!last.sets || !last.sets.length) return null;
 
-  // Find the TOP WORKING SET — the set with the heaviest weight — and pull
-  // both weight and reps from THAT SAME SET, rather than taking the max
-  // weight from one set and the max reps from a different set independently.
-  // (Previously, logging 235x3 + a 135x30 burnout set in the same session
-  // would incorrectly report "235 x 30" since weight and reps were computed
-  // separately across all sets.)
-  const validSets = last.sets
+  // Find your BEST WORKING SET across ALL logged sessions for this exercise
+  // (not just the most recent session) — weight and reps pulled from the
+  // SAME set, so a heavy weight from one set never gets paired with reps
+  // from a different set. This deliberately ignores "most recent" as the
+  // reference point: a superset back-half or a fatigued/off day shouldn't
+  // suppress the suggestion just because it happened to be logged last.
+  // "Best" here means: heaviest weight, with the most reps at that weight
+  // if there's a tie, found by comparing estimated 1RM across every set
+  // you've ever logged for this exercise.
+  let bestSet = null;
+  let bestSetScore = -1;
+  all.forEach(session => {
+    if (!session.sets) return;
+    session.sets.forEach(s => {
+      const w = parseFloat(s.weight);
+      const r = parseInt(s.reps);
+      if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
+      const score = w * (1 + r / 30); // Epley 1RM as the comparison metric
+      if (score > bestSetScore) {
+        bestSetScore = score;
+        bestSet = { weight: w, reps: r, date: session.date };
+      }
+    });
+  });
+  if (!bestSet) return null;
+
+  const lastWeight = bestSet.weight;
+  const maxReps = bestSet.reps;
+
+  // avgReps still reflects the MOST RECENT session specifically, since that's
+  // used to judge "are you still hitting your rep target right now" for the
+  // hold/bump/build logic below — that part should stay recency-based even
+  // though the weight reference point itself is now best-ever.
+  const lastValidSets = last.sets
     .map(s => ({ weight: parseFloat(s.weight), reps: parseInt(s.reps) }))
     .filter(s => !isNaN(s.weight) && s.weight > 0 && !isNaN(s.reps));
-  if (!validSets.length) return null;
-
-  const topSet = validSets.reduce((best, s) => s.weight > best.weight ? s : best, validSets[0]);
-  const lastWeight = topSet.weight;
-  const maxReps = topSet.reps;
-  const lastReps = validSets.map(s => s.reps);
+  const lastReps = lastValidSets.length ? lastValidSets.map(s => s.reps) : [maxReps];
   const avgReps = lastReps.reduce((a,b) => a+b, 0) / lastReps.length;
 
   // Epley 1RM estimate: weight * (1 + reps/30)
@@ -2009,7 +2110,10 @@ async function saveDay() {
     allExerciseIds.forEach(exId => {
       if (sessionLogs[exId] && sessionLogs[exId].sets && sessionLogs[exId].sets.length) {
         const hist = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
-        hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
+        // Tag deload-week sets so suggestion logic can skip them — deload
+        // weights are deliberately lightened and should never be mistaken
+        // for a real "last session" reference point.
+        hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek, notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
         if (hist.length > 12) hist.shift();
         localStorage.setItem('hist_' + exId, JSON.stringify(hist));
       }
@@ -2456,9 +2560,22 @@ const ANCHOR_LIFTS = [
 // Seed data is ONLY used as a fallback when an exercise has never been logged
 // for real, so old placeholder dates can never contaminate or out-rank actual
 // sessions once they exist.
-function getAllHistory(exId) {
+// Real logged data always wins over the built-in seed/placeholder history.
+// Deload-week sets are EXCLUDED by default since they're deliberately
+// lightened weights and should never be mistaken for a real "last session"
+// reference point in suggestions, PRs, or progress charts. Pass
+// includeDeload=true explicitly for the rare case a caller actually wants
+// deload sets included (e.g. showing full session history in Past Sessions).
+function getAllHistory(exId, includeDeload) {
   const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
-  if (stored.length > 0) {
+  const filtered = includeDeload ? stored : stored.filter(s => !s.deload);
+  if (filtered.length > 0) {
+    return [...filtered].sort((a, b) => a.date > b.date ? 1 : -1);
+  }
+  // If ALL real entries happen to be deload-only, fall back to including them
+  // rather than silently returning nothing — better to show something than
+  // pretend there's no history at all.
+  if (!includeDeload && stored.length > 0) {
     return [...stored].sort((a, b) => a.date > b.date ? 1 : -1);
   }
   const builtin = HISTORY[exId] || [];
@@ -2491,6 +2608,189 @@ function getLifePR(exId) {
     });
   });
   return pr;
+}
+
+
+// ─── COACH: PLATEAU DETECTION & RECOMMENDATIONS ─────────────────
+
+// Analyzes an individual anchor lift's estimated-1RM trend across its last
+// several REAL (non-deload) sessions to detect a plateau — defined as no
+// meaningful improvement in estimated 1RM over at least 3 consecutive
+// sessions, with the most recent session not exceeding the best of the
+// prior ones by more than a small margin.
+function analyzeLiftTrend(exId, exName) {
+  const all = getAllHistory(exId).filter(s => s.sets && s.sets.length);
+  if (all.length < 3) return null; // not enough data to call a trend
+
+  const sessionBest1RMs = all.map(session => {
+    let best = 0;
+    session.sets.forEach(s => {
+      const w = parseFloat(s.weight), r = parseInt(s.reps);
+      if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
+        const est = w * (1 + r / 30);
+        if (est > best) best = est;
+      }
+    });
+    return { date: session.date, est1RM: best };
+  }).filter(s => s.est1RM > 0);
+
+  if (sessionBest1RMs.length < 3) return null;
+
+  const recent = sessionBest1RMs.slice(-4); // last up to 4 sessions
+  const mostRecent = recent[recent.length - 1].est1RM;
+  const priorBest = Math.max(...recent.slice(0, -1).map(s => s.est1RM));
+  const priorFirst = recent[0].est1RM;
+
+  const pctChangeFromStart = ((mostRecent - priorFirst) / priorFirst) * 100;
+  const isPlateaued = mostRecent <= priorBest * 1.02; // within 2% of prior best = no real progress
+  const isDeclining = mostRecent < priorFirst * 0.97; // more than 3% below where this window started
+
+  return {
+    exName,
+    exId,
+    sessionsAnalyzed: recent.length,
+    mostRecent: Math.round(mostRecent),
+    priorBest: Math.round(priorBest),
+    pctChange: Math.round(pctChangeFromStart * 10) / 10,
+    isPlateaued,
+    isDeclining,
+  };
+}
+
+// Scans recent feel ratings across ALL session history (any muscle group) for
+// a declining trend — comparing the average of the last 3 sessions against
+// the average of the 3 before that.
+function analyzeFeelTrend() {
+  const allSessions = [];
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    try {
+      const sessions = JSON.parse(localStorage.getItem(key));
+      sessions.forEach(s => { if (typeof s.feel === 'number') allSessions.push(s); });
+    } catch(e) {}
+  });
+  allSessions.sort((a, b) => a.date > b.date ? 1 : -1);
+  if (allSessions.length < 6) return null;
+
+  const last3 = allSessions.slice(-3);
+  const prior3 = allSessions.slice(-6, -3);
+  const last3Avg = last3.reduce((a,s) => a + s.feel, 0) / last3.length;
+  const prior3Avg = prior3.reduce((a,s) => a + s.feel, 0) / prior3.length;
+
+  return {
+    last3Avg: Math.round(last3Avg * 10) / 10,
+    prior3Avg: Math.round(prior3Avg * 10) / 10,
+    isDeclining: last3Avg < prior3Avg - 0.5,
+    lastSessionDates: last3.map(s => s.date),
+  };
+}
+
+// Builds the full set of coach observations: per-lift plateau flags, feel
+// trend, and time-since-last-deload, then turns those into specific,
+// opinionated written recommendations rather than raw numbers.
+function generateCoachReport() {
+  const liftAnalyses = ANCHOR_LIFTS
+    .map(lift => analyzeLiftTrend(lift.id, lift.name))
+    .filter(Boolean);
+
+  const plateaued = liftAnalyses.filter(l => l.isPlateaued && !l.isDeclining);
+  const declining = liftAnalyses.filter(l => l.isDeclining);
+  const progressing = liftAnalyses.filter(l => !l.isPlateaued && !l.isDeclining);
+
+  const feelTrend = analyzeFeelTrend();
+
+  const recommendations = [];
+
+  if (declining.length > 0) {
+    recommendations.push({
+      type: 'warning',
+      title: '⚠️ Declining lifts detected',
+      body: `${declining.map(l => l.exName).join(', ')} ${declining.length === 1 ? 'is' : 'are'} trending down over your last few sessions, not just flat. This is usually fatigue accumulation rather than a real strength loss. If a deload isn't coming up soon, consider backing off intentionally on ${declining.length === 1 ? 'this lift' : 'these lifts'} for a session or two.`
+    });
+  }
+
+  if (plateaued.length >= 2) {
+    recommendations.push({
+      type: 'plateau',
+      title: '📊 Multiple lifts plateaued',
+      body: `${plateaued.map(l => l.exName).join(', ')} haven't meaningfully improved in your last few sessions. When several lifts stall at once like this, it's usually systemic — worth checking sleep, stress, and whether your last deload actually gave you enough recovery. A single stalled lift is normal; several at once is a signal.`
+    });
+  } else if (plateaued.length === 1) {
+    recommendations.push({
+      type: 'plateau',
+      title: `📊 ${plateaued[0].exName} has plateaued`,
+      body: `Estimated 1RM hasn't moved much over your last ${plateaued[0].sessionsAnalyzed} sessions (currently ~${plateaued[0].mostRecent}lbs vs ~${plateaued[0].priorBest}lbs). Try a rep-range change for a few weeks — if you've been in the 6-8 range, drop to 4-6 with slightly heavier weight, or vice versa — before assuming you need more recovery.`
+    });
+  }
+
+  if (feelTrend && feelTrend.isDeclining) {
+    recommendations.push({
+      type: 'fatigue',
+      title: '😓 Feel ratings trending down',
+      body: `Your last 3 sessions averaged ${feelTrend.last3Avg}/10 vs ${feelTrend.prior3Avg}/10 the 3 before that. Combined with ${declining.length > 0 || plateaued.length > 0 ? 'the plateau signals above' : 'no major strength plateau yet'}, this looks like accumulated fatigue. Consider whether your next deload should come earlier than the usual 4-week mark.`
+    });
+  }
+
+  if (progressing.length > 0 && plateaued.length === 0 && declining.length === 0) {
+    recommendations.push({
+      type: 'good',
+      title: '✅ Trending up across the board',
+      body: `${progressing.map(l => l.exName).join(', ')} ${progressing.length === 1 ? 'is' : 'are'} all showing real progress. Whatever you're doing right now is working — no changes needed. Keep logging so we catch it early if this shifts.`
+    });
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push({
+      type: 'neutral',
+      title: '📋 Not enough data yet',
+      body: `Keep logging consistently — plateau detection needs at least 3-4 sessions per lift to spot real trends versus normal day-to-day variation. Check back in a couple weeks.`
+    });
+  }
+
+  return { liftAnalyses, feelTrend, recommendations };
+}
+
+function showCoachTab() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const ctab = document.getElementById('coach-tab-btn');
+  if (ctab) ctab.classList.add('active');
+
+  const main = document.getElementById('mainContent');
+  const report = generateCoachReport();
+
+  const typeColors = {
+    warning: '#ff6b6b', plateau: 'var(--orange)', fatigue: '#ff9f4a',
+    good: 'var(--accent)', neutral: 'var(--muted)'
+  };
+
+  const recsHtml = report.recommendations.map(rec => `
+    <div style="background:var(--card2);border:1px solid ${typeColors[rec.type]}40;border-left:3px solid ${typeColors[rec.type]};border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${typeColors[rec.type]};margin-bottom:6px;">${rec.title}</div>
+      <div style="font-size:13px;color:var(--white);line-height:1.6;">${rec.body}</div>
+    </div>
+  `).join('');
+
+  const liftRowsHtml = report.liftAnalyses.map(l => {
+    const statusIcon = l.isDeclining ? '📉' : l.isPlateaued ? '➡️' : '📈';
+    const statusColor = l.isDeclining ? '#ff6b6b' : l.isPlateaued ? 'var(--orange)' : 'var(--accent)';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;color:var(--white);">${l.exName}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${statusColor};">${statusIcon} ${l.mostRecent}lbs est.</span>
+    </div>`;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="progress-container">
+      <div class="progress-header">
+        <div class="progress-title">COACH</div>
+        <div class="progress-subtitle">Plateau detection & recommendations, based on your logged history</div>
+      </div>
+      <div style="padding:0 20px 20px;">
+        ${recsHtml}
+        ${liftRowsHtml ? `<div style="margin-top:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Anchor Lift Trends</div>${liftRowsHtml}</div>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 function showProgressTab() {
@@ -3021,18 +3321,26 @@ const ACCESSORY_POOLS = {
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
   ],
   pull: [
-    // Lats
+    // Lats / Back (expanded pool for 2-3 random picks per session)
     { id:'cable-pullover', name:'Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
-    { id:'close-pulldown', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
+    { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
+    { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
+    { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
+    { id:'straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Arms straight, lat isolation. Feel the stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
     // Rear delts
     { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt)', note:'Rear delt variation. Controlled pull.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
-    // Biceps
+    // Biceps (expanded pool for 2-3 random picks per session)
     { id:'db-curl', name:'Dumbbell Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'hammer-curl-wed', name:'Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'incline-curl', name:'Bayesian / Incline Curl', note:'Stretch position. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'reverse-curl', name:'Reverse Curl', note:'Forearm and brachialis. Keep elbows pinned.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body, brachialis and forearm emphasis.', target:'3 × 8–10', defaultSets:3, muscle:'biceps' },
+    { id:'twenty-one-curl', name:'21s (Straight, Hammer, Cross Body)', note:'7 bottom half + 7 top half + 7 full range. Burnout finisher.', target:'2 × 21', defaultSets:2, muscle:'biceps' },
+    // Forearms (new category)
+    { id:'forearm-curl-ez', name:'Cable Forearm Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'forearms' },
+    { id:'wrist-curl-db', name:'Dumbbell Wrist Curl', note:'Seated, forearms on thighs, full range wrist flexion.', target:'3 × 15–20', defaultSets:3, muscle:'forearms' },
     // Traps
     { id:'shrug-wed', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
@@ -3063,7 +3371,10 @@ function getMuscleGroup(variantId) {
 // Push: chest-heavy + tricep-heavy. Pull: bicep-heavy. Legs: ab-heavy.
 const MUSCLE_SLOT_COUNTS = {
   push:  { chest: 2, delts: 2, triceps: 3 },
-  pull:  { lats: 1, rear_delt: 1, biceps: 3, traps: 1 },
+  // Pull base: 2 back, 2 biceps, 1 rear delt, 1 trap. Forearms starts at 0 —
+  // it only shows up when the volume-gap logic detects it's been neglected
+  // relative to the rest of the pool and bumps it to 1 for that session.
+  pull:  { lats: 2, rear_delt: 1, biceps: 2, traps: 1, forearms: 0 },
   legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, abs: 2 },
 };
 
@@ -3255,6 +3566,16 @@ function randomizeAccessories() {
   const slotCounts = {};
   Object.entries(baseSlotCounts).forEach(([muscle, baseCount]) => {
     const actualCount = recentVolume[muscle] || 0;
+
+    if (baseCount === 0) {
+      // Zero-base muscles (like forearms) are opt-in only: if there's enough
+      // real training data overall AND this muscle has gotten zero direct
+      // work in the last 4 weeks, introduce it for one slot this session.
+      // Otherwise it stays fully absent, matching "only when data says so."
+      slotCounts[muscle] = (totalRecentSessions >= 3 && actualCount === 0) ? 1 : 0;
+      return;
+    }
+
     // Expected count over 4 weeks (roughly 4-8 sessions of this muscle group type)
     const expectedShare = totalRecentSessions > 0
       ? (baseCount / Object.values(baseSlotCounts).reduce((a,b)=>a+b,0)) * totalRecentSessions
