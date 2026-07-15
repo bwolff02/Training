@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.89</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.90</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2686,7 +2686,7 @@ function analyzeLiftTrend(exId, exName) {
   const all = getAllHistory(exId).filter(s => s.sets && s.sets.length);
   if (all.length < 3) return null; // not enough data to call a trend
 
-  const sessionBest1RMs = all.map(session => {
+  let sessionBest1RMs = all.map(session => {
     let best = 0;
     session.sets.forEach(s => {
       const w = parseFloat(s.weight), r = parseInt(s.reps);
@@ -2699,6 +2699,20 @@ function analyzeLiftTrend(exId, exName) {
   }).filter(s => s.est1RM > 0);
 
   if (sessionBest1RMs.length < 3) return null;
+
+  // Filter out sessions that look like contaminated/mislabeled data — e.g. a
+  // renamed lighter exercise that briefly wrote into this exercise's history
+  // (like DB Shoulder Press once being renamed to Smith Shoulder Press).
+  // A single session with an estimated 1RM far below the exercise's typical
+  // range shouldn't be allowed to skew the whole trend. Uses the MEDIAN of
+  // all sessions as the reference point (robust to outliers, unlike a mean),
+  // and drops anything below 50% of that median.
+  const sorted1RMs = [...sessionBest1RMs].map(s => s.est1RM).sort((a, b) => a - b);
+  const median1RM = sorted1RMs[Math.floor(sorted1RMs.length / 2)];
+  const outlierFloor = median1RM * 0.5;
+  sessionBest1RMs = sessionBest1RMs.filter(s => s.est1RM >= outlierFloor);
+
+  if (sessionBest1RMs.length < 3) return null; // not enough clean data left
 
   const recent = sessionBest1RMs.slice(-4); // last up to 4 sessions
   const mostRecent = recent[recent.length - 1].est1RM;
