@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.95</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.96</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -873,18 +873,18 @@ const PROGRAM = [
           { id:'goblet-squat', name:'Goblet Squat', note:'Quad finisher. Dumbbell at chest, upright torso, full depth.', target:'3 × 12–15', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'seated-curl-mon', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
           { superset:true, exercises:[
-            { id:'leg-press-mon-b', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-horizontal-vol', name:'Horizontal Calf Extension', note:'Full stretch. High reps, full burn. Paired with leg press.', target:'3 × 20', defaultSets:3 },
+            { id:'leg-press-thu', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
+            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch. High reps, full burn. Paired with leg press.', target:'3 × 20', defaultSets:3 },
           ]},
-          { id:'hip-abd-mon-b', name:'Cable Hip Abduction', note:'Light and controlled. Feel the glute med work.', target:'3 × 15–20 / side', defaultSets:3 },
-          { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Light and controlled. Feel the glute med work.', target:'3 × 15–20 / side', defaultSets:3 },
+          { id:'hip-add', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-leg-raise-mon', name:'Hanging Leg Raise', note:'Legs straight if possible. Posterior tilt at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'decline-leg-raise-mon', name:'Decline Weighted Leg Raise', note:'Dumbbell between feet. Lower abs focus.', target:'3 × 12', defaultSets:3 },
-          { id:'oblique-ext-mon', name:'Oblique Extension', note:'Lateral flexion. Feel the stretch opposite side.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'hang-leg-raise', name:'Hanging Leg Raise', note:'Legs straight if possible. Posterior tilt at top.', target:'3 × 12–15', defaultSets:3 },
+          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'Dumbbell between feet. Lower abs focus.', target:'3 × 12', defaultSets:3 },
+          { id:'oblique-ext', name:'Oblique Extension', note:'Lateral flexion. Feel the stretch opposite side.', target:'3 × 12 / side', defaultSets:3 },
         ]},
       ]
     }
@@ -918,14 +918,14 @@ const PROGRAM = [
           { id:'incline-smith-vol', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'hex-press-b', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top every rep.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-fly-lth-b', name:'Cable Fly (Low to High)', note:'Clavicular head, different angle than Week A.', target:'3 × 15', defaultSets:3 },
+          { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top every rep.', target:'3 × 12–15', defaultSets:3 },
+          { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Clavicular head, different angle than Week A.', target:'3 × 15', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'db-lat-raise-b', name:'Dumbbell Lateral Raise', note:'Free weight version. Challenge then control.', target:'3 × 12–15', defaultSets:3 },
-            { id:'cable-lat-raise-light-b', name:'Cable Lateral Raise (Light, Fatigued)', note:'Double frequency lateral delt. Drop the weight, chase the burn.', target:'3 × 20', defaultSets:3 },
+            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Free weight version. Challenge then control.', target:'3 × 12–15', defaultSets:3 },
+            { id:'cable-lat-raise-light', name:'Cable Lateral Raise (Light, Fatigued)', note:'Double frequency lateral delt. Drop the weight, chase the burn.', target:'3 × 20', defaultSets:3 },
           ]},
-          { id:'tri-lth-b', name:'Cable Low-to-High Tricep Extension', note:'Long head, different angle than skull crushers. One arm.', target:'3 × 12–15 / arm', defaultSets:3 },
-          { id:'tri-overhead-b', name:'Single Arm Overhead Tricep Extension', note:'Long head in stretched position. Slow eccentric.', target:'3 × 12 / arm', defaultSets:3 },
+          { id:'tri-lth', name:'Cable Low-to-High Tricep Extension', note:'Long head, different angle than skull crushers. One arm.', target:'3 × 12–15 / arm', defaultSets:3 },
+          { id:'tri-overhead', name:'Single Arm Overhead Tricep Extension', note:'Long head in stretched position. Slow eccentric.', target:'3 × 12 / arm', defaultSets:3 },
         ]},
       ]
     }
@@ -941,13 +941,13 @@ const PROGRAM = [
           { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'2 working sets + 1 back-off. Pull to upper chest, full stretch at top. Higher reps than heavy day.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown-b', name:'Close Grip Lat Pulldown', note:'Neutral close grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
-          { id:'bw-pullup-b', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
-          { id:'face-pull-wed-b', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
-          { id:'shrug-wed-b', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
-          { id:'incline-curl-b', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
-          { id:'reverse-curl-b', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-lat-sat-b', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Neutral close grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
+          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
+          { id:'face-pull-sat', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
+          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
+          { id:'incline-curl', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
+          { id:'reverse-curl', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
+          { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
         ]},
       ]
     },
@@ -960,10 +960,10 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-wed', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
+          { id:'face-pull-sat', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
           { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'hammer-curl-wed', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-wed', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
+          { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
         ]},
       ]
     }
@@ -983,9 +983,9 @@ const PROGRAM = [
           { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
           { superset:true, exercises:[
             { id:'leg-press-thu', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-horizontal-vol', name:'Horizontal Calf Extension', note:'Full stretch. High reps. Paired with leg press.', target:'3 × 20', defaultSets:3 },
+            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch. High reps. Paired with leg press.', target:'3 × 20', defaultSets:3 },
           ]},
-          { id:'hip-abd-thu', name:'Cable Hip Abduction', note:'Light and controlled. Second weekly hit.', target:'3 × 15–20 / side', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Light and controlled. Second weekly hit.', target:'3 × 15–20 / side', defaultSets:3 },
           { id:'hip-add', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:2 },
         ]},
         { label: 'Abs', exercises: [
@@ -1001,21 +1001,21 @@ const PROGRAM = [
         { label: 'Anchors', exercises: [
           { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today — Week B heavy. 2 heavy top sets + 1 back-off. Hinge at hips, bar stays close. Drive the weight.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
           { id:'smith-lunge-thu', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
-          { id:'goblet-squat-thu', name:'Goblet Squat', note:'Quad finisher after heavy RDLs. Light dumbbell, upright torso, full depth. Not a barbell day for squats.', target:'3 × 12–15', anchor:false, defaultSets:3 },
+          { id:'goblet-squat', name:'Goblet Squat', note:'Quad finisher after heavy RDLs. Light dumbbell, upright torso, full depth. Not a barbell day for squats.', target:'3 × 12–15', anchor:false, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'leg-ext-thu', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'leg-press-thu-b', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
+            { id:'leg-press-mon', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
             { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch, don\'t bounce. Paired with leg press.', target:'3 × 15', defaultSets:3 },
           ]},
-          { id:'prone-curl-thu', name:'Prone Leg Curl', note:'Slow eccentric. Heavy day — push the weight.', target:'3 × 8–10', defaultSets:3 },
-          { id:'hip-abd-thu-b', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric. Heavy day — push the weight.', target:'3 × 8–10', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-crunch-thu', name:'Hanging Weighted Ab Crunch', note:'Ribs to hips. Add weight when reps get easy.', target:'3 × 10–12', defaultSets:3 },
-          { id:'rope-crunch-thu', name:'Cable Rope Crunch', note:'Heavy. Kneeling, pull from crown of head.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-rot-thu', name:'Cable Rotation (Obliques)', note:'Rotate through torso, not just arms.', target:'3 × 10 / side', defaultSets:3 },
+          { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'Ribs to hips. Add weight when reps get easy.', target:'3 × 10–12', defaultSets:3 },
+          { id:'rope-crunch', name:'Cable Rope Crunch', note:'Heavy. Kneeling, pull from crown of head.', target:'3 × 10–12', defaultSets:3 },
+          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate through torso, not just arms.', target:'3 × 10 / side', defaultSets:3 },
         ]},
       ]
     }
@@ -1051,11 +1051,11 @@ const PROGRAM = [
           { id:'smith-shoulder-press', name:'Smith Machine Shoulder Press', note:'2 top sets then 1 back-off at 85–90%. Week B. Full lockout, core braced.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-fly-htl-b', name:'Cable Fly (High to Low)', note:'Stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
+          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
           { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'One arm, constant tension. Don\'t shrug.', target:'4 × 10–12 / side', defaultSets:4 },
           { superset:true, exercises:[
-            { id:'skull-crusher-b', name:'Skull Crusher', note:'Long head. Slow down, explode up.', target:'3 × 8–10', defaultSets:3 },
-            { id:'rope-pushdown-b', name:'Rope Pushdown', note:'Split the rope at bottom for full contraction.', target:'3 × 10–12', defaultSets:3 },
+            { id:'skull-crusher', name:'Skull Crusher', note:'Long head. Slow down, explode up.', target:'3 × 8–10', defaultSets:3 },
+            { id:'rope-pushdown', name:'Rope Pushdown', note:'Split the rope at bottom for full contraction.', target:'3 × 10–12', defaultSets:3 },
           ]},
         ]},
       ]
@@ -1072,11 +1072,11 @@ const PROGRAM = [
           { id:'cable-row-wide-sat-heavy', name:'Seated Cable Row (Wide Grip)', note:'2 heavy top sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-pullover-sat', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-sat-b', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
-          { id:'db-curl-sat', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
+          { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
+          { id:'face-pull-sat', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
+          { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
           { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-sat-b', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
+          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
         ]},
       ]
     },
@@ -1111,46 +1111,29 @@ const HISTORY = {
   'smith-lunge':     [{ date:'2026-05-29', sets:[{weight:165,reps:6},{weight:165,reps:6}]}, {date:'2026-06-08', sets:[{weight:155,reps:6},{weight:155,reps:7}]}],
   'smith-lunge-thu': [{ date:'2026-05-29', sets:[{weight:165,reps:6},{weight:165,reps:6}]}, {date:'2026-06-08', sets:[{weight:155,reps:6},{weight:155,reps:7}]}],
   'leg-ext-mon':     [{ date:'2026-06-01', sets:[{weight:240,reps:9},{weight:240,reps:9},{weight:240,reps:9}]}],
-  'leg-ext-thu':     [{ date:'2026-06-01', sets:[{weight:240,reps:9},{weight:240,reps:9},{weight:240,reps:9}]}],
   'leg-press-mon':   [{ date:'2026-06-08', sets:[{weight:190,reps:7},{weight:190,reps:8}]}],
-  'leg-press-mon-b': [{ date:'2026-05-22', sets:[{weight:190,reps:8},{weight:190,reps:9}]}],
   'leg-press-thu':   [{ date:'2026-05-22', sets:[{weight:190,reps:8},{weight:190,reps:9}]}],
-  'leg-press-thu-b': [{ date:'2026-06-08', sets:[{weight:190,reps:7},{weight:190,reps:8}]}],
   'calf-horizontal':     [{ date:'2026-06-08', sets:[{weight:160,reps:12},{weight:160,reps:12}]}],
-  'calf-horizontal-vol': [{ date:'2026-05-18', sets:[{weight:190,reps:10},{weight:190,reps:12}]}],
   'calf-vertical':       [{ date:'2026-05-29', sets:[{weight:135,reps:13},{weight:135,reps:10}]}],
   'prone-curl-mon':  [{ date:'2026-06-08', sets:[{weight:110,reps:7},{weight:110,reps:7},{weight:110,reps:6}]}],
-  'prone-curl-thu':  [{ date:'2026-06-08', sets:[{weight:110,reps:7},{weight:110,reps:7},{weight:110,reps:6}]}],
   'hip-abd-mon':     [{ date:'2026-06-08', sets:[{weight:30,reps:8},{weight:30,reps:8}]}],
-  'hip-abd-mon-b':   [{ date:'2026-05-26', sets:[{weight:30,reps:7},{weight:30,reps:7}]}],
-  'hip-abd-thu':     [{ date:'2026-05-26', sets:[{weight:30,reps:7},{weight:30,reps:7}]}],
-  'hip-abd-thu-b':   [{ date:'2026-06-08', sets:[{weight:30,reps:8},{weight:30,reps:8}]}],
-  'hip-add-mon':     [{ date:'2026-05-22', sets:[{weight:0,reps:15},{weight:0,reps:15}]}],
   'hip-add':         [{ date:'2026-05-22', sets:[{weight:0,reps:15},{weight:0,reps:15}]}],
   'hang-crunch':     [{ date:'2026-06-08', sets:[{weight:20,reps:8},{weight:20,reps:7}]}],
-  'hang-crunch-thu': [{ date:'2026-06-08', sets:[{weight:20,reps:8},{weight:20,reps:7}]}],
   'rope-crunch':     [{ date:'2026-06-08', sets:[{weight:150,reps:7},{weight:150,reps:8}]}],
-  'rope-crunch-thu': [{ date:'2026-06-08', sets:[{weight:150,reps:7},{weight:150,reps:8}]}],
   'cable-rot':       [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
-  'cable-rot-thu':   [{ date:'2026-06-08', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'rdl':             [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-06-11', sets:[{weight:215,reps:12},{weight:215,reps:13}]}],
   'good-mornings':    [{ date:'2026-05-29', sets:[{weight:135,reps:6},{weight:135,reps:6}]}],
   'squat-mon-b':      [{ date:'2026-05-26', sets:[{weight:205,reps:8},{weight:205,reps:8}]}],
   'goblet-squat':     [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
-  'goblet-squat-thu': [{ date:'2026-05-01', sets:[{weight:50,reps:10},{weight:50,reps:10}]}],
   'db-split-squat':   [{ date:'2026-05-01', sets:[{weight:40,reps:10},{weight:40,reps:10}]}],
   'rdl-thu-heavy':   [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}, {date:'2026-06-11', sets:[{weight:215,reps:12},{weight:215,reps:13}]}],
   'rdl-mon':         [{ date:'2026-05-29', sets:[{weight:245,reps:8},{weight:245,reps:8}]}],
   'bulgarian':       [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
   'bulgarian-mon':   [{ date:'2026-06-01', sets:[{weight:165,reps:8},{weight:165,reps:8}]}],
   'seated-curl':     [{ date:'2026-05-26', sets:[{weight:170,reps:7},{weight:170,reps:8}]}],
-  'seated-curl-mon': [{ date:'2026-05-26', sets:[{weight:170,reps:7},{weight:170,reps:8}]}],
   'hang-leg-raise':  [{ date:'2026-05-29', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
-  'hang-leg-raise-mon':[{ date:'2026-05-29', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
   'decline-leg-raise':[{ date:'2026-06-01', sets:[{weight:10,reps:8},{weight:10,reps:8}]}],
-  'decline-leg-raise-mon':[{ date:'2026-06-01', sets:[{weight:10,reps:8},{weight:10,reps:8}]}],
   'oblique-ext':     [{ date:'2026-05-29', sets:[{weight:0,reps:12},{weight:0,reps:12}]}],
-  'oblique-ext-mon': [{ date:'2026-05-29', sets:[{weight:0,reps:12},{weight:0,reps:12}]}],
   'incline-smith':   [{ date:'2026-05-27', sets:[{weight:225,reps:6},{weight:225,reps:5}]}, {date:'2026-06-02', sets:[{weight:225,reps:4},{weight:205,reps:6}]}],
   'incline-smith-vol':[{ date:'2026-05-23', sets:[{weight:185,reps:7},{weight:185,reps:5}]}, {date:'2026-05-27', sets:[{weight:185,reps:7},{weight:185,reps:7}]}],
   'flat-smith':      [{ date:'2026-05-27', sets:[{weight:185,reps:8},{weight:185,reps:10}]}],
@@ -1159,24 +1142,15 @@ const HISTORY = {
   'smith-shoulder-press':[{ date:'2026-05-27', sets:[{weight:165,reps:7},{weight:165,reps:7}]}, {date:'2026-06-02', sets:[{weight:155,reps:4},{weight:155,reps:6}]}],
   'smith-shoulder-press-vol':[{ date:'2026-05-06', sets:[{weight:165,reps:7},{weight:165,reps:7}]}],
   'cable-fly-htl':   [{ date:'2026-05-23', sets:[{weight:70,reps:7},{weight:70,reps:5}]}],
-  'cable-fly-htl-b': [{ date:'2026-05-23', sets:[{weight:70,reps:7},{weight:70,reps:5}]}],
   'cable-lat-raise-tue':[{ date:'2026-06-02', sets:[{weight:30,reps:9},{weight:30,reps:9}]}],
   'skull-crusher':   [{ date:'2026-06-02', sets:[{weight:95,reps:7},{weight:95,reps:6}]}],
-  'skull-crusher-b': [{ date:'2026-06-02', sets:[{weight:95,reps:7},{weight:95,reps:6}]}],
   'rope-pushdown':   [{ date:'2026-05-13', sets:[{weight:62,reps:8},{weight:62,reps:5}]}],
-  'rope-pushdown-b': [{ date:'2026-05-13', sets:[{weight:62,reps:8},{weight:62,reps:5}]}],
   'hex-press':       [{ date:'2026-05-19', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
-  'hex-press-b':     [{ date:'2026-05-19', sets:[{weight:60,reps:7},{weight:60,reps:7}]}],
   'cable-fly-lth':   [{ date:'2026-05-27', sets:[{weight:75,reps:7},{weight:75,reps:7}]}],
-  'cable-fly-lth-b': [{ date:'2026-05-27', sets:[{weight:75,reps:7},{weight:75,reps:7}]}],
   'db-lat-raise':    [{ date:'2026-06-02', sets:[{weight:30,reps:8},{weight:30,reps:8}]}],
-  'db-lat-raise-b':  [{ date:'2026-06-02', sets:[{weight:30,reps:8},{weight:30,reps:8}]}],
   'cable-lat-raise-light':[{ date:'2026-06-02', sets:[{weight:30,reps:10},{weight:30,reps:10}]}],
-  'cable-lat-raise-light-b':[{ date:'2026-06-02', sets:[{weight:30,reps:10},{weight:30,reps:10}]}],
   'tri-lth':         [{ date:'2026-06-02', sets:[{weight:100,reps:5},{weight:100,reps:6}]}],
-  'tri-lth-b':       [{ date:'2026-06-02', sets:[{weight:100,reps:5},{weight:100,reps:6}]}],
   'tri-overhead':    [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
-  'tri-overhead-b':  [{ date:'2026-06-02', sets:[{weight:40,reps:5},{weight:40,reps:4}]}],
   'wtd-pullup':      [{ date:'2026-06-03', sets:[{weight:35,reps:8},{weight:35,reps:8}]}, {date:'2026-04-16', sets:[{weight:45,reps:5},{weight:45,reps:6}]}],
   'wtd-pullup-vol-wed': [{ date:'2026-04-16', sets:[{weight:25,reps:10},{weight:25,reps:10}]}],
   'wtd-pullup-vol-sat': [{ date:'2026-04-16', sets:[{weight:25,reps:10},{weight:25,reps:10}]}],
@@ -1192,33 +1166,19 @@ const HISTORY = {
   'barbell-row-vol-sat': [{ date:'2026-05-25', sets:[{weight:175,reps:10},{weight:175,reps:10}]}],
   'barbell-row-sat': [{ date:'2026-06-03', sets:[{weight:185,reps:8},{weight:205,reps:7}]}, {date:'2026-05-25', sets:[{weight:185,reps:8},{weight:195,reps:8}]}],
   'cable-pullover':  [{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
-  'cable-pullover-sat':[{ date:'2026-06-03', sets:[{weight:90,reps:8},{weight:90,reps:8}]}],
-  'face-pull-wed':   [{ date:'2026-06-03', sets:[{weight:120,reps:10},{weight:120,reps:10}]}],
-  'face-pull-wed-b': [{ date:'2026-06-03', sets:[{weight:120,reps:10},{weight:120,reps:10}]}],
   'face-pull-sat':   [{ date:'2026-06-03', sets:[{weight:120,reps:10},{weight:120,reps:10}]}],
-  'face-pull-sat-b': [{ date:'2026-06-03', sets:[{weight:120,reps:10},{weight:120,reps:10}]}],
   'db-curl':         [{ date:'2026-06-03', sets:[{weight:40,reps:7},{weight:40,reps:7}]}],
-  'db-curl-sat':     [{ date:'2026-06-03', sets:[{weight:40,reps:7},{weight:40,reps:7}]}],
-  'hammer-curl-wed': [{ date:'2026-06-03', sets:[{weight:110,reps:10},{weight:110,reps:8}]}],
   'hammer-curl-sat': [{ date:'2026-06-03', sets:[{weight:110,reps:10},{weight:110,reps:8}]}],
-  'shrug-wed':       [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
-  'shrug-wed-b':     [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
   'shrug-sat':       [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
-  'shrug-sat-b':     [{ date:'2026-06-03', sets:[{weight:135,reps:10},{weight:135,reps:7}]}],
   'diverg-row-wed-acc': [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
   'diverg-row-sat-acc': [{ date:'2026-05-20', sets:[{weight:160,reps:6},{weight:160,reps:5}]}],
   'cable-row-wide':  [{ date:'2026-05-28', sets:[{weight:115,reps:6},{weight:115,reps:8}]}],
   'cable-row-wide-wed':[{ date:'2026-05-28', sets:[{weight:115,reps:6},{weight:115,reps:8}]}],
   'close-pulldown':  [{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
-  'close-pulldown-b':[{ date:'2026-06-03', sets:[{weight:160,reps:7},{weight:160,reps:8}]}],
   'bw-pullup':       [{ date:'2026-06-03', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
-  'bw-pullup-b':     [{ date:'2026-06-03', sets:[{weight:0,reps:8},{weight:0,reps:8}]}],
   'incline-curl':    [{ date:'2026-04-29', sets:[{weight:35,reps:8},{weight:35,reps:7}]}],
-  'incline-curl-b':  [{ date:'2026-04-29', sets:[{weight:35,reps:8},{weight:35,reps:7}]}],
   'reverse-curl':    [{ date:'2026-06-03', sets:[{weight:70,reps:8},{weight:80,reps:7}]}],
-  'reverse-curl-b':  [{ date:'2026-06-03', sets:[{weight:70,reps:8},{weight:80,reps:7}]}],
   'cable-lat-sat':   [{ date:'2026-06-02', sets:[{weight:30,reps:12},{weight:30,reps:10}]}],
-  'cable-lat-sat-b': [{ date:'2026-06-02', sets:[{weight:30,reps:12},{weight:30,reps:10}]}],
 };
 
 // ─── STATE ────────────────────────────────────────────────────
@@ -1230,6 +1190,7 @@ let justSavedDay = null; // index of day just saved, to force blank reload
 window.addEventListener('DOMContentLoaded', async () => {
   migrateOldExerciseIds();
   migrateClosePulldownCollision();
+  migrateAccessoryIdUnification();
   setWeekBadge();
   buildTabs();
   await loadDay(0);
@@ -1351,6 +1312,67 @@ function migrateClosePulldownCollision() {
   }
 
   localStorage.setItem('_migrated_v2_6_86', 'true');
+}
+
+// One-time migration: unifies dozens of accessory exercises that had
+// separate IDs per day (e.g. Face Pull as both face-pull-wed and
+// face-pull-sat) into single canonical IDs, so suggestions and trend
+// analysis draw from ALL your logged sessions for that movement regardless
+// of which day it happened to appear on — not just whichever day-specific
+// bucket it was originally saved under. Anchors that are DELIBERATELY split
+// by heavy/volume intensity (Squat, RDL, Incline Smith, Weighted Pull Ups,
+// Barbell Row, etc.) are NOT touched by this migration — only genuine
+// accessory duplicates.
+function migrateAccessoryIdUnification() {
+  if (localStorage.getItem('_migrated_v2_6_96')) return;
+
+  const idMap = {
+    'bw-pullup-b': 'bw-pullup', 'cable-fly-htl-b': 'cable-fly-htl', 'cable-fly-lth-b': 'cable-fly-lth',
+    'cable-lat-raise-light-b': 'cable-lat-raise-light', 'cable-lat-sat-b': 'cable-lat-sat',
+    'cable-pullover-sat': 'cable-pullover', 'cable-rot-thu': 'cable-rot', 'calf-horizontal-vol': 'calf-horizontal',
+    'close-pulldown-b': 'close-pulldown', 'db-curl-sat': 'db-curl', 'db-lat-raise-b': 'db-lat-raise',
+    'decline-leg-raise-mon': 'decline-leg-raise', 'face-pull-sat-b': 'face-pull-sat', 'face-pull-wed': 'face-pull-sat',
+    'face-pull-wed-b': 'face-pull-sat', 'goblet-squat-thu': 'goblet-squat', 'hammer-curl-wed': 'hammer-curl-sat',
+    'hang-crunch-thu': 'hang-crunch', 'hang-leg-raise-mon': 'hang-leg-raise', 'hex-press-b': 'hex-press',
+    'hip-abd-mon-b': 'hip-abd-mon', 'hip-abd-thu': 'hip-abd-mon', 'hip-abd-thu-b': 'hip-abd-mon',
+    'hip-add-mon': 'hip-add', 'incline-curl-b': 'incline-curl', 'leg-ext-thu': 'leg-ext-mon',
+    'leg-press-mon-b': 'leg-press-thu', 'leg-press-thu-b': 'leg-press-mon', 'oblique-ext-mon': 'oblique-ext',
+    'prone-curl-thu': 'prone-curl-mon', 'reverse-curl-b': 'reverse-curl', 'rope-crunch-thu': 'rope-crunch',
+    'rope-pushdown-b': 'rope-pushdown', 'seated-curl-mon': 'seated-curl', 'shrug-sat-b': 'shrug-sat',
+    'shrug-wed': 'shrug-sat', 'shrug-wed-b': 'shrug-sat', 'skull-crusher-b': 'skull-crusher',
+    'tri-lth-b': 'tri-lth', 'tri-overhead-b': 'tri-overhead',
+  };
+
+  Object.entries(idMap).forEach(([oldId, newId]) => {
+    const oldKey = 'hist_' + oldId;
+    const newKey = 'hist_' + newId;
+    const oldData = localStorage.getItem(oldKey);
+    if (!oldData) return;
+
+    let oldSessions;
+    try { oldSessions = JSON.parse(oldData); } catch(e) { return; }
+    if (!Array.isArray(oldSessions) || !oldSessions.length) return;
+
+    const newData = localStorage.getItem(newKey);
+    let newSessions = [];
+    if (newData) {
+      try { newSessions = JSON.parse(newData); } catch(e) { newSessions = []; }
+    }
+
+    const combined = [...newSessions, ...oldSessions];
+    const seen = new Set();
+    const deduped = combined.filter(s => {
+      const sig = s.date + '_' + JSON.stringify(s.sets);
+      if (seen.has(sig)) return false;
+      seen.add(sig);
+      return true;
+    }).sort((a, b) => a.date > b.date ? 1 : -1).slice(-12);
+
+    localStorage.setItem(newKey, JSON.stringify(deduped));
+    localStorage.removeItem(oldKey);
+  });
+
+  localStorage.setItem('_migrated_v2_6_96', 'true');
 }
 
 function setWeekBadge() {
@@ -3400,11 +3422,11 @@ function getDeloadExtras(variantId) {
     ],
     'thu-legs': [
       { id:'dl-ham-curl', name:'Leg Curl (Slow Eccentric)', note:'Deload extra — slow 4-sec down. Hamstring isolation at light weight.', target:'3 × 15', defaultSets:3, relatedId:'seated-curl' },
-      { id:'dl-hip-abd-extra', name:'Cable Hip Abduction', note:'Deload extra — glute med isolation. Light, full range, controlled.', target:'3 × 20 / side', defaultSets:3, relatedId:'hip-abd-thu' },
+      { id:'dl-hip-abd-extra', name:'Cable Hip Abduction', note:'Deload extra — glute med isolation. Light, full range, controlled.', target:'3 × 20 / side', defaultSets:3, relatedId:'hip-abd-mon' },
     ],
     'tue-push': [
       { id:'dl-pec-fly', name:'Cable Fly (Low to High)', note:'Deload extra — chest isolation. Full stretch, squeeze at top. Light weight.', target:'3 × 15', defaultSets:3, relatedId:'cable-fly-htl' },
-      { id:'dl-rear-delt', name:'Rear Delt Fly (Cable)', note:'Deload extra — rear delt health. Pull apart motion, controlled.', target:'3 × 15', defaultSets:3, relatedId:'face-pull-wed' },
+      { id:'dl-rear-delt', name:'Rear Delt Fly (Cable)', note:'Deload extra — rear delt health. Pull apart motion, controlled.', target:'3 × 15', defaultSets:3, relatedId:'face-pull-sat' },
     ],
     'fri-push': [
       { id:'dl-cable-lat-extra', name:'Cable Lateral Raise', note:'Deload extra — medial delt isolation. Light, high reps, feel the contraction.', target:'4 × 20 / side', defaultSets:4, relatedId:'cable-lat-raise-tue' },
@@ -3415,8 +3437,8 @@ function getDeloadExtras(variantId) {
       { id:'dl-straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Deload extra — lat isolation. Arms straight, feel the lat stretch and contract.', target:'3 × 15', defaultSets:3, relatedId:'cable-pullover' },
     ],
     'sat-pull': [
-      { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-wed' },
-      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-wed' },
+      { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-sat' },
+      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-sat' },
     ],
   };
   return extras[base] || [];
@@ -3432,8 +3454,8 @@ function getBurnFinisher(variantId) {
     'thu-legs': { id:'burn-leg-curl', name:'Leg Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'seated-curl' },
     'tue-push': { id:'burn-cable-fly', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Keep going past where you\'d normally stop.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-htl' },
     'fri-push': { id:'burn-cable-fly-fri', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Push through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-lth' },
-    'wed-pull': { id:'burn-hammer-curl', name:'Hammer Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Full range, no rest-pausing.', target:'2 × 15–20', defaultSets:2, relatedId:'hammer-curl-wed' },
-    'sat-pull': { id:'burn-face-pull', name:'Face Pull (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Rear delt and upper back on fire by the end.', target:'2 × 15–20', defaultSets:2, relatedId:'face-pull-wed' },
+    'wed-pull': { id:'burn-hammer-curl', name:'Hammer Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Full range, no rest-pausing.', target:'2 × 15–20', defaultSets:2, relatedId:'hammer-curl-sat' },
+    'sat-pull': { id:'burn-face-pull', name:'Face Pull (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Rear delt and upper back on fire by the end.', target:'2 × 15–20', defaultSets:2, relatedId:'face-pull-sat' },
   };
   return finishers[base] || null;
 }
@@ -3727,7 +3749,7 @@ const ACCESSORY_POOLS = {
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-front-raise', name:'Plate / DB Front Raise', note:'Controlled — alternate or together.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
     // Triceps
-    { id:'skull-crusher-b', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
+    { id:'skull-crusher', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
     { id:'rope-pushdown', name:'Rope Pushdown', note:'Elbows pinned, flare at bottom.', target:'3 × 12–15', defaultSets:3, muscle:'triceps' },
     { id:'tri-lth', name:'Cable Low-to-High Tricep Extension', note:'Overhead stretch position — great long head stimulus.', target:'3 × 12', defaultSets:3, muscle:'triceps' },
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
@@ -3740,12 +3762,12 @@ const ACCESSORY_POOLS = {
     { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
     { id:'straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Arms straight, lat isolation. Feel the stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
     // Rear delts
-    { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
+    { id:'face-pull-sat', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt)', note:'Rear delt variation. Controlled pull.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     // Biceps (expanded pool for 2-3 random picks per session)
     { id:'db-curl', name:'Dumbbell Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
-    { id:'hammer-curl-wed', name:'Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'hammer-curl-sat', name:'Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'incline-curl', name:'Bayesian / Incline Curl', note:'Stretch position. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'reverse-curl', name:'Reverse Curl', note:'Forearm and brachialis. Keep elbows pinned.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body, brachialis and forearm emphasis.', target:'3 × 8–10', defaultSets:3, muscle:'biceps' },
@@ -3754,12 +3776,12 @@ const ACCESSORY_POOLS = {
     { id:'forearm-curl-ez', name:'Cable Forearm Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'forearms' },
     { id:'wrist-curl-db', name:'Dumbbell Wrist Curl', note:'Seated, forearms on thighs, full range wrist flexion.', target:'3 × 15–20', defaultSets:3, muscle:'forearms' },
     // Traps
-    { id:'shrug-wed', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
+    { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
   legs: [
     // Hamstrings
     { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric, full range.', target:'3 × 10–12', defaultSets:3, muscle:'hamstrings' },
-    { id:'seated-curl-mon', name:'Seated Leg Curl', note:'Upper hamstring emphasis. High reps.', target:'3 × 12–15', defaultSets:3, muscle:'hamstrings' },
+    { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. High reps.', target:'3 × 12–15', defaultSets:3, muscle:'hamstrings' },
     // Quads
     { id:'leg-ext-mon', name:'Leg Extension', note:'Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
     // Glutes/Hip
