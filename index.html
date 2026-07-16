@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.91</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.95</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1614,7 +1614,7 @@ function appendHistoryAndAddExercise(index, variant) {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
         if (!validSets.length) return;
-        const setsStr = validSets.map(s => `${s.weight||'BW'}×${s.reps||'?'}`).join('  ');
+        const setsStr = validSets.map(s => `${s.isBurnout ? '🔥' : ''}${s.weight||'BW'}×${s.reps||'?'}`).join('  ');
         const hasNotes = validSets.some(s => s.note && s.note.trim());
         const notesStr = hasNotes ? validSets.filter(s => s.note).map(s => s.note).join(' / ') : '';
         
@@ -1924,6 +1924,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   all.forEach(session => {
     if (!session.sets) return;
     session.sets.forEach(s => {
+      if (s.isBurnout) return; // burnout sets are intentionally light/high-rep — never count toward "best"
       const w = parseFloat(s.weight);
       const r = parseInt(s.reps);
       if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
@@ -2033,8 +2034,12 @@ function renderExercise(ex, isVol) {
   const sets = log.sets || Array(deloadSets).fill(null).map(() => ({ weight: '', reps: '' }));
   const sugg = getSuggestion(ex.id, isVol, ex.anchor, ex.relatedId);
   const anchorClass = ex.anchor ? (ex.anchorVol ? ' anchor-vol' : ' anchor') : '';
-  const customName = localStorage.getItem('name_' + ex.id);
-  const displayName = customName || ex.name;
+  // If ex.forceName is set (e.g. picked explicitly from the exercise history
+  // picker), always use it as-is and ignore any stored rename for this ID —
+  // an explicit pick should show exactly what was tapped, not get silently
+  // overridden by an old rename applied to the same underlying exercise ID.
+  const customName = ex.forceName ? null : localStorage.getItem('name_' + ex.id);
+  const displayName = ex.forceName || customName || ex.name;
   const targetClass = isVol ? ' vol-target' : '';
 
   let suggHtml = '';
@@ -2062,8 +2067,10 @@ function renderExercise(ex, isVol) {
       dropHtml += buildDropSetRow(ex.id, i, di, d.weight, d.reps, 0);
     });
     const hasNote = s.note && s.note.trim().length > 0;
-    setsHtml += `<div class="set-entry">
-      <span class="set-num">S${i+1}</span>
+    const isBurnout = !!s.isBurnout;
+    const burnoutLabel = isBurnout ? `<span style="color:#ff6b4a;font-size:10px;margin-right:4px;" title="Burnout set">🔥</span>` : '';
+    setsHtml += `<div class="set-entry" style="${isBurnout ? 'background:rgba(255,107,74,0.06);border-radius:8px;padding:4px 6px;margin:-4px -6px 8px;' : ''}">
+      ${burnoutLabel}<span class="set-num">S${i+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
         value="${s.weight||''}" onchange="updateSet('${ex.id}',${i},'weight',this.value)"/>
       <span style="color:var(--muted);font-size:12px">×</span>
@@ -2098,7 +2105,10 @@ function renderExercise(ex, isVol) {
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
-      <button class="add-set-btn" onclick="addSet('${ex.id}')">+ Add Set</button>
+      <div style="display:flex;gap:6px;">
+        <button class="add-set-btn" style="flex:1;" onclick="addSet('${ex.id}')">+ Add Set</button>
+        <button class="add-set-btn" style="flex:1;color:#ff6b4a;border-color:rgba(255,107,74,0.3);" onclick="addBurnoutSet('${ex.id}')">🔥 Add Burnout</button>
+      </div>
     </div>
   </div>`;
 }
@@ -2128,6 +2138,40 @@ function addSet(exId) {
     <button class="set-notes-toggle" onclick="toggleSetNote(this, '${exId}', ${setIndex})">✎ note</button>`;
   container.appendChild(div);
   // Add note area
+  const noteArea = document.createElement('div');
+  noteArea.className = 'set-notes-area';
+  noteArea.id = `set-note-area-${exId}-${setIndex}`;
+  noteArea.innerHTML = `<textarea class="set-note-input" placeholder="How did that feel? Anything to note..." oninput="updateSetNote('${exId}', ${setIndex}, this.value)"></textarea>`;
+  container.appendChild(noteArea);
+  const dropContainer = document.createElement('div');
+  dropContainer.id = `drops-${exId}-${setIndex}-0`;
+  container.appendChild(dropContainer);
+}
+
+// Adds a set flagged as a burnout — a lighter-than-normal, high-rep (usually
+// 20-30) finisher set done on a 3rd or 4th set of a normal exercise. Flagged
+// with isBurnout:true so it renders with 🔥 styling and, importantly, gets
+// EXCLUDED from suggestion calculations and 1RM/plateau trend analysis,
+// since it's intentionally not a real working-weight set and would otherwise
+// skew "best set" logic the same way a superset back-half did before.
+function addBurnoutSet(exId) {
+  if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
+  if (!sessionLogs[exId].sets) sessionLogs[exId].sets = [];
+  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[], isBurnout: true });
+  const container = document.getElementById('sets-' + exId);
+  const setIndex = sessionLogs[exId].sets.length - 1;
+  const div = document.createElement('div');
+  div.className = 'set-entry';
+  div.style.cssText = 'background:rgba(255,107,74,0.06);border-radius:8px;padding:4px 6px;margin:-4px -6px 8px;';
+  div.innerHTML = `<span style="color:#ff6b4a;font-size:10px;margin-right:4px;" title="Burnout set">🔥</span><span class="set-num">S${setIndex+1}</span>
+    <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
+      onchange="updateSet('${exId}',${setIndex},'weight',this.value)"/>
+    <span style="color:var(--muted);font-size:12px">×</span>
+    <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
+      onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
+    <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>
+    <button class="set-notes-toggle" onclick="toggleSetNote(this, '${exId}', ${setIndex})">✎ note</button>`;
+  container.appendChild(div);
   const noteArea = document.createElement('div');
   noteArea.className = 'set-notes-area';
   noteArea.id = `set-note-area-${exId}-${setIndex}`;
@@ -2240,6 +2284,16 @@ async function saveDay() {
             if (!defaultName) {
               const bf = getBurnFinisher(variant.id);
               if (bf && bf.id === eId) defaultName = bf.name;
+            }
+            // Also check ACCESSORY_POOLS (the randomizer's exercise pools) —
+            // an exercise added via "Randomize Accessories" can come from a
+            // DIFFERENT day's pool than the one currently open (e.g. a
+            // Monday-specific exercise ID landing on a Thursday leg day),
+            // so it wouldn't be found in variant.sections above at all.
+            if (!defaultName && typeof ACCESSORY_POOLS !== 'undefined') {
+              Object.values(ACCESSORY_POOLS).forEach(pool => {
+                pool.forEach(e => { if (e.id === eId) defaultName = e.name; });
+              });
             }
             sessionExercises.push({ name: defaultName || eId, sets: log.sets, supersetGroup: exIdToGroup[eId] || null });
           }
@@ -2696,6 +2750,7 @@ function analyzeLiftTrend(exId, exName) {
   let sessionBest1RMs = all.map(session => {
     let best = 0;
     session.sets.forEach(s => {
+      if (s.isBurnout) return; // exclude intentionally light/high-rep burnout sets from trend analysis
       const w = parseFloat(s.weight), r = parseInt(s.reps);
       if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
         // Epley 1RM gets increasingly unreliable above ~10 reps. Cap the
@@ -3430,6 +3485,30 @@ function getAllLoggedExerciseNames() {
     consider(localStorage.getItem(key));
   });
 
+  // If an exercise ID has been renamed, its ORIGINAL (pre-rename) name should
+  // no longer appear in the picker at all — only the current rename. This
+  // prevents the confusing case where an old label (e.g. "Bulgarian Split
+  // Squat (Smith)") still shows in the list but actually resolves to a
+  // completely different, renamed exercise (e.g. "Elevated Close Squat"),
+  // since one exercise ID can only ever have one true current name.
+  const nameToId = buildExerciseNameToIdMap();
+  const renamedOriginalKeys = new Set();
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('name_')) return;
+    const originalId = key.replace('name_', '');
+    // Find the ORIGINAL program name for this id (before the rename) so we
+    // can suppress it from the picker list.
+    Object.entries(nameToId).forEach(([normalizedName, id]) => {
+      if (id === originalId) {
+        const currentName = localStorage.getItem(key);
+        if (normalizeExerciseName(currentName) !== normalizedName) {
+          renamedOriginalKeys.add(normalizedName);
+        }
+      }
+    });
+  });
+  renamedOriginalKeys.forEach(key => delete byNormalized[key]);
+
   return Object.values(byNormalized).sort((a, b) => a.localeCompare(b));
 }
 
@@ -3510,11 +3589,73 @@ function openExercisePicker(listId, dayIndex) {
       <input type="text" class="picker-search" id="pickerSearch" placeholder="Search or type a new name..." oninput="filterPickerOptions(this.value)" autofocus>
       <div class="picker-options" id="pickerOptionsList">${optionsHtml}</div>
       <button class="edit-save-btn" onclick="addBrandNewExercise('${listId}', ${dayIndex})">+ Use as New Exercise</button>
+      <button class="edit-save-btn" style="background:none;border:1px solid #ff6b4a;color:#ff6b4a;margin-top:6px;" onclick="openBurnFinisherPicker('${listId}', ${dayIndex})">🔥 Add as Burn Finisher Instead</button>
     </div>
   `;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeExercisePicker(); });
   setTimeout(() => { const s = document.getElementById('pickerSearch'); if (s) s.focus(); }, 50);
+}
+
+// Same picker list, but tapping an option adds it flagged as a manual burn
+// finisher (60-70% suggestion, 15-20 rep target, 🔥 styling) rather than a
+// normal accessory — usable on ANY day, not just the automatic volume-day slot.
+function openBurnFinisherPicker(listId, dayIndex) {
+  closeExercisePicker();
+  const names = getAllLoggedExerciseNames();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-modal-overlay';
+  overlay.id = 'exercise-picker-overlay';
+
+  const optionsHtml = names.length
+    ? names.map(n => `<button class="picker-option" onclick="pickBurnFinisherExercise('${listId}', ${dayIndex}, this)">${n}</button>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);padding:12px 0;">No logged exercises yet.</div>`;
+
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-title">
+        <span>🔥 Pick a Burn Finisher</span>
+        <button class="edit-modal-close" onclick="closeExercisePicker()">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Pick an exercise to add as a burn finisher — 60-70% of its normal working weight, 15-20 reps.</div>
+      <input type="text" class="picker-search" id="pickerSearch" placeholder="Search..." oninput="filterPickerOptions(this.value)" autofocus>
+      <div class="picker-options" id="pickerOptionsList">${optionsHtml}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeExercisePicker(); });
+  setTimeout(() => { const s = document.getElementById('pickerSearch'); if (s) s.focus(); }, 50);
+}
+
+function pickBurnFinisherExercise(listId, dayIndex, btn) {
+  const name = btn.textContent;
+  closeExercisePicker();
+
+  const nameToId = buildExerciseNameToIdMap();
+  const knownId = nameToId[normalizeExerciseName(name)];
+  const variant = getCurrentVariant(dayIndex);
+  const isVol = variant && variant.tag === 'volume';
+
+  // Use "burn-manual-" prefix so getSuggestion's burn-finisher branch picks
+  // it up (it checks exId.startsWith('burn-')), and relatedId points at the
+  // real underlying exercise so the 65% calculation has real history to draw from.
+  const burnId = 'burn-manual-' + (knownId || normalizeExerciseName(name).replace(/\s+/g, '-'));
+  const exDef = {
+    id: burnId,
+    name: name + ' (Burn Set)',
+    forceName: name + ' (Burn Set)',
+    note: '🔥 Manual burn finisher — 60-70% of normal working weight, 15-20 reps. Push through the burn.',
+    target: '2 × 15–20',
+    defaultSets: 2,
+    relatedId: knownId || undefined,
+  };
+
+  const listEl = document.getElementById(listId);
+  if (listEl) {
+    listEl.insertAdjacentHTML('beforeend', renderExercise(exDef, isVol));
+    showToast('🔥 Burn finisher added!');
+  }
 }
 
 function filterPickerOptions(query) {
@@ -3544,7 +3685,7 @@ function pickExistingExercise(listId, dayIndex, btn) {
   if (knownId) {
     const variant = getCurrentVariant(dayIndex);
     const isVol = variant && variant.tag === 'volume';
-    const exDef = { id: knownId, name: name, note: 'Added from your logged history.', target: '', defaultSets: 3 };
+    const exDef = { id: knownId, name: name, forceName: name, note: 'Added from your logged history.', target: '', defaultSets: 3 };
     const listEl = document.getElementById(listId);
     if (listEl) {
       listEl.insertAdjacentHTML('beforeend', renderExercise(exDef, isVol));
