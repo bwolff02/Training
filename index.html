@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.6.96</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1424,10 +1424,18 @@ function buildTabs() {
 }
 
 async function switchDay(index) {
+  // Same fix as showCoachTab/showProgressTab: force blur before switching
+  // days so an actively-typed value commits to sessionLogs first.
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
   currentDay = index;
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
   const ptab = document.getElementById('progress-tab-btn');
   if (ptab) ptab.classList.remove('active');
+  const ctab = document.getElementById('coach-tab-btn');
+  if (ctab) ctab.classList.remove('active');
   await loadDay(index);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1627,6 +1635,7 @@ function appendHistoryAndAddExercise(index, variant) {
           <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
         </div>
         ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}
+        ${session.coachNotes ? `<div style="font-size:11px;color:#a78bfa;margin-bottom:6px;background:rgba(167,139,250,0.08);border-radius:6px;padding:6px 8px;">🧠 ${session.coachNotes}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button class="history-edit-btn" onclick="editSession('${session._srcKey}', ${session._srcIdx})">✏️ Edit Notes</button>
           <button class="history-edit-btn" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3);" onclick="confirmDeleteSession('${session._srcKey}', ${session._srcIdx})">🗑 Delete</button>
@@ -1997,14 +2006,14 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   });
 
   if (!isAnchor) {
-    return { note: 'Hold weight —', arrow: '→', recWeight: lastWeight, lastWeight, maxReps, lastDate: last.date, isVolume: false };
+    return { note: 'Hold weight —', arrow: '→', recWeight: lastWeight, lastWeight, maxReps, lastDate: bestSet.date, isVolume: false };
   }
 
   if (isVolumeDay) {
     const looksLikeHeavy = avgReps <= 5; // 6+ reps avg is solidly volume territory
     if (looksLikeHeavy) {
       const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
-      return { note: 'Est. from heavy —', arrow: '→', recWeight: volWeight, lastWeight, maxReps, lastDate: last.date, repTarget: '8–12 reps', isVolume: true };
+      return { note: 'Est. from heavy —', arrow: '→', recWeight: volWeight, lastWeight, maxReps, lastDate: bestSet.date, repTarget: '8–12 reps', isVolume: true };
     } else {
       let recWeight = lastWeight;
       let arrow = '→';
@@ -2019,7 +2028,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
       } else {
         note = 'Build here — stay at';
       }
-      return { note, arrow, recWeight, lastWeight, maxReps, lastDate: last.date, repTarget: '8–12 reps', isVolume: true };
+      return { note, arrow, recWeight, lastWeight, maxReps, lastDate: bestSet.date, repTarget: '8–12 reps', isVolume: true };
     }
   } else {
     // Heavy day: derive working weight from best 1RM estimate across ALL sessions
@@ -2045,7 +2054,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
     } else {
       note = 'Match last session —';
     }
-    return { note, arrow, recWeight, lastWeight, maxReps, lastDate: last.date, isVolume: false };
+    return { note, arrow, recWeight, lastWeight, maxReps, lastDate: bestSet.date, isVolume: false };
   }
 }
 
@@ -2145,9 +2154,17 @@ function updateSet(exId, setIndex, field, value) {
 function addSet(exId) {
   if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
   if (!sessionLogs[exId].sets) sessionLogs[exId].sets = [];
-  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[] });
   const container = document.getElementById('sets-' + exId);
-  const setIndex = sessionLogs[exId].sets.length - 1;
+  // See addBurnoutSet for why we count actual rendered DOM rows rather than
+  // trusting sessionLogs.length alone — a blank default set not yet typed
+  // into exists visually but not in sessionLogs yet, which would otherwise
+  // cause a duplicate set number here too.
+  const renderedSetCount = container ? container.querySelectorAll('.set-entry').length : 0;
+  const setIndex = Math.max(sessionLogs[exId].sets.length, renderedSetCount);
+  while (sessionLogs[exId].sets.length < setIndex) {
+    sessionLogs[exId].sets.push({ weight: '', reps: '' });
+  }
+  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[] });
   const div = document.createElement('div');
   div.className = 'set-entry';
   div.innerHTML = `<span class="set-num">S${setIndex+1}</span>
@@ -2179,9 +2196,24 @@ function addSet(exId) {
 function addBurnoutSet(exId) {
   if (!sessionLogs[exId]) sessionLogs[exId] = { sets: [] };
   if (!sessionLogs[exId].sets) sessionLogs[exId].sets = [];
-  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[], isBurnout: true });
+
   const container = document.getElementById('sets-' + exId);
-  const setIndex = sessionLogs[exId].sets.length - 1;
+
+  // The visually rendered set count can be HIGHER than sessionLogs[exId].sets
+  // length — default blank sets are shown in the DOM before you've typed
+  // anything into them, and only get written into sessionLogs once you do
+  // (via updateSet's onchange). Using sessionLogs.length alone here would
+  // collide with an existing blank DOM row and produce a duplicate set
+  // number, which is exactly what happened when S3 was left blank.
+  const renderedSetCount = container ? container.querySelectorAll('.set-entry').length : 0;
+  const setIndex = Math.max(sessionLogs[exId].sets.length, renderedSetCount);
+
+  // Backfill any blank sets up to setIndex so the array stays contiguous
+  // and correctly indexed (matches the pattern updateSet already uses).
+  while (sessionLogs[exId].sets.length < setIndex) {
+    sessionLogs[exId].sets.push({ weight: '', reps: '' });
+  }
+  sessionLogs[exId].sets.push({ weight:'', reps:'', drops:[], isBurnout: true });
   const div = document.createElement('div');
   div.className = 'set-entry';
   div.style.cssText = 'background:rgba(255,107,74,0.06);border-radius:8px;padding:4px 6px;margin:-4px -6px 8px;';
@@ -2548,6 +2580,8 @@ function editSession(histKey, sessionIdx) {
       </div>
       <div class="edit-modal-label">Session Notes</div>
       <textarea class="edit-notes-ta" id="editNotesTA" placeholder="Add notes about this session...">${session.notes || ''}</textarea>
+      <div class="edit-modal-label" style="color:#a78bfa;">🧠 Coach Notes</div>
+      <textarea class="edit-notes-ta" id="editCoachNotesTA" style="border-color:rgba(167,139,250,0.3);" placeholder="What did the Coach say about this session? Log any advice you asked for...">${session.coachNotes || ''}</textarea>
       <div class="edit-modal-label" style="margin-top:16px;">Exercises &amp; Sets</div>
       <div id="edit-exercises-list">${exercisesHtml}</div>
       <button class="edit-save-btn" onclick="saveEditSession('${histKey}', ${sessionIdx})">Save Changes</button>
@@ -2651,8 +2685,10 @@ function saveEditSession(histKey, sessionIdx) {
   if (!sessions[sessionIdx]) return;
   const feelEl = document.getElementById('editFeelSlider');
   const notesEl = document.getElementById('editNotesTA');
+  const coachNotesEl = document.getElementById('editCoachNotesTA');
   if (feelEl) sessions[sessionIdx].feel = parseInt(feelEl.value);
   if (notesEl) sessions[sessionIdx].notes = notesEl.value;
+  if (coachNotesEl) sessions[sessionIdx].coachNotes = coachNotesEl.value;
 
   // Save exercise edits - only keep exercises whose cards still exist in DOM
   if (window._editSessionData) {
@@ -2949,7 +2985,8 @@ function buildCoachDataSummary() {
 
   lines.push("ANCHOR LIFT TRENDS (estimated 1RM, from most recent real sessions):");
   report.liftAnalyses.forEach(l => {
-    const status = l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
+    const status = l.isLowConfidence ? 'low-confidence (mixed exercise variations, do not treat as a firm trend)'
+      : l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
     lines.push(`- ${l.exName}: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)`);
   });
 
@@ -2957,23 +2994,48 @@ function buildCoachDataSummary() {
     lines.push(`\nFEEL RATING TREND: last 3 sessions averaged ${report.feelTrend.last3Avg}/10 vs ${report.feelTrend.prior3Avg}/10 the 3 before that.`);
   }
 
-  lines.push("\nRECENT SESSION HISTORY (last few per muscle group):");
+  lines.push("\nRECENT SESSION HISTORY (last 2 sessions per day-type — read the [DAY TYPE] label carefully, it tells you whether this was a HEAVY day, lower reps/higher weight by design, or a VOLUME day, higher reps/lighter weight by design — these are intentionally different targets, not inconsistency):");
   ['push', 'pull', 'legs'].forEach(muscle => {
     ['heavy', 'volume'].forEach(tag => {
       const key = 'hist_session_' + muscle + '-' + tag;
       let sessions;
       try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { sessions = []; }
       sessions.slice(-2).forEach(s => {
-        const exList = (s.exercises || []).map(ex => {
-          const sets = (ex.sets || []).filter(st => st.weight || st.reps).map(st => `${st.weight||'BW'}x${st.reps||'?'}`).join(',');
-          return `${ex.name}(${sets})`;
-        }).join('; ');
-        lines.push(`- ${s.date} [${muscle} ${tag}${s.feel ? ', feel ' + s.feel + '/10' : ''}]: ${exList}${s.notes ? ' | notes: "' + s.notes + '"' : ''}`);
+        const dayTypeLabel = `[DAY TYPE: ${muscle.toUpperCase()} — ${tag.toUpperCase()}]`;
+        const feelLabel = s.feel ? ` [FEEL RATING: ${s.feel}/10]` : '';
+        lines.push(`\n- ${s.date} ${dayTypeLabel}${feelLabel}`);
+
+        // Exercise order is meaningful: it reflects the actual sequence performed
+        // that session, listed as EXERCISE_ORDER so the coach knows this isn't
+        // an arbitrary list — position matters for fatigue/sequencing questions.
+        (s.exercises || []).forEach((ex, idx) => {
+          const sets = (ex.sets || []).filter(st => st.weight || st.reps).map(st => {
+            const burnoutTag = st.isBurnout ? ' [BURNOUT SET — not a working set, exclude from strength assessment]' : '';
+            return `${st.weight||'BW'}x${st.reps||'?'}${burnoutTag}`;
+          }).join(', ');
+          lines.push(`  EXERCISE_ORDER[${idx + 1}] ${ex.name}: ${sets}`);
+          // Attribute notes explicitly and unambiguously as Bryce's own words,
+          // not external commentary, since these are his in-the-moment
+          // observations logged during the actual set.
+          const setNotes = (ex.sets || []).map(st => st.note).filter(Boolean);
+          if (setNotes.length) {
+            setNotes.forEach(note => {
+              lines.push(`    BRYCE'S OWN NOTE (his words, logged during this set): "${note}"`);
+            });
+          }
+        });
+
+        if (s.notes) {
+          lines.push(`  BRYCE'S OWN SESSION NOTE (his words, logged at end of session): "${s.notes}"`);
+        }
+        if (s.coachNotes) {
+          lines.push(`  PREVIOUS COACH ADVICE (what you or a prior coach conversation told Bryce about this specific session): "${s.coachNotes}"`);
+        }
       });
     });
   });
 
-  lines.push(`\nCURRENT WEEK: ${isDeloadWeek ? 'DELOAD week' : (isWeekA ? 'Week A' : 'Week B')}`);
+  lines.push(`\nCURRENT WEEK: ${isDeloadWeek ? 'DELOAD week (all weights intentionally reduced 60-70% — do not flag lighter-than-usual weights as a decline this week)' : (isWeekA ? 'Week A' : 'Week B')}`);
 
   return lines.join('\n');
 }
@@ -3020,6 +3082,15 @@ async function sendCoachMessage() {
   try {
     const dataSummary = buildCoachDataSummary();
     const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
+
+HOW TO READ THE DATA BELOW — read this carefully before answering:
+- Every session is labeled with [DAY TYPE: MUSCLE — HEAVY or VOLUME]. Heavy days are intentionally lower reps/heavier weight; volume days are intentionally higher reps/lighter weight. A volume-day set having more reps than a heavy-day set is BY DESIGN, not a sign of anything wrong — never flag this as an inconsistency.
+- EXERCISE_ORDER[n] shows the actual sequence exercises were performed in that session. Position matters — an exercise later in the sequence may show reduced performance purely from accumulated fatigue that session, not a real capability decline.
+- Sets tagged [BURNOUT SET] are deliberately light, high-rep finisher sets Bryce adds on top of his real working sets. Never use these to judge strength, plateaus, or trends — they're intentionally not representative.
+- Lines marked "BRYCE'S OWN NOTE" or "BRYCE'S OWN SESSION NOTE" are his direct, first-person words logged in the moment. Treat these as ground truth about how he felt — they are not external commentary or anyone else's observations.
+- Anchor lifts marked "low-confidence" in the trends section have inconsistent underlying data (e.g. different exercise variations may have been logged under the same name) — do not present these as a firm trend either direction; say the data isn't clean enough for a confident read if asked.
+- If the current week is a DELOAD week, all weights are intentionally reduced — never interpret a lighter deload-week weight as a strength decline.
+- Lines marked "PREVIOUS COACH ADVICE" are things Bryce logged after asking about that specific session in an earlier conversation. Use this for continuity — reference it if relevant, and don't repeat the exact same advice without acknowledging you already said it.
 
 BRYCE'S CURRENT TRAINING DATA:
 ${dataSummary}`;
@@ -3076,6 +3147,15 @@ function renderCoachChatMessages() {
 }
 
 function showCoachTab() {
+  // Force any actively-focused input to blur FIRST, so its onchange handler
+  // commits the typed value into sessionLogs before we tear down the DOM.
+  // Without this, tapping the Coach tab directly out of a weight/rep field
+  // can race the blur event against the DOM rebuild below and silently
+  // lose whatever was just typed.
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const ctab = document.getElementById('coach-tab-btn');
   if (ctab) ctab.classList.add('active');
@@ -3142,6 +3222,12 @@ function showCoachTab() {
 }
 
 function showProgressTab() {
+  // Same fix as showCoachTab: force blur before tearing down the DOM so an
+  // in-progress input commits to sessionLogs before it's lost.
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
   // Update tab styling
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const ptab = document.getElementById('progress-tab-btn');
