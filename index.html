@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1586,7 +1586,24 @@ function renderDay(index) {
     }
   }
   main.innerHTML = html;
-  appendHistoryAndAddExercise(index, variant);
+
+  // Wrapped in try/catch so that if anything below throws (history section,
+  // Add Exercise button, export/import, etc.), the error is shown directly
+  // on screen instead of silently failing and leaving those sections
+  // missing with no way to diagnose what happened. Screenshot the red box
+  // if you ever see one and send it over — that's the exact error to fix.
+  try {
+    appendHistoryAndAddExercise(index, variant);
+  } catch (err) {
+    console.error('appendHistoryAndAddExercise error:', err);
+    const errorBanner = document.createElement('div');
+    errorBanner.style.cssText = 'background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.4);border-radius:10px;padding:14px 16px;margin:16px 0;';
+    errorBanner.innerHTML = `
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#ff6b6b;font-weight:600;margin-bottom:6px;">⚠️ SOMETHING BROKE — screenshot this and send it to Claude</div>
+      <div style="font-size:11px;color:var(--white);font-family:'JetBrains Mono',monospace;word-break:break-word;white-space:pre-wrap;">${err.message}\n\n${err.stack ? err.stack.split('\n').slice(0,3).join('\n') : ''}</div>
+    `;
+    main.appendChild(errorBanner);
+  }
 }
 
 function appendHistoryAndAddExercise(index, variant) {
@@ -4197,18 +4214,34 @@ function randomizeAccessories() {
 
 // ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
 function exportData() {
-  const data = {};
+  // Split into two separate exports: training data (used regularly, kept
+  // small) and coach chat backup (only needed if you ever do a full home
+  // screen icon reset — chat history persists normally in the browser on
+  // its own and does NOT depend on this export being run).
+  const trainingData = {};
+  let chatHistoryRaw = null;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    data[key] = localStorage.getItem(key);
+    if (key === 'coach_chat_history') {
+      chatHistoryRaw = localStorage.getItem(key);
+      continue; // excluded from the main training export
+    }
+    trainingData[key] = localStorage.getItem(key);
   }
   const exportObj = {
     version: '1.0',
     exportDate: new Date().toISOString().split('T')[0],
-    localStorage: data,
+    localStorage: trainingData,
     persistKeys: []
   };
   const exportStr = JSON.stringify(exportObj);
+
+  const chatExportObj = {
+    version: '1.0',
+    exportDate: new Date().toISOString().split('T')[0],
+    coachChatHistory: chatHistoryRaw || '[]'
+  };
+  const chatExportStr = JSON.stringify(chatExportObj);
 
   // Remove existing modal if any
   const existing = document.getElementById('export-modal-overlay');
@@ -4271,6 +4304,57 @@ function exportData() {
   modal.appendChild(ta);
   modal.appendChild(copyBtn);
   modal.appendChild(shareBtn);
+
+  // --- COACH CHAT BACKUP (separate, optional, collapsed by default) ---
+  const chatDivider = document.createElement('div');
+  chatDivider.style.cssText = 'border-top:1px solid #2a2a2a;margin-top:20px;padding-top:16px;';
+
+  const chatToggle = document.createElement('button');
+  chatToggle.style.cssText = "width:100%;text-align:left;background:none;border:none;color:#a78bfa;font-family:monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:0;display:flex;justify-content:space-between;align-items:center;";
+  chatToggle.innerHTML = '<span>🧠 Coach Chat Backup (optional)</span><span id="chat-backup-arrow">▾</span>';
+
+  const chatBody = document.createElement('div');
+  chatBody.id = 'chat-backup-body';
+  chatBody.style.display = 'none';
+  chatBody.style.marginTop = '10px';
+
+  const chatInstructions = document.createElement('div');
+  chatInstructions.style.cssText = "font-size:11px;color:#6b6b6b;margin-bottom:8px;line-height:1.5;";
+  chatInstructions.textContent = 'Only needed if you ever reset your home screen icon and want your Coach conversation history back. Your training data above already covers everything needed for normal use.';
+
+  const chatTa = document.createElement('textarea');
+  chatTa.value = chatExportStr;
+  chatTa.readOnly = true;
+  chatTa.style.cssText = 'width:100%;background:#252525;border:1px solid rgba(167,139,250,0.3);border-radius:8px;color:#f0f0f0;font-family:monospace;font-size:10px;padding:10px 12px;min-height:80px;resize:none;outline:none;-webkit-user-select:text;user-select:text;';
+
+  const chatCopyBtn = document.createElement('button');
+  chatCopyBtn.textContent = '📋 Copy Chat Backup';
+  chatCopyBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);border-radius:8px;color:#a78bfa;font-family:monospace;font-size:12px;font-weight:600;cursor:pointer;';
+  chatCopyBtn.onclick = function() {
+    chatTa.focus();
+    chatTa.select();
+    try {
+      document.execCommand('copy');
+      chatCopyBtn.textContent = '✓ Copied!';
+      setTimeout(() => chatCopyBtn.textContent = '📋 Copy Chat Backup', 2000);
+    } catch(e) {
+      chatTa.setSelectionRange(0, chatTa.value.length);
+    }
+  };
+
+  chatToggle.onclick = function() {
+    const isOpen = chatBody.style.display !== 'none';
+    chatBody.style.display = isOpen ? 'none' : 'block';
+    document.getElementById('chat-backup-arrow').textContent = isOpen ? '▾' : '▴';
+  };
+
+  chatBody.appendChild(chatInstructions);
+  chatBody.appendChild(chatTa);
+  chatBody.appendChild(chatCopyBtn);
+  chatDivider.appendChild(chatToggle);
+  chatDivider.appendChild(chatBody);
+  modal.appendChild(chatDivider);
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   
@@ -4297,6 +4381,16 @@ async function importData() {
     parsed = JSON.parse(text);
   } catch(e) {
     showToast('Invalid data — check format');
+    return;
+  }
+
+  // If this is a Coach Chat Backup export (not the main training export),
+  // restore just the chat history and stop — different shape, handled
+  // separately since it's a much simpler restore.
+  if (parsed.coachChatHistory !== undefined) {
+    localStorage.setItem('coach_chat_history', parsed.coachChatHistory);
+    showToast('Coach chat history restored! Reload the page.');
+    setTimeout(() => location.reload(), 1500);
     return;
   }
 
