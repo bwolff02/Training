@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -836,55 +836,46 @@ let isDeloadWeek = isoWeek % 4 === 0; // every 4th week = deload
 // ─── PROGRAM DATA ─────────────────────────────────────────────
 // Each day has weekA and weekB variants
 const PROGRAM = [
-  // MON — LEGS
+  // MON — LEGS (Quad Focused, alternates Heavy/Volume by week)
   {
     label: 'MON · Legs',
     weekA: {
-      id: 'mon-legs-a', title: 'LEGS', subtitle: 'Quad & Unilateral — Heavy', tag: 'heavy',
+      id: 'mon-legs-a', title: 'LEGS', subtitle: 'Quad Focused — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. 2 heavy top sets + 1 back-off. 2–3 sec descent. All in.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'smith-lunge', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
-          { id:'good-mornings', name:'Good Mornings (Smith)', note:'Posterior chain accessory after squats. Hinge at hips, soft knee bend, feel the hamstring stretch. Lindsey already confirmed form looks good.', target:'3 × 10–12', anchor:false, defaultSets:3 },
+          { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. 4 sets, 4-6 reps. 2–3 sec descent. All in.', target:'4 × 4–6', anchor:true, defaultSets:4 },
+          { id:'smith-lunge', name:'Smith Machine Lunges', note:'3 sets, 7-8 reps. Front shin vertical, full range.', target:'3 × 7–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
-          { superset:true, exercises:[
-            { id:'leg-press-mon', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
-            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch, don\'t bounce. Paired with leg press.', target:'3 × 15', defaultSets:3 },
-          ]},
-          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric. RDLs are Thursday.', target:'3 × 8–10', defaultSets:3 },
-          { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Different stimulus from horizontal. Full stretch at bottom, pause at top. Track separately.', target:'3 × 12–15', defaultSets:3 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'3 sets, 10-12 reps, paused reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10 reps.', target:'2 × 10 / side', defaultSets:2 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'Ribs to hips. Add weight when reps get easy.', target:'3 × 10–12', defaultSets:3 },
-          { id:'rope-crunch', name:'Cable Rope Crunch', note:'Heavy. Kneeling, pull from crown of head.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate through torso, not just arms.', target:'3 × 10 / side', defaultSets:3 },
+          { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'2 sets, 8-10 reps.', target:'2 × 8–10', defaultSets:2 },
+          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'2 sets, 8-10 reps.', target:'2 × 8–10 / side', defaultSets:2 },
         ]},
       ]
     },
     weekB: {
-      id: 'mon-legs-b', title: 'LEGS', subtitle: 'Glute & Hamstring — Volume', tag: 'volume',
+      id: 'mon-legs-b', title: 'LEGS', subtitle: 'Quad Focused — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat-mon-b', name:'Barbell Squat', note:'Volume day — Week B. 2 working sets + 1 back-off. Higher reps than heavy day, controlled descent.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'2 working sets + 1 back-off lighter. Full depth, rear foot elevated. Feel the burn.', target:'2 sets + 1 back-off / leg', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'goblet-squat', name:'Goblet Squat', note:'Quad finisher. Dumbbell at chest, upright torso, full depth.', target:'3 × 12–15', anchor:false, defaultSets:3 },
+          { id:'squat-mon-b', name:'Barbell Squat', note:'Volume day — Week B. 4 sets, 10-12 reps.', target:'4 × 10–12', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'3 sets, 9-12 reps.', target:'3 × 9–12 / leg', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
-          { superset:true, exercises:[
-            { id:'leg-press-thu', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch. High reps, full burn. Paired with leg press.', target:'3 × 20', defaultSets:3 },
-          ]},
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Light and controlled. Feel the glute med work.', target:'3 × 15–20 / side', defaultSets:3 },
-          { id:'hip-add', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:3 },
+          { id:'bulgarian', name:'Elevated Close Squat (Smith)', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10-12 reps.', target:'2 × 10–12 / side', defaultSets:2 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-leg-raise', name:'Hanging Leg Raise', note:'Legs straight if possible. Posterior tilt at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'Dumbbell between feet. Lower abs focus.', target:'3 × 12', defaultSets:3 },
-          { id:'oblique-ext', name:'Oblique Extension', note:'Lateral flexion. Feel the stretch opposite side.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'2 sets, 8-10 reps.', target:'2 × 8–10', defaultSets:2 },
+          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'2 sets, 8-10 reps.', target:'2 × 8–10 / side', defaultSets:2 },
         ]},
       ]
     }
@@ -893,213 +884,178 @@ const PROGRAM = [
   {
     label: 'TUE · Push',
     weekA: {
-      id: 'tue-push-a', title: 'PUSH', subtitle: 'Chest Primary — Heavy', tag: 'heavy',
+      id: 'tue-push-a', title: 'PUSH', subtitle: 'Heavy — Incline/Flat', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith', name:'Incline Smith Press', note:'2 top sets then 1 back-off at 85–90%. 2 sec descent, blades pinched.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'flat-smith', name:'Flat Smith Press', note:'2 top sets then 1 back-off at 85–90%. Slightly wider grip, full range.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'military-press', name:'Military Press (Barbell)', note:'2 top sets then 1 back-off at 85–90%. Week A. Full lockout, core braced.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'incline-smith', name:'Incline Smith Press', note:'Leads today. 3 sets, 4-6 reps. 2 sec descent, blades pinched.', target:'3 × 4–6', anchor:true, defaultSets:3 },
+          { id:'flat-smith', name:'Flat Smith Press', note:'3 sets, 5-7 reps.', target:'3 × 5–7', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'One arm, constant tension. Don\'t shrug.', target:'4 × 10–12 / side', defaultSets:4 },
-          { superset:true, exercises:[
-            { id:'skull-crusher', name:'Skull Crusher', note:'Long head. Slow down, explode up.', target:'3 × 8–10', defaultSets:3 },
-            { id:'rope-pushdown', name:'Rope Pushdown', note:'Split the rope at bottom for full contraction.', target:'3 × 10–12', defaultSets:3 },
-          ]},
+          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'military-press', name:'Military Press (Barbell)', note:'3 sets, 5-7 reps.', target:'3 × 5–7', defaultSets:3 },
+          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          { id:'ez-bar-front-raise', name:'EZ Bar Front Raise', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'3 sets, 10-14 reps.', target:'3 × 10–14', defaultSets:3 },
         ]},
       ]
     },
     weekB: {
-      id: 'tue-push-b', title: 'PUSH', subtitle: 'Shoulder Primary — Volume', tag: 'volume',
+      id: 'tue-push-b', title: 'PUSH', subtitle: 'Volume — Flat + Flys', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press (Volume)', note:'2 working sets + 1 back-off. Week B. Lighter than heavy day, higher reps.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'incline-smith-vol', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'flat-smith', name:'Flat Smith Bench Press', note:'Leads today, volume load. 4 sets, 9-12 reps.', target:'4 × 9–12', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press', note:'4 sets, 12-15 reps.', target:'4 × 12–15', anchor:true, defaultSets:4, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top every rep.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Clavicular head, different angle than Week A.', target:'3 × 15', defaultSets:3 },
-          { superset:true, exercises:[
-            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Free weight version. Challenge then control.', target:'3 × 12–15', defaultSets:3 },
-            { id:'cable-lat-raise-light', name:'Cable Lateral Raise (Light, Fatigued)', note:'Double frequency lateral delt. Drop the weight, chase the burn.', target:'3 × 20', defaultSets:3 },
-          ]},
-          { id:'tri-lth', name:'Cable Low-to-High Tricep Extension', note:'Long head, different angle than skull crushers. One arm.', target:'3 × 12–15 / arm', defaultSets:3 },
-          { id:'tri-overhead', name:'Single Arm Overhead Tricep Extension', note:'Long head in stretched position. Slow eccentric.', target:'3 × 12 / arm', defaultSets:3 },
+          { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'3 sets, 10-13 reps.', target:'3 × 10–13', defaultSets:3 },
+          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-13 reps.', target:'3 × 10–13', defaultSets:3 },
+          { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'3 sets, 14-15 reps.', target:'3 × 14–15', defaultSets:3 },
+          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          { id:'tri-lth', name:'Cable Rope Low to High Tricep Extension', note:'3 sets, 13-15 reps.', target:'3 × 13–15', defaultSets:3 },
+          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
         ]},
       ]
     }
   },
-  // WED — PULL
+  // WED — PULL (Lat Focused, alternates Heavy/Volume by week)
   {
     label: 'WED · Pull',
     weekA: {
-      id: 'wed-pull-b', title: 'PULL', subtitle: 'Lat Primary — Volume', tag: 'volume',
+      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Focused — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Lat focus — Week B volume. Lighter weight than heavy day, higher reps. Full dead hang, chin over bar.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'2 working sets + 1 back-off. Pull to upper chest, full stretch at top. Higher reps than heavy day.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Leads today, volume load. 4 sets, 7-10 reps.', target:'4 × 7–10', anchor:true, defaultSets:4, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Neutral close grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
-          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
-          { id:'face-pull-sat', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
-          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
-          { id:'incline-curl', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
-          { id:'reverse-curl', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
+          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'seated-cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'incline-curl', name:'Low to High Bayesian Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
+          { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
         ]},
       ]
     },
     weekB: {
-      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Primary — Heavy', tag: 'heavy',
+      id: 'wed-pull-b', title: 'PULL', subtitle: 'Lat Focused — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Lat focus — Week A heavy. 2 heavy top sets + 1 back-off. Add weight via belt or dumbbell between knees. Full dead hang, chin over bar.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'lat-pulldown', name:'Lat Pulldown', note:'2 top sets then 1 back-off at 85%. Pull to upper chest, full stretch at top.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Leads today, heavy. 4 sets, 5-8 reps. Push weight here.', target:'4 × 5–8', anchor:true, defaultSets:4 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-sat', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
-          { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-8 reps. 2-3 sec eccentric.', target:'3 × 6–8', defaultSets:3 },
+          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'cable-row-close-wed', name:'Seated Cable Row Close Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+          { id:'db-curl', name:'EZ Bar Curl', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          { id:'incline-curl-b', name:'Incline Dumbbell Curl', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
+          { id:'shrug-wed', name:'Smith Machine Shrug', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
         ]},
       ]
     }
   },
-  // THU — LEGS
+  // THU — REST
+  { label: 'THU · Rest', rest: true },
+  // FRI — LEGS (Glute & Hamstring Focused, alternates Heavy/Volume by week)
   {
-    label: 'THU · Legs',
+    label: 'FRI · Legs',
     weekA: {
-      id: 'thu-legs-a', title: 'LEGS', subtitle: 'Posterior Chain — Volume', tag: 'volume',
+      id: 'fri-legs-a', title: 'LEGS', subtitle: 'Glute & Hamstring — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'rdl', name:'Romanian Deadlift', note:'Leads today — Week A volume. 2 working sets + 1 back-off. Hinge at hips, bar stays close.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'bulgarian', name:'Bulgarian Split Squat (Smith)', note:'2 working sets + 1 back-off lighter. Full depth, rear foot elevated. Feel the burn.', target:'2 sets + 1 back-off / leg', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'db-split-squat', name:'Dumbbell Split Squat', note:'Week A volume quad finisher. Dumbbells at sides, front shin vertical, full range. Catches imbalances barbell work misses.', target:'3 × 10–12 / leg', anchor:false, defaultSets:3 },
+          { id:'rdl', name:'Romanian Deadlift', note:'Leads today, volume load. 3 sets, 9-11 reps.', target:'3 × 9–11', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'3 sets, 8-10 reps.', target:'3 × 8–10 / leg', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. Slow eccentric, high reps.', target:'4 × 12–15', defaultSets:4 },
-          { superset:true, exercises:[
-            { id:'leg-press-thu', name:'Leg Press (High Foot)', note:'Higher placement shifts to glutes. Chase the pump.', target:'3 × 15–20', defaultSets:3 },
-            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch. High reps. Paired with leg press.', target:'3 × 20', defaultSets:3 },
-          ]},
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Light and controlled. Second weekly hit.', target:'3 × 15–20 / side', defaultSets:3 },
-          { id:'hip-add', name:'Cable Hip Adduction', note:'Inner thigh. Balances abduction, supports squat strength.', target:'3 × 15 / side', defaultSets:2 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-leg-raise', name:'Hanging Leg Raise', note:'Legs straight if possible. Posterior tilt at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'Dumbbell between feet. Lower abs focus.', target:'3 × 12', defaultSets:3 },
-          { id:'oblique-ext', name:'Oblique Extension', note:'Lateral flexion. Feel the stretch opposite side.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
+          { id:'oblique-ext', name:'Oblique Extension', note:'3 sets, 10-12 reps.', target:'3 × 10–12 / side', defaultSets:3 },
         ]},
       ]
     },
     weekB: {
-      id: 'thu-legs-b', title: 'LEGS', subtitle: 'Quad & Unilateral — Heavy', tag: 'heavy',
+      id: 'fri-legs-b', title: 'LEGS', subtitle: 'Glute & Hamstring — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today — Week B heavy. 2 heavy top sets + 1 back-off. Hinge at hips, bar stays close. Drive the weight.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'smith-lunge-thu', name:'Smith Machine Lunges', note:'2 top sets then 1 back-off at 85–90%. Front shin vertical, full range.', target:'2 top + 1 back-off / leg', anchor:true, defaultSets:3 },
-          { id:'goblet-squat', name:'Goblet Squat', note:'Quad finisher after heavy RDLs. Light dumbbell, upright torso, full depth. Not a barbell day for squats.', target:'3 × 12–15', anchor:false, defaultSets:3 },
+          { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today, heavy. 3 sets, 6-8 reps. Push weight here — this is progressing.', target:'3 × 6–8', anchor:true, defaultSets:3 },
+          { id:'smith-lunge-thu', name:'Smith Machine Lunges', note:'3 sets, 7-8 reps.', target:'3 × 7–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Heavy. Pause at top every rep.', target:'3 × 8–10', defaultSets:3 },
-          { superset:true, exercises:[
-            { id:'leg-press-mon', name:'Leg Press', note:'Standard foot placement. Push the weight.', target:'3 × 8–10', defaultSets:3 },
-            { id:'calf-horizontal', name:'Horizontal Calf Extension', note:'Full stretch, don\'t bounce. Paired with leg press.', target:'3 × 15', defaultSets:3 },
-          ]},
-          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric. Heavy day — push the weight.', target:'3 × 8–10', defaultSets:3 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled — hip and knee stability.', target:'3 × 12 / side', defaultSets:3 },
+          { id:'good-mornings', name:'Good Mornings (Smith)', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10 reps.', target:'2 × 10 / side', defaultSets:2 },
         ]},
         { label: 'Abs', exercises: [
-          { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'Ribs to hips. Add weight when reps get easy.', target:'3 × 10–12', defaultSets:3 },
-          { id:'rope-crunch', name:'Cable Rope Crunch', note:'Heavy. Kneeling, pull from crown of head.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate through torso, not just arms.', target:'3 × 10 / side', defaultSets:3 },
+          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
+          { id:'oblique-ext', name:'Oblique Extension', note:'3 sets, 10-12 reps.', target:'3 × 10–12 / side', defaultSets:3 },
         ]},
       ]
     }
   },
-  // FRI — PUSH
+  // SAT — UPPER (Row Focused / Chest Focused, alternates by week)
   {
-    label: 'FRI · Push',
+    label: 'SAT · Upper',
     weekA: {
-      id: 'fri-push-a', title: 'PUSH', subtitle: 'Shoulder Primary — Volume', tag: 'volume',
+      id: 'sat-upper-a', title: 'UPPER', subtitle: 'Row Focused — Back Primary', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'military-press-vol', name:'Military Press (Volume)', note:'2 working sets + 1 back-off. Week A. Lighter than heavy day, higher reps. Strict form.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'incline-smith-vol', name:'Incline Smith Press', note:'2 working sets + 1 back-off lighter. Volume focus — mind-muscle over load.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'barbell-row-sat', name:'Barbell Row', note:'Leads today — primary anchor. 3 sets, 5-8 reps.', target:'3 × 5–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Clavicular head — different angle than Tuesday.', target:'3 × 15', defaultSets:3 },
+          { id:'cable-row-wide-sat-heavy', name:'Seated Cable Row Wide Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+          { id:'seated-cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Challenge then control.', target:'3 × 12–15', defaultSets:3 },
-            { id:'cable-lat-raise-light', name:'Cable Lateral Raise (Light, Fatigued)', note:'Double frequency lateral delt. Chase the burn.', target:'3 × 20', defaultSets:3 },
+            { id:'decline-smith', name:'Decline Smith Press', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
+            { id:'cable-fly-lth', name:'Cable Fly Low to High', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
           ]},
-          { id:'tri-lth', name:'Cable Low-to-High Tricep Extension', note:'Long head, different angle. One arm.', target:'3 × 12–15 / arm', defaultSets:3 },
-          { id:'tri-overhead', name:'Single Arm Overhead Tricep Extension', note:'Long head stretched. Slow eccentric.', target:'3 × 12 / arm', defaultSets:3 },
+          { superset:true, exercises:[
+            { id:'military-press', name:'Military Press', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          ]},
+          { superset:true, exercises:[
+            { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+            { id:'reverse-curl', name:'EZ Bar Reverse Curl', note:'3 sets, 8-11 reps.', target:'3 × 8–11', defaultSets:3 },
+          ]},
+          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'2 sets, 10-14 reps.', target:'2 × 10–14', defaultSets:2 },
         ]},
       ]
     },
     weekB: {
-      id: 'fri-push-b', title: 'PUSH', subtitle: 'Chest Primary — Heavy', tag: 'heavy',
+      id: 'sat-upper-b', title: 'UPPER', subtitle: 'Chest Focused — Chest Primary', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith', name:'Incline Smith Press', note:'2 top sets then 1 back-off at 85–90%. 2 sec descent, blades pinched.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'flat-smith', name:'Flat Smith Press', note:'2 top sets then 1 back-off at 85–90%. Slightly wider grip, full range.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'smith-shoulder-press', name:'Smith Machine Shoulder Press', note:'2 top sets then 1 back-off at 85–90%. Week B. Full lockout, core braced.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
+          { id:'incline-smith', name:'Incline Smith Press', note:'Leads today — primary anchor. 3 sets, 4-6 reps.', target:'3 × 4–6', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'One arm, constant tension. Don\'t shrug.', target:'4 × 10–12 / side', defaultSets:4 },
+          { id:'decline-smith', name:'Decline Smith Press', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'skull-crusher', name:'Skull Crusher', note:'Long head. Slow down, explode up.', target:'3 × 8–10', defaultSets:3 },
-            { id:'rope-pushdown', name:'Rope Pushdown', note:'Split the rope at bottom for full contraction.', target:'3 × 10–12', defaultSets:3 },
+            { id:'hex-press', name:'Dumbbell Hex Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+            { id:'cable-fly-htl', name:'Cable Fly High to Low', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
           ]},
+          { superset:true, exercises:[
+            { id:'diverg-row-sat-acc', name:'Barbell Row Light', note:'3 sets, 9-12 reps.', target:'3 × 9–12', defaultSets:3 },
+            { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          ]},
+          { superset:true, exercises:[
+            { id:'military-press', name:'Military Press', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          ]},
+          { superset:true, exercises:[
+            { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+            { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'3 sets, 10-14 reps.', target:'3 × 10–14', defaultSets:3 },
+          ]},
+          { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'2 sets, 9-11 reps.', target:'2 × 9–11', defaultSets:2 },
         ]},
       ]
     }
   },
-  // SAT — PULL
-  {
-    label: 'SAT · Pull',
-    weekA: {
-      id: 'sat-pull-b', title: 'PULL', subtitle: 'Row Primary — Heavy', tag: 'heavy',
-      sections: [
-        { label: 'Anchors', exercises: [
-          { id:'barbell-row-sat', name:'Barbell Row', note:'Row focus — Week B heavy. 2 heavy top sets + 1 back-off. Overhand grip, hinge at hips, drive elbows back. Working weight 205.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-          { id:'cable-row-wide-sat-heavy', name:'Seated Cable Row (Wide Grip)', note:'2 heavy top sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 top + 1 back-off', anchor:true, defaultSets:3 },
-        ]},
-        { label: 'Accessories', exercises: [
-          { id:'cable-pullover', name:'Cable Pullover', note:'Arms mostly straight. Feel the lat at full extension.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-sat', name:'Face Pull', note:'Pull to forehead, elbows high and wide.', target:'4 × 15', defaultSets:4 },
-          { id:'db-curl', name:'Dumbbell Curl', note:'Supinate at top. Alternate arms.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'hammer-curl-sat', name:'Hammer Curl', note:'3-sec eccentric. Brachialis and forearm thickness.', target:'3 × 10–12 / arm', defaultSets:3 },
-          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 12', defaultSets:3 },
-        ]},
-      ]
-    },
-    weekB: {
-      id: 'sat-pull-a', title: 'PULL', subtitle: 'Row Primary — Volume', tag: 'volume',
-      sections: [
-        { label: 'Anchors', exercises: [
-          { id:'barbell-row-vol-sat', name:'Barbell Row', note:'Row focus — Week A volume. 2 working sets + 1 back-off. Higher reps than heavy day, overhand grip, drive elbows back.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-          { id:'cable-row-wide', name:'Seated Cable Row (Wide Grip)', note:'2 working sets + 1 back-off. Wide grip, upper back and rear delts.', target:'2 sets + 1 back-off', anchor:true, defaultSets:3, anchorVol:true },
-        ]},
-        { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Neutral grip hits lower lat differently. Full stretch.', target:'3 × 12–15', defaultSets:3 },
-          { id:'diverg-row-sat-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row. Drive elbows back hard.', target:'3 × 12–15', defaultSets:3 },
-          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Volume day — unweighted, chase reps. Different stimulus from heavy day.', target:'3 × max reps', defaultSets:3 },
-          { id:'face-pull-sat', name:'Face Pull', note:'Second weekly rear delt hit. Shoulder longevity.', target:'4 × 15–20', defaultSets:4 },
-          { id:'shrug-sat', name:'Barbell Shrug', note:'1 sec hold at top.', target:'3 × 15', defaultSets:3 },
-          { id:'incline-curl', name:'Incline Dumbbell Curl', note:'Bicep in stretched position at bottom. Slow and controlled.', target:'3 × 12 / arm', defaultSets:3 },
-          { id:'reverse-curl', name:'Reverse Curl', note:'Brachioradialis and forearm. Overhand, fully controlled.', target:'3 × 12–15', defaultSets:3 },
-          { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt Variation)', note:'Bend forward to shift emphasis toward rear delt.', target:'3 × 15–20', defaultSets:3 },
-        ]},
-      ]
-    }
-  },
+
   // SUN — REST
   { label: 'SUN · Rest', rest: true }
 ];
@@ -1624,9 +1580,14 @@ function appendHistoryAndAddExercise(index, variant) {
   `;
   main.appendChild(addSection);
   
-  // Restore any already-added custom exercises for this session
+  // Restore any already-added custom exercises for this session.
+  // Removed custom exercises are set to null (not spliced out) to preserve
+  // index alignment with sessionLogs, so this MUST skip null entries or it
+  // throws trying to read .name off null — which is exactly what broke the
+  // whole render (and hid Past Sessions/Export) on Friday Push.
   const customExercises = sessionLogs._custom || [];
   customExercises.forEach((ex, i) => {
+    if (!ex) return;
     appendCustomExerciseCard(index, i, ex.name, ex.sets, accessoriesId);
   });
 
