@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.4</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1386,13 +1386,26 @@ async function switchDay(index) {
     document.activeElement.blur();
   }
 
+  // Were we on Coach/Progress (main content replaced) and are we now
+  // returning to the SAME workout day we had open before? If so, this is a
+  // "come back from Coach" navigation, not a real day switch — we
+  // must NOT call loadDay(), since that overwrites sessionLogs with whatever
+  // was last SAVED to disk, silently discarding every unsaved typed value
+  // for the whole session. Just re-render from the in-memory state instead.
+  const returningToSameUnsavedDay = (currentDay === index);
+
   currentDay = index;
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
   const ptab = document.getElementById('progress-tab-btn');
   if (ptab) ptab.classList.remove('active');
   const ctab = document.getElementById('coach-tab-btn');
   if (ctab) ctab.classList.remove('active');
-  await loadDay(index);
+
+  if (returningToSameUnsavedDay) {
+    renderDay(index); // re-render from current sessionLogs, do NOT reload from disk
+  } else {
+    await loadDay(index); // genuinely switching to a different day - safe to reload
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
