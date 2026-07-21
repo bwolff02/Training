@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.4</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.8</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1364,13 +1364,6 @@ function buildTabs() {
     btn.onclick = () => switchDay(i);
     tabsEl.appendChild(btn);
   });
-  const progressBtn = document.createElement('button');
-  progressBtn.className = 'tab';
-  progressBtn.id = 'progress-tab-btn';
-  progressBtn.textContent = '📈 Progress';
-  progressBtn.onclick = () => showProgressTab();
-  tabsEl.appendChild(progressBtn);
-
   const coachBtn = document.createElement('button');
   coachBtn.className = 'tab';
   coachBtn.id = 'coach-tab-btn';
@@ -1379,32 +1372,72 @@ function buildTabs() {
   tabsEl.appendChild(coachBtn);
 }
 
+// Silently persists whatever is currently in sessionLogs for the day being
+// LEFT, so switching to a different day (or Coach/Progress and back) never
+// destroys unsaved in-progress inputs. This is NOT a real "save workout" —
+// no history writing, no PR checks, no success screen — just a lightweight
+// snapshot so the data survives navigation. saveDay() still does the real,
+// permanent save when the user actually taps Save Workout.
+async function autosaveCurrentDay() {
+  const day = PROGRAM[currentDay];
+  if (!day || day.rest) return; // nothing to autosave on a rest day
+  const variant = getCurrentVariant(currentDay);
+  if (!variant) return;
+  // Only autosave if there's actually something worth preserving — avoids
+  // overwriting a real saved log with an empty object on every navigation.
+  const hasAnyData = Object.keys(sessionLogs).some(k => {
+    if (k.startsWith('_')) return false;
+    const log = sessionLogs[k];
+    return log && log.sets && log.sets.some(s => s.weight || s.reps);
+  });
+  if (!hasAnyData && !(sessionLogs._custom || []).some(c => c && c.sets && c.sets.some(s => s.weight || s.reps))) {
+    return;
+  }
+  // Ensure _date is set to TODAY before autosaving — loadDay() treats a
+  // missing or mismatched _date as "this log is stale, clear it", which
+  // would otherwise immediately wipe out the very data we're trying to
+  // preserve the next time this day loads.
+  if (!sessionLogs._date) {
+    sessionLogs._date = new Date().toISOString().split('T')[0];
+  }
+  try {
+    await saveToDB('log_' + variant.id, sessionLogs);
+  } catch (err) {
+    console.error('Autosave failed:', err);
+  }
+}
+
 async function switchDay(index) {
-  // Same fix as showCoachTab/showProgressTab: force blur before switching
-  // days so an actively-typed value commits to sessionLogs first.
+  // Force blur first so an actively-typed value commits to sessionLogs
+  // before we read/save it below.
   if (document.activeElement && typeof document.activeElement.blur === 'function') {
     document.activeElement.blur();
   }
 
+  // Autosave whatever is in sessionLogs for the day we're LEAVING, before
+  // switching away — this is what actually prevents data loss when going
+  // from one real training day to another (Coach/Progress alone never
+  // solved this, since sessionLogs is a single shared variable, not scoped
+  // per day — switching days always overwrote it with zero persistence).
+  await autosaveCurrentDay();
+
   // Were we on Coach/Progress (main content replaced) and are we now
   // returning to the SAME workout day we had open before? If so, this is a
-  // "come back from Coach" navigation, not a real day switch — we
-  // must NOT call loadDay(), since that overwrites sessionLogs with whatever
-  // was last SAVED to disk, silently discarding every unsaved typed value
-  // for the whole session. Just re-render from the in-memory state instead.
+  // "come back from Coach" navigation, not a real day switch — skip the
+  // disk reload and just re-render from the in-memory state, since it's
+  // already correct and a reload would be redundant (though no longer
+  // destructive either way now that autosave exists as a backstop).
   const returningToSameUnsavedDay = (currentDay === index);
 
   currentDay = index;
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
-  const ptab = document.getElementById('progress-tab-btn');
-  if (ptab) ptab.classList.remove('active');
   const ctab = document.getElementById('coach-tab-btn');
   if (ctab) ctab.classList.remove('active');
 
   if (returningToSameUnsavedDay) {
-    renderDay(index); // re-render from current sessionLogs, do NOT reload from disk
+    renderDay(index);
   } else {
-    await loadDay(index); // genuinely switching to a different day - safe to reload
+    await loadDay(index); // now safe — the day we left was just autosaved above
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -2705,22 +2738,24 @@ function closeEditModal() {
 
 
 // ─── ANCHOR LIFTS FOR PROGRESS ────────────────────────────────
+// Every genuine anchor lift across the current 5-day split, pulled directly
+// from the actual anchor:true exercises in PROGRAM — kept in sync manually
+// whenever the program structure changes, since this list previously went
+// stale after a restructure and silently broke Coach's plateau detection.
 const ANCHOR_LIFTS = [
-  { id: 'squat', name: 'Barbell Squat' },
-  { id: 'rdl', name: 'Romanian Deadlift' },
-  { id: 'rdl-thu-heavy', name: 'RDL (Heavy)' },
-  { id: 'smith-lunge', name: 'Smith Lunges' },
-  { id: 'bulgarian', name: 'Bulgarian Split Squat' },
+  { id: 'squat', name: 'Barbell Squat (Heavy)' },
+  { id: 'squat-mon-b', name: 'Barbell Squat (Volume)' },
+  { id: 'smith-lunge', name: 'Smith Machine Lunges (Heavy)' },
+  { id: 'smith-lunge-thu', name: 'Smith Machine Lunges (Heavy Fri)' },
+  { id: 'bulgarian-mon', name: 'Bulgarian Split Squat (Smith)' },
+  { id: 'rdl', name: 'Romanian Deadlift (Volume)' },
+  { id: 'rdl-thu-heavy', name: 'Romanian Deadlift (Heavy)' },
   { id: 'incline-smith', name: 'Incline Smith Press' },
   { id: 'flat-smith', name: 'Flat Smith Press' },
-  { id: 'military-press', name: 'Military Press' },
-  { id: 'smith-shoulder-press', name: 'Smith Shoulder Press' },
-  { id: 'wtd-pullup', name: 'Weighted Pull Ups' },
-  { id: 'barbell-row', name: 'Barbell Row' },
-  { id: 'lat-pulldown', name: 'Lat Pulldown' },
-  { id: 'cable-row-close', name: 'Seated Cable Row' },
-  { id: 'barbell-row-vol-wed', name: 'Barbell Row (Volume)' },
-  { id: 'skull-crusher', name: 'Skull Crusher' },
+  { id: 'smith-shoulder-press-vol', name: 'Smith Machine Shoulder Press' },
+  { id: 'wtd-pullup', name: 'Weighted Pull Ups (Heavy)' },
+  { id: 'wtd-pullup-vol-wed', name: 'Weighted Pull Ups (Volume)' },
+  { id: 'barbell-row-sat', name: 'Barbell Row (Upper Day)' },
 ];
 
 // Real logged data always wins over the built-in seed/placeholder history.
@@ -3212,184 +3247,6 @@ function showCoachTab() {
   renderCoachChatMessages();
 }
 
-function showProgressTab() {
-  // Same fix as showCoachTab: force blur before tearing down the DOM so an
-  // in-progress input commits to sessionLogs before it's lost.
-  if (document.activeElement && typeof document.activeElement.blur === 'function') {
-    document.activeElement.blur();
-  }
-
-  // Update tab styling
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  const ptab = document.getElementById('progress-tab-btn');
-  if (ptab) ptab.classList.add('active');
-
-  const main = document.getElementById('mainContent');
-
-  // Build dropdown options - only show lifts with history
-  const liftsWithData = ANCHOR_LIFTS.filter(lift => {
-    const all = getAllHistory(lift.id);
-    return all.some(s => s.sets && s.sets.some(set => parseFloat(set.weight) > 0));
-  });
-
-  let dropdownOptions = liftsWithData.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-  if (!dropdownOptions) dropdownOptions = '<option value="">No data yet</option>';
-
-  main.innerHTML = `
-    <div class="progress-container">
-      <div class="progress-header">
-        <div class="progress-title">PROGRESS</div>
-        <div class="progress-subtitle">Strength over time — anchor lifts</div>
-      </div>
-
-      <select class="lift-selector" id="liftDropdown" onchange="renderProgressChart(this.value)">
-        <option value="">Select a lift...</option>
-        ${dropdownOptions}
-      </select>
-
-      <div id="chart-area"></div>
-
-      <div class="pr-section">
-        <div class="pr-title">Personal Records</div>
-        <div id="pr-list"></div>
-      </div>
-    </div>
-  `;
-
-  renderPRList(liftsWithData);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function renderProgressChart(exId) {
-  const chartArea = document.getElementById('chart-area');
-  if (!exId) { chartArea.innerHTML = ''; return; }
-
-  const lift = ANCHOR_LIFTS.find(l => l.id === exId);
-  const all = getAllHistory(exId);
-
-  // Build data points - max weight per HEAVY session only
-  // For builtin history (no heavy tag), infer from avg reps - low reps = heavy
-  const dataPoints = [];
-  all.forEach(session => {
-    if (!session.sets) return;
-    const weights = session.sets.map(s => parseFloat(s.weight)).filter(w => !isNaN(w) && w > 0);
-    const reps = session.sets.map(s => parseInt(s.reps)).filter(r => !isNaN(r));
-    if (!weights.length || !reps.length) return;
-    const avgReps = reps.reduce((a,b) => a+b, 0) / reps.length;
-    // Use explicit heavy tag if available, otherwise infer from reps
-    const isHeavy = session.heavy !== undefined ? session.heavy : avgReps <= 8;
-    if (!isHeavy) return;
-    dataPoints.push({ date: session.date, weight: Math.max(...weights) });
-  });
-
-  if (dataPoints.length < 2) {
-    chartArea.innerHTML = `<div class="no-data-msg">Log at least 2 sessions to see your progress chart.</div>`;
-    return;
-  }
-
-  // Draw SVG chart
-  const W = 320, H = 160, PAD = { top: 10, right: 10, bottom: 30, left: 40 };
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
-
-  const weights = dataPoints.map(d => d.weight);
-  const minW = Math.min(...weights) * 0.95;
-  const maxW = Math.max(...weights) * 1.05;
-
-  const xScale = i => PAD.left + (i / (dataPoints.length - 1)) * innerW;
-  const yScale = w => PAD.top + innerH - ((w - minW) / (maxW - minW)) * innerH;
-
-  // Build path
-  const pts = dataPoints.map((d, i) => `${xScale(i)},${yScale(d.weight)}`);
-  const pathD = 'M ' + pts.join(' L ');
-
-  // Fill area
-  const fillD = pathD + ` L ${xScale(dataPoints.length-1)},${H-PAD.bottom} L ${xScale(0)},${H-PAD.bottom} Z`;
-
-  // Y axis labels
-  const yLabels = [minW, (minW+maxW)/2, maxW].map(w => ({
-    y: yScale(w),
-    label: Math.round(w)
-  }));
-
-  // X axis labels (first, middle, last)
-  const xLabels = [0, Math.floor(dataPoints.length/2), dataPoints.length-1].map(i => ({
-    x: xScale(i),
-    label: dataPoints[i].date.slice(5) // MM-DD
-  }));
-
-  // Dots for data points
-  const dots = dataPoints.map((d, i) => `<circle cx="${xScale(i)}" cy="${yScale(d.weight)}" r="3" fill="var(--accent)" stroke="var(--black)" stroke-width="1.5"/>`).join('');
-
-  // PR point
-  const prIdx = weights.indexOf(Math.max(...weights));
-  const prDot = `<circle cx="${xScale(prIdx)}" cy="${yScale(dataPoints[prIdx].weight)}" r="5" fill="#ffd700" stroke="var(--black)" stroke-width="1.5"/>`;
-
-  const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-canvas">
-    <defs>
-      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#c8f135" stop-opacity="0.3"/>
-        <stop offset="100%" stop-color="#c8f135" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <!-- Grid lines -->
-    ${yLabels.map(l => `<line x1="${PAD.left}" y1="${l.y}" x2="${W-PAD.right}" y2="${l.y}" stroke="#2a2a2a" stroke-width="1"/>`).join('')}
-    <!-- Fill area -->
-    <path d="${fillD}" fill="url(#chartGrad)"/>
-    <!-- Line -->
-    <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <!-- Dots -->
-    ${dots}
-    ${prDot}
-    <!-- Y labels -->
-    ${yLabels.map(l => `<text x="${PAD.left-4}" y="${l.y+4}" text-anchor="end" font-family="monospace" font-size="9" fill="#6b6b6b">${l.label}</text>`).join('')}
-    <!-- X labels -->
-    ${xLabels.map(l => `<text x="${l.x}" y="${H-8}" text-anchor="middle" font-family="monospace" font-size="9" fill="#6b6b6b">${l.label}</text>`).join('')}
-    <!-- Axis -->
-    <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${H-PAD.bottom}" stroke="#2a2a2a" stroke-width="1"/>
-    <line x1="${PAD.left}" y1="${H-PAD.bottom}" x2="${W-PAD.right}" y2="${H-PAD.bottom}" stroke="#2a2a2a" stroke-width="1"/>
-  </svg>`;
-
-  const pr = getLifePR(exId);
-  const prText = pr ? `🏆 PR: ${pr.weight}lbs × ${pr.reps} on ${pr.date} (est. 1RM ~${pr.estimated1RM}lbs)` : '';
-
-  chartArea.innerHTML = `
-    <div class="chart-container">
-      <div class="chart-title">${lift ? lift.name : exId} — Heavy Days — Max Weight</div>
-      ${svg}
-      ${pr ? `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#ffd700;margin-top:8px;text-align:center;">${prText}</div>` : ''}
-    </div>
-  `;
-}
-
-function renderPRList(lifts) {
-  const prList = document.getElementById('pr-list');
-  if (!prList) return;
-
-  const prs = lifts.map(lift => {
-    const pr = getLifePR(lift.id);
-    return pr ? { ...lift, pr } : null;
-  }).filter(Boolean).sort((a, b) => b.pr.weight - a.pr.weight);
-
-  if (!prs.length) {
-    prList.innerHTML = '<div class="no-data-msg">No data yet — log some workouts and your PRs will appear here.</div>';
-    return;
-  }
-
-  prList.innerHTML = prs.map(item => `
-    <div class="pr-card">
-      <div>
-        <div class="pr-name">${item.name}</div>
-        <div class="pr-date">${item.pr.date}</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="pr-weight">${item.pr.weight}lbs × ${item.pr.reps}</div>
-        <div class="pr-reps">est. 1RM ~${item.pr.estimated1RM}lbs</div>
-      </div>
-    </div>
-  `).join('');
-}
-
 // ─── PR DETECTION ON SAVE ─────────────────────────────────────
 function checkForPRs(variant, sessionLogs) {
   const newPRs = [];
@@ -3490,32 +3347,30 @@ function deleteSession(histKey, sessionIdx) {
 
 // ─── DELOAD EXTRAS ────────────────────────────────────────────
 function getDeloadExtras(variantId) {
-  // Return 1-2 extra isolation accessories based on the day type
+  // Return 1-2 extra isolation accessories based on the day type. Keys match
+  // the CURRENT 5-day split structure: mon-legs (quad), tue-push, wed-pull,
+  // fri-legs (glute/ham), sat-upper (row or chest focus by week).
   const base = variantId.replace(/-[ab]$/, '');
   const extras = {
     'mon-legs': [
       { id:'dl-adductor', name:'Machine Hip Adduction', note:'Deload extra — inner thigh isolation. Light and controlled, full range.', target:'3 × 15–20', defaultSets:3, relatedId:'hip-abd-mon' },
       { id:'dl-leg-ext-extra', name:'Leg Extension (Slow)', note:'Deload extra — slow 4-sec eccentric. Focus on quad contraction, not load.', target:'3 × 15', defaultSets:3, relatedId:'leg-ext-mon' },
     ],
-    'thu-legs': [
-      { id:'dl-ham-curl', name:'Leg Curl (Slow Eccentric)', note:'Deload extra — slow 4-sec down. Hamstring isolation at light weight.', target:'3 × 15', defaultSets:3, relatedId:'seated-curl' },
-      { id:'dl-hip-abd-extra', name:'Cable Hip Abduction', note:'Deload extra — glute med isolation. Light, full range, controlled.', target:'3 × 20 / side', defaultSets:3, relatedId:'hip-abd-mon' },
-    ],
     'tue-push': [
-      { id:'dl-pec-fly', name:'Cable Fly (Low to High)', note:'Deload extra — chest isolation. Full stretch, squeeze at top. Light weight.', target:'3 × 15', defaultSets:3, relatedId:'cable-fly-htl' },
-      { id:'dl-rear-delt', name:'Rear Delt Fly (Cable)', note:'Deload extra — rear delt health. Pull apart motion, controlled.', target:'3 × 15', defaultSets:3, relatedId:'face-pull-sat' },
-    ],
-    'fri-push': [
-      { id:'dl-cable-lat-extra', name:'Cable Lateral Raise', note:'Deload extra — medial delt isolation. Light, high reps, feel the contraction.', target:'4 × 20 / side', defaultSets:4, relatedId:'cable-lat-raise-tue' },
-      { id:'dl-chest-press-extra', name:'Machine Chest Press', note:'Deload extra — chest pump. Light weight, slow and controlled.', target:'3 × 15', defaultSets:3, relatedId:'incline-smith' },
+      { id:'dl-pec-fly', name:'Cable Fly (Low to High)', note:'Deload extra — chest isolation. Full stretch, squeeze at top. Light weight.', target:'3 × 15', defaultSets:3, relatedId:'cable-fly-lth' },
+      { id:'dl-rear-delt', name:'Rear Delt Fly (Cable)', note:'Deload extra — rear delt health. Pull apart motion, controlled.', target:'3 × 15', defaultSets:3, relatedId:'face-pull-wed' },
     ],
     'wed-pull': [
       { id:'dl-incline-curl-extra', name:'Incline Dumbbell Curl', note:'Deload extra — bicep stretch position. Slow eccentric, light weight.', target:'3 × 15 / arm', defaultSets:3, relatedId:'incline-curl' },
       { id:'dl-straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Deload extra — lat isolation. Arms straight, feel the lat stretch and contract.', target:'3 × 15', defaultSets:3, relatedId:'cable-pullover' },
     ],
-    'sat-pull': [
-      { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-sat' },
-      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-sat' },
+    'fri-legs': [
+      { id:'dl-ham-curl', name:'Leg Curl (Slow Eccentric)', note:'Deload extra — slow 4-sec down. Hamstring isolation at light weight.', target:'3 × 15', defaultSets:3, relatedId:'seated-curl' },
+      { id:'dl-hip-abd-extra', name:'Cable Hip Abduction', note:'Deload extra — glute med isolation. Light, full range, controlled.', target:'3 × 20 / side', defaultSets:3, relatedId:'hip-abd-mon' },
+    ],
+    'sat-upper': [
+      { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-wed' },
+      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-wed' },
     ],
   };
   return extras[base] || [];
@@ -3524,15 +3379,15 @@ function getDeloadExtras(variantId) {
 // One dedicated high-rep "burn" exercise per volume day, run at 60-70% of
 // normal working weight for 15-20 reps. Additive novelty layered onto the
 // existing program — everything else on the day stays exactly as programmed.
+// Keys match the current 5-day split structure.
 function getBurnFinisher(variantId) {
   const base = variantId.replace(/-[ab]$/, '');
   const finishers = {
     'mon-legs': { id:'burn-leg-ext', name:'Leg Extension (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn, no rest between the last few reps.', target:'2 × 15–20', defaultSets:2, relatedId:'leg-ext-mon' },
-    'thu-legs': { id:'burn-leg-curl', name:'Leg Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'seated-curl' },
-    'tue-push': { id:'burn-cable-fly', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Keep going past where you\'d normally stop.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-htl' },
-    'fri-push': { id:'burn-cable-fly-fri', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Push through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-lth' },
-    'wed-pull': { id:'burn-hammer-curl', name:'Hammer Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Full range, no rest-pausing.', target:'2 × 15–20', defaultSets:2, relatedId:'hammer-curl-sat' },
-    'sat-pull': { id:'burn-face-pull', name:'Face Pull (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Rear delt and upper back on fire by the end.', target:'2 × 15–20', defaultSets:2, relatedId:'face-pull-sat' },
+    'tue-push': { id:'burn-cable-fly', name:'Cable Fly (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Keep going past where you\'d normally stop.', target:'2 × 15–20', defaultSets:2, relatedId:'cable-fly-lth' },
+    'wed-pull': { id:'burn-hammer-curl', name:'Hammer Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Full range, no rest-pausing.', target:'2 × 15–20', defaultSets:2, relatedId:'hammer-curl-wed' },
+    'fri-legs': { id:'burn-leg-curl', name:'Leg Curl (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight. Push straight through the burn.', target:'2 × 15–20', defaultSets:2, relatedId:'seated-curl' },
+    'sat-upper': { id:'burn-face-pull', name:'Face Pull (Burn Set)', note:'🔥 Burn finisher — 60-70% of normal working weight, 15-20 reps. Rear delt and upper back on fire by the end.', target:'2 × 15–20', defaultSets:2, relatedId:'face-pull-wed' },
   };
   return finishers[base] || null;
 }
@@ -3641,16 +3496,16 @@ function buildExerciseNameToIdMap() {
     });
   }
 
-  // 3. Deload extras (all six day types)
+  // 3. Deload extras (current 5-day split: mon-legs, tue-push, wed-pull, fri-legs, sat-upper)
   if (typeof getDeloadExtras === 'function') {
-    ['mon-legs', 'thu-legs', 'tue-push', 'fri-push', 'wed-pull', 'sat-pull'].forEach(base => {
+    ['mon-legs', 'tue-push', 'wed-pull', 'fri-legs', 'sat-upper'].forEach(base => {
       getDeloadExtras(base).forEach(ex => { if (ex.name && ex.id) map[normalizeExerciseName(ex.name)] = ex.id; });
     });
   }
 
   // 4. Burn finishers
   if (typeof getBurnFinisher === 'function') {
-    ['mon-legs', 'thu-legs', 'tue-push', 'fri-push', 'wed-pull', 'sat-pull'].forEach(base => {
+    ['mon-legs', 'tue-push', 'wed-pull', 'fri-legs', 'sat-upper'].forEach(base => {
       const bf = getBurnFinisher(base);
       if (bf && bf.name && bf.id) map[normalizeExerciseName(bf.name)] = bf.id;
     });
@@ -3815,6 +3670,24 @@ function addBrandNewExercise(listId, dayIndex) {
 // ─── ACCESSORY RANDOMIZER ─────────────────────────────────────
 
 const ACCESSORY_POOLS = {
+  // Saturday Upper day pool — draws real, already-tracked exercises across
+  // both push and pull muscle groups, since Upper blends both regardless of
+  // whether that week is Row Focused or Chest Focused (the fixed anchors
+  // already carry the primary emphasis for the week).
+  upper: [
+    { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
+    { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
+    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
+    { id:'skull-crusher', name:'Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
+    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
+    { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Full stretch at top, drive elbows down.', target:'3 × 6–9', defaultSets:3, muscle:'lats' },
+    { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
+    { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 9–11', defaultSets:3, muscle:'rear_delt' },
+    { id:'db-curl', name:'EZ Bar Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 9–11', defaultSets:3, muscle:'biceps' },
+  ],
   push: [
     // Chest
     { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
@@ -3874,6 +3747,7 @@ function getMuscleGroup(variantId) {
   if (variantId.includes('push')) return 'push';
   if (variantId.includes('pull')) return 'pull';
   if (variantId.includes('legs')) return 'legs';
+  if (variantId.includes('upper')) return 'upper';
   return null;
 }
 
@@ -3887,6 +3761,11 @@ const MUSCLE_SLOT_COUNTS = {
   // relative to the rest of the pool and bumps it to 1 for that session.
   pull:  { lats: 2, rear_delt: 1, biceps: 2, traps: 1, forearms: 0 },
   legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, abs: 2 },
+  // Upper (Saturday) blends push and pull accessory work regardless of
+  // whether that week is Row Focused or Chest Focused — the fixed anchors
+  // already carry the primary emphasis, so accessories stay balanced across
+  // both push and pull muscle groups rather than needing a separate pool.
+  upper: { chest: 1, delts: 1, triceps: 1, lats: 1, rear_delt: 1, biceps: 1 },
 };
 
 
