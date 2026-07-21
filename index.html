@@ -799,7 +799,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.8</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.9</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2887,6 +2887,21 @@ function analyzeLiftTrend(exId, exName) {
   const isPlateaued = mostRecent <= priorBest * 1.02; // within 2% of prior best = no real progress
   const isDeclining = mostRecent < priorFirst * 0.97; // more than 3% below where this window started
 
+  // Determine which day type this exercise's MOST RECENT session was logged
+  // under, so Coach can flag "this 1RM is from a volume-day top set, not
+  // directly comparable to a heavy-day 1RM" per the spec. Also detect if
+  // BOTH heavy and volume sessions are mixed into the same trend window,
+  // which is itself a low-confidence signal since the two aren't comparable.
+  const mostRecentRawSession = all[all.length - 1];
+  const dayType = mostRecentRawSession && mostRecentRawSession.heavy ? 'Heavy' : 'Volume';
+  const recentHeavyFlags = new Set(recent.map((s, i) => {
+    // recent came from sessionBest1RMs which doesn't carry the heavy flag —
+    // look it up from the matching raw session by date.
+    const rawMatch = all.find(raw => raw.date === s.date);
+    return rawMatch ? !!rawMatch.heavy : null;
+  }));
+  const mixedDayTypes = recentHeavyFlags.size > 1;
+
   return {
     exName: currentDisplayName,
     exId,
@@ -2896,7 +2911,9 @@ function analyzeLiftTrend(exId, exName) {
     pctChange: Math.round(pctChangeFromStart * 10) / 10,
     isPlateaued,
     isDeclining,
-    isLowConfidence,
+    isLowConfidence: isLowConfidence || mixedDayTypes,
+    dayType, // 'Heavy' or 'Volume' — which type the most recent 1RM came from
+    mixedDayTypes, // true if this trend window mixes heavy and volume sessions
   };
 }
 
@@ -2931,8 +2948,58 @@ function analyzeFeelTrend() {
 // Builds the full set of coach observations: per-lift plateau flags, feel
 // trend, and time-since-last-deload, then turns those into specific,
 // opinionated written recommendations rather than raw numbers.
+// Discovers every exercise that has appeared 3+ times across ALL session
+// history (not just the fixed ANCHOR_LIFTS list), so accessories that get
+// logged consistently — Face Pull, Leg Extension, Smith Shrug, etc. — get
+// real trend coverage too, not just anchor lifts. Resolves each discovered
+// name back to its real exercise ID via the existing name-to-id map so
+// analyzeLiftTrend can run against its actual hist_<id> data.
+function discoverTrendableExercises() {
+  const nameCounts = {}; // normalized name -> count of sessions it appeared in
+  const displayNames = {}; // normalized name -> best display name seen
+
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key)); } catch(e) { return; }
+    if (!Array.isArray(sessions)) return;
+    sessions.forEach(session => {
+      (session.exercises || []).forEach(ex => {
+        if (!ex.name || ex.name.startsWith('dl-') || ex.name.startsWith('burn-')) return;
+        const norm = normalizeExerciseName(ex.name);
+        nameCounts[norm] = (nameCounts[norm] || 0) + 1;
+        if (!displayNames[norm] || ex.name.length > displayNames[norm].length) {
+          displayNames[norm] = ex.name;
+        }
+      });
+    });
+  });
+
+  const nameToId = buildExerciseNameToIdMap();
+  const trendable = [];
+  const seenIds = new Set();
+
+  Object.entries(nameCounts).forEach(([norm, count]) => {
+    if (count < 3) return; // needs 3+ appearances to trend, per spec
+    const id = nameToId[norm];
+    if (!id || seenIds.has(id)) return; // no resolvable id, or already covered by ANCHOR_LIFTS
+    seenIds.add(id);
+    trendable.push({ id, name: displayNames[norm] });
+  });
+
+  return trendable;
+}
+
 function generateCoachReport() {
-  const liftAnalyses = ANCHOR_LIFTS
+  // Combine the fixed anchor lifts with every accessory that's appeared
+  // 3+ times, so trend coverage extends across the whole program instead
+  // of just anchors — directly addressing the "missing lower chest, rear
+  // delts, traps, forearms" gap.
+  const anchorIds = new Set(ANCHOR_LIFTS.map(l => l.id));
+  const discoveredAccessories = discoverTrendableExercises().filter(ex => !anchorIds.has(ex.id));
+  const allTrendableLifts = [...ANCHOR_LIFTS, ...discoveredAccessories];
+
+  const liftAnalyses = allTrendableLifts
     .map(lift => analyzeLiftTrend(lift.id, lift.name))
     .filter(Boolean);
 
@@ -3009,11 +3076,17 @@ function buildCoachDataSummary() {
   const report = generateCoachReport();
   const lines = [];
 
-  lines.push("ANCHOR LIFT TRENDS (estimated 1RM, from most recent real sessions):");
+  lines.push("LIFT TRENDS — anchors AND accessories logged 3+ times (estimated 1RM, from most recent real sessions):");
   report.liftAnalyses.forEach(l => {
-    const status = l.isLowConfidence ? 'low-confidence (mixed exercise variations, do not treat as a firm trend)'
-      : l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
-    lines.push(`- ${l.exName}: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)`);
+    let status;
+    if (l.mixedDayTypes) {
+      status = 'low-confidence — mixes heavy-day and volume-day sessions, which use different rep ranges and are not directly comparable as a single 1RM trend';
+    } else if (l.isLowConfidence) {
+      status = 'low-confidence (mixed exercise variations may be logged under this name, do not treat as a firm trend)';
+    } else {
+      status = l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
+    }
+    lines.push(`- ${l.exName} [${l.dayType} day]: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)`);
   });
 
   if (report.feelTrend) {
@@ -3202,20 +3275,25 @@ function showCoachTab() {
   `).join('');
 
   const liftRowsHtml = report.liftAnalyses.map(l => {
-    // Low-confidence trends (mixed exercise variations, or contaminated
-    // sessions we had to filter out) show a neutral flag instead of a
-    // confident up/down verdict, since the underlying data isn't reliable
-    // enough for a real trend call.
+    const dayTypeTag = `<span style="font-size:9px;color:var(--muted);margin-left:6px;">(${l.dayType})</span>`;
+    // Low-confidence trends (mixed exercise variations, contaminated
+    // sessions we had to filter out, OR heavy+volume sessions mixed into
+    // the same trend window) show a neutral flag instead of a confident
+    // up/down verdict, since the underlying data isn't reliable enough or
+    // comparable enough for a real trend call.
     if (l.isLowConfidence) {
+      const reason = l.mixedDayTypes
+        ? 'This mixes heavy-day and volume-day sessions, which use different rep ranges and aren\'t directly comparable as a 1RM trend.'
+        : 'Recent sessions vary too much to trend confidently — may include different exercise variations logged under the same name.';
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
-        <span style="font-size:13px;color:var(--white);">${l.exName}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="Recent sessions vary too much to trend confidently — may include different exercise variations logged under the same name.">❓ low confidence</span>
+        <span style="font-size:13px;color:var(--white);">${l.exName}${dayTypeTag}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="${reason}">❓ low confidence</span>
       </div>`;
     }
     const statusIcon = l.isDeclining ? '📉' : l.isPlateaued ? '➡️' : '📈';
     const statusColor = l.isDeclining ? '#ff6b6b' : l.isPlateaued ? 'var(--orange)' : 'var(--accent)';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:13px;color:var(--white);">${l.exName}</span>
+      <span style="font-size:13px;color:var(--white);">${l.exName}${dayTypeTag}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${statusColor};">${statusIcon} ${l.mostRecent}lbs est.</span>
     </div>`;
   }).join('');
