@@ -302,6 +302,29 @@
     line-height: 1.5;
   }
   .session-notes-input:focus { border-color: var(--accent); }
+  .limiter-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .limiter-chip {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .limiter-chip.active {
+    background: rgba(255,159,67,0.15);
+    border-color: rgba(255,159,67,0.5);
+    color: var(--orange);
+  }
+
   .session-notes-input::placeholder { color: var(--muted); }
 
 
@@ -799,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.7.9</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1442,6 +1465,36 @@ async function switchDay(index) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+
+// ─── DAILY LOG: BODYWEIGHT & OURA SCORE ─────────────────────────
+// Both are optional, logged once per day (not per session), and stored
+// independently by date under 'daily_log_<YYYY-MM-DD>'. Never required to
+// save a workout — purely additive context for the Coach. Auto-attached to
+// whatever session gets saved that day, no double entry needed.
+
+function getDailyLog(dateStr) {
+  const raw = localStorage.getItem('daily_log_' + dateStr);
+  if (!raw) return { bodyweight: null, ouraScore: null };
+  try { return JSON.parse(raw); } catch(e) { return { bodyweight: null, ouraScore: null }; }
+}
+
+function saveDailyLogField(dateStr, field, value) {
+  const current = getDailyLog(dateStr);
+  current[field] = value;
+  localStorage.setItem('daily_log_' + dateStr, JSON.stringify(current));
+}
+
+// Gets the MOST RECENT daily log at or before the given date — used to
+// auto-attach bodyweight/Oura to a session even if today's entry hasn't
+// been logged yet (falls back to the last known value, per spec: "pull the
+// most recent daily entry and tag it to that session in the background").
+function getMostRecentDailyLog(beforeOrOnDate) {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('daily_log_'));
+  const dates = keys.map(k => k.replace('daily_log_', '')).filter(d => d <= beforeOrOnDate).sort();
+  if (!dates.length) return { bodyweight: null, ouraScore: null };
+  return getDailyLog(dates[dates.length - 1]);
+}
+
 async function loadDay(index) {
   const variant = getCurrentVariant(index);
   if (!variant) { renderDay(index); return; }
@@ -1486,6 +1539,18 @@ function renderDay(index) {
   const savedNotes = sessionLogs._notes || '';
   const feelEmoji = getFeel(savedFeel);
   html += `<div class="session-row"><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>`;
+
+  // Daily log: bodyweight + Oura score. Both optional, logged once per day
+  // (not tied to a specific workout), pre-filled from today's entry if it
+  // exists. Never required to save — purely additive context for Coach.
+  const todayDailyLog = getDailyLog(savedDate);
+  html += `<div class="session-row" style="gap:8px;margin-top:4px;">
+    <input type="number" inputmode="decimal" class="session-date-input" id="dailyBodyweight" placeholder="Bodyweight (lbs)" style="flex:1;"
+      value="${todayDailyLog.bodyweight || ''}" onchange="saveDailyLogField('${savedDate}', 'bodyweight', this.value)">
+    <input type="number" inputmode="numeric" class="session-date-input" id="dailyOura" placeholder="Oura Score (0-100)" style="flex:1;"
+      value="${todayDailyLog.ouraScore || ''}" onchange="saveDailyLogField('${savedDate}', 'ouraScore', this.value)">
+  </div>
+  <div style="font-size:9px;color:var(--muted);margin:2px 2px 8px;">Optional — logged once per day, carries forward automatically if skipped.</div>`;
   if (isDeloadWeek) {
     html += `<div class="deload-banner">
       <div class="deload-icon">🔋</div>
@@ -1495,6 +1560,19 @@ function renderDay(index) {
       </div>
     </div>`;
   }
+  // External limiter tags: optional, fast multi-select for things outside
+  // Bryce's control that affected the session (air quality, nutrition,
+  // illness, stress, equipment). Stored as a structured array, not buried
+  // in free text, so Coach can immediately see "7/17 had poor air quality"
+  // without parsing notes. Injury/pain stays in Bryce's own free-text notes
+  // as-is — no structured field for that, per spec.
+  const LIMITER_OPTIONS = ['Poor air quality', 'Poor nutrition', 'Illness', 'Unusual stress', 'Equipment unavailable/changed'];
+  const savedLimiters = sessionLogs._limiters || [];
+  const limiterChipsHtml = LIMITER_OPTIONS.map(opt => {
+    const isActive = savedLimiters.includes(opt);
+    return `<button type="button" class="limiter-chip${isActive ? ' active' : ''}" onclick="toggleLimiterTag(this, '${opt}')">${opt}</button>`;
+  }).join('');
+
   html += `<div class="session-meta">
     <div class="session-meta-label">Session Check-In</div>
     <div class="feel-row">
@@ -1506,6 +1584,8 @@ function renderDay(index) {
     </div>
     <textarea class="session-notes-input" id="sessionNotes" placeholder="How did you feel? Anything to note about today's session..."
       oninput="sessionLogs._notes = this.value">${savedNotes}</textarea>
+    <div style="font-size:10px;color:var(--muted);margin:8px 0 4px;">External factors today? (optional)</div>
+    <div class="limiter-chips-row">${limiterChipsHtml}</div>
   </div>`;
 
   let accessoriesSectionId = null;
@@ -1653,11 +1733,20 @@ function appendHistoryAndAddExercise(index, variant) {
     recent.forEach((session, displayIdx) => {
       const feelStr = session.feel ? `${getFeel(session.feel)} ${session.feel}/10` : '';
 
+      const contextChips = [];
+      if (session.bodyweight) contextChips.push(`⚖️ ${session.bodyweight}lbs`);
+      if (session.ouraScore) contextChips.push(`😴 ${session.ouraScore}/100`);
+      if (session.limiters && session.limiters.length) contextChips.push(`⚠️ ${session.limiters.join(', ')}`);
+      const contextChipsHtml = contextChips.length
+        ? `<div style="font-size:10px;color:var(--muted);margin-bottom:6px;display:flex;gap:10px;flex-wrap:wrap;">${contextChips.map(c => `<span>${c}</span>`).join('')}</div>`
+        : '';
+
       histHtml += `<div class="history-entry" id="hist-entry-${displayIdx}">
         <div class="history-entry-header">
           <span class="history-entry-date">${session.date}</span>
           <span class="history-entry-week">${session.week || ''} ${feelStr}</span>
         </div>
+        ${contextChipsHtml}
         ${session.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic;">"${session.notes}"</div>` : ''}
         ${session.coachNotes ? `<div style="font-size:11px;color:#a78bfa;margin-bottom:6px;background:rgba(167,139,250,0.08);border-radius:6px;padding:6px 8px;">🧠 ${session.coachNotes}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:8px;">
@@ -2387,11 +2476,19 @@ async function saveDay() {
     }
 
     if (sessionExercises.length) {
+      // Auto-attach bodyweight and Oura score from the daily log (falls
+      // back to the most recent prior entry if today hasn't been logged
+      // yet) — per spec, Bryce never has to enter these twice.
+      const attachedDailyLog = getMostRecentDailyLog(sessionLogs._date);
+
       allSessions.push({
         date: sessionLogs._date,
         week: isDeloadWeek ? '🔋 DELOAD' : ((variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B')),
         feel: sessionLogs._feel || null,
         notes: sessionLogs._notes || '',
+        bodyweight: attachedDailyLog.bodyweight || null,
+        ouraScore: attachedDailyLog.ouraScore || null,
+        limiters: sessionLogs._limiters || [],
         exercises: sessionExercises
       });
       if (allSessions.length > 8) allSessions.shift();
@@ -2820,101 +2917,108 @@ function getLifePR(exId) {
 // meaningful improvement in estimated 1RM over at least 3 consecutive
 // sessions, with the most recent session not exceeding the best of the
 // prior ones by more than a small margin.
+// Analyzes an exercise's estimated-1RM trend and returns an ARRAY of results
+// — one entry PER DAY TYPE present in the history (Heavy, Volume, or both).
+// Heavy and volume sessions are split BEFORE any trend math runs, since
+// they use intentionally different rep ranges and mixing them produces a
+// meaningless blended number (a heavy 4-rep set vs a volume 12-rep set at
+// the same true strength level yield different 1RM estimates). Each split
+// gets its own independent plateau/decline verdict, so "Flat Smith Bench
+// Press" can show a Heavy trend AND a separate Volume trend rather than one
+// contaminated line.
 function analyzeLiftTrend(exId, exName) {
   const all = getAllHistory(exId).filter(s => s.sets && s.sets.length);
-  if (all.length < 3) return null; // not enough data to call a trend
+  if (all.length < 3) return [];
 
-  // Track which display name each session's sets were logged under (via
-  // localStorage name_ overrides at save time isn't stored per-set, so we
-  // approximate using the CURRENT name override, if any exists, applied
-  // uniformly — this catches the common case of "this ID has been renamed
-  // at some point" without needing per-session name tracking we don't have).
   const currentDisplayName = localStorage.getItem('name_' + exId) || exName;
 
-  let sessionBest1RMs = all.map(session => {
+  // Compute per-session best 1RM (burnout-excluded, rep-capped) FIRST, then
+  // split by day type — this way each split's outlier filtering and trend
+  // math operates on a clean, single-day-type population.
+  // Weighted pull-up variants need bodyweight ADDED to the logged weight
+  // before running Epley — the app only ever stores the ADDED weight (e.g.
+  // "35" or "45"), not total load, so a 1RM off that number alone dramatically
+  // understates true pulling strength. Look up bodyweight from the daily log
+  // closest to each session's date.
+  const isWeightedPullup = exId === 'wtd-pullup' || exId === 'wtd-pullup-vol-wed' || exId === 'wtd-pullup-vol-sat' || exId === 'wtd-pullup-sat';
+
+  const allWithEst = all.map(session => {
     let best = 0;
+    const sessionBodyweight = isWeightedPullup ? (getMostRecentDailyLog(session.date).bodyweight || 0) : 0;
     session.sets.forEach(s => {
-      if (s.isBurnout) return; // exclude intentionally light/high-rep burnout sets from trend analysis
+      if (s.isBurnout) return;
       const w = parseFloat(s.weight), r = parseInt(s.reps);
       if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
-        // Epley 1RM gets increasingly unreliable above ~10 reps. Cap the
-        // effective rep count used in the formula at 10, so a genuinely
-        // higher-rep set (e.g. 14 reps) doesn't get an inflated or wildly
-        // different 1RM estimate compared to a similar-effort lower-rep set.
+        const totalLoad = isWeightedPullup ? (w + parseFloat(sessionBodyweight)) : w;
         const cappedReps = Math.min(r, 10);
-        const est = w * (1 + cappedReps / 30);
+        const est = totalLoad * (1 + cappedReps / 30);
         if (est > best) best = est;
       }
     });
-    return { date: session.date, est1RM: best };
+    return { date: session.date, est1RM: best, heavy: !!session.heavy };
   }).filter(s => s.est1RM > 0);
 
-  if (sessionBest1RMs.length < 3) return null;
+  const results = [];
 
-  // Filter out sessions that look like contaminated/mislabeled data — e.g. a
-  // renamed lighter exercise that briefly wrote into this exercise's history,
-  // or a genuinely different movement variation sharing this ID. A single
-  // session with an estimated 1RM far below the exercise's typical range
-  // shouldn't be allowed to skew the whole trend. Uses the MEDIAN of all
-  // sessions as the reference point (robust to outliers, unlike a mean),
-  // and drops anything below 50% of that median.
-  const sorted1RMs = [...sessionBest1RMs].map(s => s.est1RM).sort((a, b) => a - b);
-  const median1RM = sorted1RMs[Math.floor(sorted1RMs.length / 2)];
-  const outlierFloor = median1RM * 0.5;
-  const beforeOutlierFilter = sessionBest1RMs.length;
-  sessionBest1RMs = sessionBest1RMs.filter(s => s.est1RM >= outlierFloor);
-  const outliersDropped = beforeOutlierFilter - sessionBest1RMs.length;
+  [true, false].forEach(isHeavySplit => {
+    let split = allWithEst.filter(s => s.heavy === isHeavySplit);
+    if (split.length < 3) return; // not enough data for THIS day type specifically
 
-  if (sessionBest1RMs.length < 3) return null; // not enough clean data left
+    // Outlier filtering — same median-based approach as before, but now
+    // scoped to just this day type's own sessions.
+    const sorted1RMs = [...split].map(s => s.est1RM).sort((a, b) => a - b);
+    const median1RM = sorted1RMs[Math.floor(sorted1RMs.length / 2)];
+    const outlierFloor = median1RM * 0.5;
+    const beforeOutlierFilter = split.length;
+    split = split.filter(s => s.est1RM >= outlierFloor);
+    const outliersDropped = beforeOutlierFilter - split.length;
+    if (split.length < 3) return;
 
-  // Low-confidence flag: if we had to drop a meaningful chunk of sessions as
-  // outliers, or the remaining data still has wide swings between sessions
-  // (a sign of genuinely different exercise variations sharing this ID that
-  // weren't extreme enough to hit the outlier floor), don't show a confident
-  // up/down verdict — surface it as low-confidence instead of misleading.
-  const recent = sessionBest1RMs.slice(-4);
-  const recentValues = recent.map(s => s.est1RM);
-  const recentMax = Math.max(...recentValues);
-  const recentMin = Math.min(...recentValues);
-  const recentSpread = recentMax > 0 ? (recentMax - recentMin) / recentMax : 0;
-  const isLowConfidence = outliersDropped > 0 || recentSpread > 0.35;
+    const recent = split.slice(-4);
+    const recentValues = recent.map(s => s.est1RM);
+    const recentMax = Math.max(...recentValues);
+    const recentMin = Math.min(...recentValues);
+    const recentSpread = recentMax > 0 ? (recentMax - recentMin) / recentMax : 0;
 
-  const mostRecent = recent[recent.length - 1].est1RM;
-  const priorBest = Math.max(...recent.slice(0, -1).map(s => s.est1RM));
-  const priorFirst = recent[0].est1RM;
+    // Variation-mismatch detection: flag if estimated 1RM jumps or drops
+    // more than 20% between any two CONSECUTIVE sessions within this split.
+    // A swing that large between back-to-back sessions of the supposedly
+    // same exercise is much more likely to be a setup/grip/attachment
+    // change logged under the same name than a real strength change.
+    let hasLargeConsecutiveJump = false;
+    for (let i = 1; i < recent.length; i++) {
+      const prev = recent[i - 1].est1RM;
+      const curr = recent[i].est1RM;
+      const pctSwing = Math.abs(curr - prev) / prev;
+      if (pctSwing > 0.20) { hasLargeConsecutiveJump = true; break; }
+    }
 
-  const pctChangeFromStart = ((mostRecent - priorFirst) / priorFirst) * 100;
-  const isPlateaued = mostRecent <= priorBest * 1.02; // within 2% of prior best = no real progress
-  const isDeclining = mostRecent < priorFirst * 0.97; // more than 3% below where this window started
+    const isLowConfidence = outliersDropped > 0 || recentSpread > 0.35 || hasLargeConsecutiveJump;
 
-  // Determine which day type this exercise's MOST RECENT session was logged
-  // under, so Coach can flag "this 1RM is from a volume-day top set, not
-  // directly comparable to a heavy-day 1RM" per the spec. Also detect if
-  // BOTH heavy and volume sessions are mixed into the same trend window,
-  // which is itself a low-confidence signal since the two aren't comparable.
-  const mostRecentRawSession = all[all.length - 1];
-  const dayType = mostRecentRawSession && mostRecentRawSession.heavy ? 'Heavy' : 'Volume';
-  const recentHeavyFlags = new Set(recent.map((s, i) => {
-    // recent came from sessionBest1RMs which doesn't carry the heavy flag —
-    // look it up from the matching raw session by date.
-    const rawMatch = all.find(raw => raw.date === s.date);
-    return rawMatch ? !!rawMatch.heavy : null;
-  }));
-  const mixedDayTypes = recentHeavyFlags.size > 1;
+    const mostRecent = recent[recent.length - 1].est1RM;
+    const priorBest = Math.max(...recent.slice(0, -1).map(s => s.est1RM));
+    const priorFirst = recent[0].est1RM;
 
-  return {
-    exName: currentDisplayName,
-    exId,
-    sessionsAnalyzed: recent.length,
-    mostRecent: Math.round(mostRecent),
-    priorBest: Math.round(priorBest),
-    pctChange: Math.round(pctChangeFromStart * 10) / 10,
-    isPlateaued,
-    isDeclining,
-    isLowConfidence: isLowConfidence || mixedDayTypes,
-    dayType, // 'Heavy' or 'Volume' — which type the most recent 1RM came from
-    mixedDayTypes, // true if this trend window mixes heavy and volume sessions
-  };
+    const pctChangeFromStart = ((mostRecent - priorFirst) / priorFirst) * 100;
+    const isPlateaued = mostRecent <= priorBest * 1.02;
+    const isDeclining = mostRecent < priorFirst * 0.97;
+
+    results.push({
+      exName: currentDisplayName,
+      exId,
+      dayType: isHeavySplit ? 'Heavy' : 'Volume',
+      sessionsAnalyzed: recent.length,
+      mostRecent: Math.round(mostRecent),
+      priorBest: Math.round(priorBest),
+      pctChange: Math.round(pctChangeFromStart * 10) / 10,
+      isPlateaued,
+      isDeclining,
+      isLowConfidence,
+      hasLargeConsecutiveJump, // specifically flags likely variation mismatch, distinct from other confidence issues
+    });
+  });
+
+  return results;
 }
 
 // Scans recent feel ratings across ALL session history (any muscle group) for
@@ -2999,9 +3103,11 @@ function generateCoachReport() {
   const discoveredAccessories = discoverTrendableExercises().filter(ex => !anchorIds.has(ex.id));
   const allTrendableLifts = [...ANCHOR_LIFTS, ...discoveredAccessories];
 
+  // analyzeLiftTrend now returns an ARRAY per lift (one entry per day type
+  // present — Heavy, Volume, or both), so flatMap instead of map+filter to
+  // get a flat list of all individual trend entries.
   const liftAnalyses = allTrendableLifts
-    .map(lift => analyzeLiftTrend(lift.id, lift.name))
-    .filter(Boolean);
+    .flatMap(lift => analyzeLiftTrend(lift.id, lift.name));
 
   // Low-confidence lifts are excluded from ALL trend-based recommendations —
   // we explicitly don't trust their up/down verdict enough to write a
@@ -3076,13 +3182,13 @@ function buildCoachDataSummary() {
   const report = generateCoachReport();
   const lines = [];
 
-  lines.push("LIFT TRENDS — anchors AND accessories logged 3+ times (estimated 1RM, from most recent real sessions):");
+  lines.push("LIFT TRENDS — anchors AND accessories logged 3+ times, split separately by Heavy/Volume day since they use different rep ranges (estimated 1RM, from most recent real sessions):");
   report.liftAnalyses.forEach(l => {
     let status;
-    if (l.mixedDayTypes) {
-      status = 'low-confidence — mixes heavy-day and volume-day sessions, which use different rep ranges and are not directly comparable as a single 1RM trend';
+    if (l.hasLargeConsecutiveJump) {
+      status = 'low-confidence — estimated 1RM swung more than 20% between two consecutive sessions, which usually means the setup/grip/attachment changed rather than a real strength change; worth reviewing rather than trusting as a trend';
     } else if (l.isLowConfidence) {
-      status = 'low-confidence (mixed exercise variations may be logged under this name, do not treat as a firm trend)';
+      status = 'low-confidence (inconsistent data for this exercise, do not treat as a firm trend)';
     } else {
       status = l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
     }
@@ -3102,7 +3208,13 @@ function buildCoachDataSummary() {
       sessions.slice(-2).forEach(s => {
         const dayTypeLabel = `[DAY TYPE: ${muscle.toUpperCase()} — ${tag.toUpperCase()}]`;
         const feelLabel = s.feel ? ` [FEEL RATING: ${s.feel}/10]` : '';
-        lines.push(`\n- ${s.date} ${dayTypeLabel}${feelLabel}`);
+        // Bodyweight, Oura score, and external limiter tags surface inline
+        // with the session itself, not in a separate screen — per spec,
+        // this context needs to be visible right alongside the lift data.
+        const bwLabel = s.bodyweight ? ` [BODYWEIGHT: ${s.bodyweight}lbs]` : '';
+        const ouraLabel = s.ouraScore ? ` [OURA SLEEP SCORE: ${s.ouraScore}/100]` : '';
+        const limiterLabel = (s.limiters && s.limiters.length) ? ` [EXTERNAL LIMITERS: ${s.limiters.join(', ')}]` : '';
+        lines.push(`\n- ${s.date} ${dayTypeLabel}${feelLabel}${bwLabel}${ouraLabel}${limiterLabel}`);
 
         // Exercise order is meaningful: it reflects the actual sequence performed
         // that session, listed as EXERCISE_ORDER so the coach knows this isn't
@@ -3190,6 +3302,10 @@ HOW TO READ THE DATA BELOW — read this carefully before answering:
 - Anchor lifts marked "low-confidence" in the trends section have inconsistent underlying data (e.g. different exercise variations may have been logged under the same name) — do not present these as a firm trend either direction; say the data isn't clean enough for a confident read if asked.
 - If the current week is a DELOAD week, all weights are intentionally reduced — never interpret a lighter deload-week weight as a strength decline.
 - Lines marked "PREVIOUS COACH ADVICE" are things Bryce logged after asking about that specific session in an earlier conversation. Use this for continuity — reference it if relevant, and don't repeat the exact same advice without acknowledging you already said it.
+- [BODYWEIGHT: Xlbs] shows Bryce's logged bodyweight for that day (auto-attached from his daily log, may carry forward from a recent entry if he skipped a day). Use it for relative strength context and to notice if bodyweight shifts correlate with performance changes over time.
+- [OURA SLEEP SCORE: X/100] is Bryce's sleep score for that day. Read it ALONGSIDE his feel rating, not instead of it — low Oura + low feel confirms a real recovery issue; low Oura + high feel means he overcame a bad night (also worth noting positively); high Oura + low feel points away from sleep and toward something else worth asking about (nutrition, environment, or a genuine issue). Over time, look for a pattern between recent sleep scores and anchor lift performance.
+- [EXTERNAL LIMITERS: ...] are factors Bryce tagged as affecting that specific session (poor air quality, poor nutrition, illness, unusual stress, equipment issues). When a session shows a limiter tag, use it to contextualize a rough day rather than treating a dip as a real capability decline — but if the SAME limiter keeps appearing across sessions, point that out as a pattern worth addressing, not just an excuse.
+- Injury or pain information only ever appears in Bryce's own free-text notes (BRYCE'S OWN NOTE / SESSION NOTE) — there is no structured field for this. Treat anything he says about pain or injury there as ground truth exactly as written.
 
 BRYCE'S CURRENT TRAINING DATA:
 ${dataSummary}`;
@@ -3276,18 +3392,21 @@ function showCoachTab() {
 
   const liftRowsHtml = report.liftAnalyses.map(l => {
     const dayTypeTag = `<span style="font-size:9px;color:var(--muted);margin-left:6px;">(${l.dayType})</span>`;
-    // Low-confidence trends (mixed exercise variations, contaminated
-    // sessions we had to filter out, OR heavy+volume sessions mixed into
-    // the same trend window) show a neutral flag instead of a confident
-    // up/down verdict, since the underlying data isn't reliable enough or
-    // comparable enough for a real trend call.
+    // Low-confidence trends show a neutral flag instead of a confident
+    // up/down verdict. Two distinct reasons, surfaced separately: a large
+    // consecutive-session swing (likely a variation/setup change logged
+    // under the same name) vs general noisy/outlier-heavy data. Heavy and
+    // volume are never mixed here anymore — they're split into separate
+    // trend entries before this point, so that specific confusion can't
+    // happen at the display layer at all.
     if (l.isLowConfidence) {
-      const reason = l.mixedDayTypes
-        ? 'This mixes heavy-day and volume-day sessions, which use different rep ranges and aren\'t directly comparable as a 1RM trend.'
+      const reason = l.hasLargeConsecutiveJump
+        ? 'Estimated 1RM swung more than 20% between two consecutive sessions — likely a setup, grip, or attachment change logged under the same name rather than a real strength change. Worth reviewing.'
         : 'Recent sessions vary too much to trend confidently — may include different exercise variations logged under the same name.';
+      const icon = l.hasLargeConsecutiveJump ? '⚠️' : '❓';
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:13px;color:var(--white);">${l.exName}${dayTypeTag}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="${reason}">❓ low confidence</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);" title="${reason}">${icon} ${l.hasLargeConsecutiveJump ? 'check variation' : 'low confidence'}</span>
       </div>`;
     }
     const statusIcon = l.isDeclining ? '📉' : l.isPlateaued ? '➡️' : '📈';
@@ -4714,6 +4833,18 @@ function getFeel(val) {
   if (val <= 6) return '😐';
   if (val <= 8) return '💪';
   return '🔥';
+}
+
+function toggleLimiterTag(btn, tag) {
+  if (!sessionLogs._limiters) sessionLogs._limiters = [];
+  const idx = sessionLogs._limiters.indexOf(tag);
+  if (idx === -1) {
+    sessionLogs._limiters.push(tag);
+    btn.classList.add('active');
+  } else {
+    sessionLogs._limiters.splice(idx, 1);
+    btn.classList.remove('active');
+  }
 }
 
 function updateFeel(val) {
