@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.4</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -953,7 +953,7 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
           { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'seated-cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
           { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
           { id:'incline-curl', name:'Low to High Bayesian Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
           { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
@@ -970,7 +970,7 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-8 reps. 2-3 sec eccentric.', target:'3 × 6–8', defaultSets:3 },
           { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'cable-row-close-wed', name:'Seated Cable Row Close Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
+          { id:'cable-row-wide', name:'Seated Cable Row Close Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
           { id:'db-curl', name:'EZ Bar Curl', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
           { id:'incline-curl-b', name:'Incline Dumbbell Curl', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
           { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
@@ -1032,7 +1032,7 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'cable-row-wide-sat-heavy', name:'Seated Cable Row Wide Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
-          { id:'seated-cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
           { superset:true, exercises:[
             { id:'decline-smith', name:'Decline Smith Press', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
             { id:'cable-fly-lth', name:'Cable Fly Low to High', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
@@ -3292,7 +3292,32 @@ async function sendCoachMessage() {
 
   try {
     const dataSummary = buildCoachDataSummary();
+    const currentConstraints = getRandomizerConstraints();
+    const constraintsSummary = [
+      ...currentConstraints.pairingExclusions.map(r => `- ${r.a} and ${r.b} never in same session: ${r.reason}`),
+      ...currentConstraints.sequenceConstraints.map(r => `- ${r.exerciseId} must come after ${r.after}: ${r.reason}`),
+      ...currentConstraints.sequencePositionRules.map(r => `- ${r.muscleCategory} exercises placed late in session: ${r.reason}`),
+      ...currentConstraints.dayGapConstraints.map(r => `- ${r.a} and ${r.b} need ${r.minDaysApart}+ day gap: ${r.reason}`),
+      ...Object.entries(currentConstraints.frequencyWeights).map(([id, w]) => `- ${id} frequency weight ${w}x`),
+      ...currentConstraints.removedFromPool.map(id => `- ${id} removed from randomizer pool entirely`),
+    ].join('\n') || '(none yet)';
+
     const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
+
+RANDOMIZER ADJUSTMENT REQUESTS: if, based on reviewing his logged session data, you identify a real issue worth adjusting in the accessory randomizer (unnecessary fatigue from sequencing, a movement pattern appearing too close together, an accessory not appearing often enough to trend, an accessory crowding out others, or a pairing that's demonstrably hurting performance per his own notes), you may propose an adjustment. To do this, end your message with a structured block in exactly this format so the app can offer Bryce a one-tap way to apply it:
+
+[[RANDOMIZER_ADJUSTMENT]]
+type: pairing_exclusion | sequence_after | sequence_late | day_gap | frequency_weight | remove_from_pool
+exerciseId: <the real exercise id from his program, not a display name>
+relatedId: <second exercise id, only for pairing_exclusion/sequence_after/day_gap types>
+value: <number, only for frequency_weight (multiplier) or day_gap (min days)>
+reason: <brief data-based explanation>
+[[/RANDOMIZER_ADJUSTMENT]]
+
+Only propose ONE adjustment per message, only when you have an actual data-based reason from his real sessions, and never fabricate an exercise id — if you're not sure of the exact id, describe the issue in plain language instead and let him confirm before you propose the technical block. Do not propose an adjustment that duplicates one already active (see CURRENTLY ACTIVE RANDOMIZER CONSTRAINTS below).
+
+CURRENTLY ACTIVE RANDOMIZER CONSTRAINTS (already in effect — do not suggest these again):
+${constraintsSummary}
 
 HOW TO READ THE DATA BELOW — read this carefully before answering:
 - Every session is labeled with [DAY TYPE: MUSCLE — HEAVY or VOLUME]. Heavy days are intentionally lower reps/heavier weight; volume days are intentionally higher reps/lighter weight. A volume-day set having more reps than a heavy-day set is BY DESIGN, not a sign of anything wrong — never flag this as an inconsistency.
@@ -3349,15 +3374,100 @@ ${dataSummary}`;
   }
 }
 
+// Parses a [[RANDOMIZER_ADJUSTMENT]]...[[/RANDOMIZER_ADJUSTMENT]] block out of
+// a Coach message, if present. Returns { cleanText, adjustment } — cleanText
+// has the block removed (so it never displays as raw text to Bryce), and
+// adjustment is a parsed object ready to apply, or null if none found /
+// malformed.
+function parseRandomizerAdjustment(text) {
+  const match = text.match(/\[\[RANDOMIZER_ADJUSTMENT\]\]([\s\S]*?)\[\[\/RANDOMIZER_ADJUSTMENT\]\]/);
+  if (!match) return { cleanText: text, adjustment: null };
+
+  const cleanText = text.replace(match[0], '').trim();
+  const body = match[1];
+  const getField = (name) => {
+    const m = body.match(new RegExp(name + ':\\s*(.+)'));
+    return m ? m[1].trim() : null;
+  };
+
+  const adjustment = {
+    type: getField('type'),
+    exerciseId: getField('exerciseId'),
+    relatedId: getField('relatedId'),
+    value: getField('value'),
+    reason: getField('reason'),
+  };
+
+  // Basic validation — don't offer to apply something malformed.
+  const validTypes = ['pairing_exclusion', 'sequence_after', 'sequence_late', 'day_gap', 'frequency_weight', 'remove_from_pool'];
+  if (!validTypes.includes(adjustment.type) || !adjustment.exerciseId) {
+    return { cleanText, adjustment: null };
+  }
+
+  return { cleanText, adjustment };
+}
+
+// Applies a parsed adjustment to the persistent constraint store.
+function applyRandomizerAdjustment(adjustment) {
+  const constraints = getRandomizerConstraints();
+  switch (adjustment.type) {
+    case 'pairing_exclusion':
+      constraints.pairingExclusions.push({ a: adjustment.exerciseId, b: adjustment.relatedId, reason: adjustment.reason });
+      break;
+    case 'sequence_after':
+      constraints.sequenceConstraints.push({ exerciseId: adjustment.exerciseId, after: adjustment.relatedId, reason: adjustment.reason });
+      break;
+    case 'sequence_late':
+      constraints.sequencePositionRules.push({ muscleCategory: adjustment.exerciseId, position: 'late', reason: adjustment.reason });
+      break;
+    case 'day_gap':
+      constraints.dayGapConstraints.push({ a: adjustment.exerciseId, b: adjustment.relatedId, minDaysApart: parseInt(adjustment.value) || 1, reason: adjustment.reason });
+      break;
+    case 'frequency_weight':
+      constraints.frequencyWeights[adjustment.exerciseId] = parseFloat(adjustment.value) || 1;
+      break;
+    case 'remove_from_pool':
+      if (!constraints.removedFromPool.includes(adjustment.exerciseId)) {
+        constraints.removedFromPool.push(adjustment.exerciseId);
+      }
+      break;
+  }
+  saveRandomizerConstraints(constraints);
+}
+
+function applyAdjustmentFromChat(btn, adjustmentJson) {
+  const adjustment = JSON.parse(decodeURIComponent(adjustmentJson));
+  applyRandomizerAdjustment(adjustment);
+  btn.textContent = '✓ Applied';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  showToast('Randomizer updated');
+}
+
 function renderCoachChatMessages() {
   const chatBody = document.getElementById('coachChatMessages');
   if (!chatBody) return;
   const messages = getCoachChatHistory();
-  chatBody.innerHTML = messages.map(m => `
-    <div class="coach-msg">
-      <div class="coach-msg-bubble coach-bubble-${m.role}">${m.content.replace(/\n/g, '<br>')}</div>
-    </div>
-  `).join('');
+  chatBody.innerHTML = messages.map(m => {
+    if (m.role !== 'assistant') {
+      return `<div class="coach-msg">
+        <div class="coach-msg-bubble coach-bubble-${m.role}">${m.content.replace(/\n/g, '<br>')}</div>
+      </div>`;
+    }
+    // For assistant messages, check for and strip out a structured
+    // randomizer adjustment block, replacing it with a tappable button
+    // instead of showing the raw tagged text.
+    const { cleanText, adjustment } = parseRandomizerAdjustment(m.content);
+    const adjustmentHtml = adjustment ? `
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.3);border-radius:8px;">
+        <div style="font-size:10px;color:#a78bfa;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">🎛️ RANDOMIZER ADJUSTMENT PROPOSED</div>
+        <div style="font-size:12px;color:var(--white);margin-bottom:8px;">${adjustment.reason || 'No reason given.'}</div>
+        <button onclick="applyAdjustmentFromChat(this, '${encodeURIComponent(JSON.stringify(adjustment))}')" style="background:rgba(167,139,250,0.2);border:1px solid #a78bfa;border-radius:6px;color:#a78bfa;font-size:11px;padding:6px 12px;font-family:'JetBrains Mono',monospace;cursor:pointer;">Apply This</button>
+      </div>` : '';
+    return `<div class="coach-msg">
+      <div class="coach-msg-bubble coach-bubble-${m.role}">${cleanText.replace(/\n/g, '<br>')}${adjustmentHtml}</div>
+    </div>`;
+  }).join('');
   chatBody.scrollTop = chatBody.scrollHeight;
 }
 
@@ -4134,6 +4244,102 @@ function getAccessoriesSnapshot(variantId) {
   try { return JSON.parse(raw); } catch(e) { return null; }
 }
 
+
+// ─── RANDOMIZER CONSTRAINT SYSTEM ────────────────────────────────
+// Coach reviews logged session data after the fact and issues adjustment
+// requests that update these constraints going forward — the randomizer
+// itself never generates plans in real time, it just applies whatever
+// constraints are currently active. Constraints persist in localStorage so
+// they survive across sessions and app updates, and Coach can add to them
+// over time as it reviews more data.
+
+function getRandomizerConstraints() {
+  const raw = localStorage.getItem('randomizer_constraints');
+  if (raw) {
+    try { return JSON.parse(raw); } catch(e) { /* fall through to defaults */ }
+  }
+  // Starting constraints, seeded once from known patterns in Bryce's data.
+  const defaults = {
+    pairingExclusions: [
+      // These exercise pairs should never appear in the SAME session together.
+      // NOTE: 'close-pulldown' is the current program's Lat Pulldown variant
+      // (Close Grip Lat Pulldown) — the plain "Lat Pulldown" exercise from
+      // the original spec doesn't exist as a separate id in the current
+      // 5-day structure, so this constraint targets the closest real match.
+      { a: 'wtd-pullup', b: 'close-pulldown', reason: 'Weighted Pull Ups owns the vertical pull slot; Lat Pulldown is a tracked accessory that fills in only when pull ups are not programmed.' },
+      { a: 'rdl-thu-heavy', b: 'barbell-row-sat', reason: 'RDL soreness demonstrably affects row performance, per Bryce\'s own session notes.' },
+      { a: 'rdl', b: 'barbell-row-sat', reason: 'Same RDL/row interference, applies to the volume RDL too.' },
+    ],
+    sequenceConstraints: [
+      // "after" means exerciseId must come AFTER afterId if both appear.
+      { exerciseId: 'close-pulldown', after: 'wtd-pullup', reason: 'Lat Pulldown sequences after Weighted Pull Ups on Pull Heavy days when pull ups are present — never before.' },
+    ],
+    sequencePositionRules: [
+      // Movement categories that must appear late (not before primary lifts)
+      { muscleCategory: 'triceps', position: 'late', reason: 'Tricep isolation should appear late in Push sessions, never before primary pressing movements.' },
+      { muscleCategory: 'delts', position: 'late', reason: 'Lateral raise variations should appear after shoulder pressing movements, never before.' },
+    ],
+    dayGapConstraints: [
+      // Exercises needing at least N days between them across the WEEKLY schedule
+      { a: 'seated-curl', b: 'rdl', minDaysApart: 1, reason: 'Hamstring overlap between Leg Curl and Romanian Deadlift.' },
+      { a: 'prone-curl-mon', b: 'rdl-thu-heavy', minDaysApart: 1, reason: 'Hamstring overlap between Leg Curl and Romanian Deadlift.' },
+    ],
+    frequencyWeights: {
+      // Multiplier applied to an exercise's normal pick weight — >1 means
+      // pick it more often than its sentiment score alone would suggest.
+      'close-pulldown': 2.5, // Pull Heavy day, weighted heavily so trend data stays current per Coach's tracked-accessory spec (current program id for Lat Pulldown / Close Grip Lat Pulldown)
+    },
+    removedFromPool: [], // exercise ids the Coach has asked to stop generating entirely
+    lastUpdated: new Date().toISOString().split('T')[0],
+  };
+  localStorage.setItem('randomizer_constraints', JSON.stringify(defaults));
+  return defaults;
+}
+
+function saveRandomizerConstraints(constraints) {
+  constraints.lastUpdated = new Date().toISOString().split('T')[0];
+  localStorage.setItem('randomizer_constraints', JSON.stringify(constraints));
+}
+
+// Checks whether adding `candidateId` to `alreadyPicked` (array of ids) would
+// violate any same-session pairing exclusion constraint.
+function violatesPairingExclusion(candidateId, alreadyPickedIds, constraints) {
+  return constraints.pairingExclusions.some(rule => {
+    const involvesCandidate = rule.a === candidateId || rule.b === candidateId;
+    if (!involvesCandidate) return false;
+    const otherId = rule.a === candidateId ? rule.b : rule.a;
+    return alreadyPickedIds.includes(otherId);
+  });
+}
+
+// Checks whether a candidate exercise conflicts with anything scheduled on
+// OTHER days this week within the required gap (dayGapConstraints).
+function violatesDayGapConstraint(candidateId, currentDayIndex, constraints) {
+  return constraints.dayGapConstraints.some(rule => {
+    const involvesCandidate = rule.a === candidateId || rule.b === candidateId;
+    if (!involvesCandidate) return false;
+    const otherId = rule.a === candidateId ? rule.b : rule.a;
+    // Check adjacent training days (within minDaysApart) for the other exercise
+    // being a fixed anchor that day — walks PROGRAM to find which days use otherId.
+    for (let offset = 1; offset <= rule.minDaysApart; offset++) {
+      const checkIndices = [currentDayIndex - offset, currentDayIndex + offset].filter(i => i >= 0 && i < PROGRAM.length);
+      for (const idx of checkIndices) {
+        const day = PROGRAM[idx];
+        if (day.rest) continue;
+        const dayVariant = isWeekA ? day.weekA : day.weekB;
+        const usesOtherId = dayVariant.sections.some(section =>
+          section.exercises.some(ex => {
+            const list = ex.superset ? ex.exercises : [ex];
+            return list.some(e => e.id === otherId);
+          })
+        );
+        if (usesOtherId) return true;
+      }
+    }
+    return false;
+  });
+}
+
 function randomizeAccessories() {
   const variant = getCurrentVariant(currentDay);
   if (!variant) return;
@@ -4174,34 +4380,77 @@ function randomizeAccessories() {
   // ── Sentiment analysis: pull scores for individual exercises and superset pairs
   const { exerciseScores, pairScores } = getSentimentScores();
 
-  // Group pool by muscle tag
+  // ── Constraint system: Coach-issued rules that persist across sessions.
+  // Applied at pick time — removed-from-pool exercises are filtered out
+  // entirely, frequency weights boost/reduce pick likelihood, and pairing
+  // exclusions / day-gap constraints are checked against already-picked
+  // exercises before finalizing each pick, so a conflicting exercise is
+  // simply never chosen rather than picked and then removed.
+  const constraints = getRandomizerConstraints();
+
+  // Group pool by muscle tag, excluding anything the Coach has removed
   const byMuscle = {};
   pool.forEach(ex => {
+    if (constraints.removedFromPool.includes(ex.id)) return;
     if (!byMuscle[ex.muscle]) byMuscle[ex.muscle] = [];
     byMuscle[ex.muscle].push(ex);
   });
 
   // For each muscle group, weighted-pick N exercises (N = adjusted slot count),
-  // favoring exercises with higher sentiment scores without ever fully excluding
-  // the rest of the pool.
+  // favoring exercises with higher sentiment scores AND respecting frequency
+  // weights, pairing exclusions, and day-gap constraints from the Coach.
   const picked = [];
   Object.entries(slotCounts).forEach(([muscle, count]) => {
     const group = byMuscle[muscle] || [];
     if (!group.length) return;
     const usedThisRound = new Set();
     for (let i = 0; i < count; i++) {
-      // Avoid picking the exact same exercise twice in the same muscle slot
-      // unless the pool is smaller than the slot count.
-      const available = group.filter(ex => !usedThisRound.has(ex.id));
+      // Filter out anything that would violate a pairing exclusion (with
+      // exercises already picked this session) or a day-gap constraint
+      // (with fixed anchors on nearby days this week).
+      const alreadyPickedIds = picked.map(p => p.id);
+      const constraintSafe = group.filter(ex =>
+        !usedThisRound.has(ex.id) &&
+        !violatesPairingExclusion(ex.id, alreadyPickedIds, constraints) &&
+        !violatesDayGapConstraint(ex.id, currentDay, constraints)
+      );
+      const available = constraintSafe.length ? constraintSafe : group.filter(ex => !usedThisRound.has(ex.id));
       const pickFrom = available.length ? available : group;
-      const chosen = weightedPick(pickFrom, ex => exerciseScores[ex.name] || 0);
+      const scoreWithFrequency = ex => (exerciseScores[ex.name] || 0) + ((constraints.frequencyWeights[ex.id] || 1) - 1) * 5;
+      const chosen = weightedPick(pickFrom, scoreWithFrequency);
       usedThisRound.add(chosen.id);
       picked.push(chosen);
     }
   });
 
-  // Shuffle the final list order
+  // Shuffle the final list order, then enforce sequencing constraints on top
+  // of the shuffle — "after" rules (e.g. Lat Pulldown must come after
+  // Weighted Pull Ups when both appear) and position rules (triceps/delt
+  // isolation work pushed to the end, never before primary lifts).
   picked.sort(() => Math.random() - 0.5);
+
+  // Apply "must come after X" sequence constraints
+  constraints.sequenceConstraints.forEach(rule => {
+    const exIdx = picked.findIndex(p => p.id === rule.exerciseId);
+    const afterIdx = picked.findIndex(p => p.id === rule.after);
+    if (exIdx !== -1 && afterIdx !== -1 && exIdx < afterIdx) {
+      // Swap them so the constrained exercise comes after its anchor
+      const [item] = picked.splice(exIdx, 1);
+      const newAfterIdx = picked.findIndex(p => p.id === rule.after);
+      picked.splice(newAfterIdx + 1, 0, item);
+    }
+  });
+
+  // Apply "must appear late" position rules — move any exercise whose
+  // muscle category is flagged 'late' to the end of the list, preserving
+  // relative order among themselves.
+  const lateCategories = new Set(constraints.sequencePositionRules.filter(r => r.position === 'late').map(r => r.muscleCategory));
+  if (lateCategories.size) {
+    const early = picked.filter(p => !lateCategories.has(p.muscle));
+    const late = picked.filter(p => lateCategories.has(p.muscle));
+    picked.length = 0;
+    picked.push(...early, ...late);
+  }
 
   // ── Recreate favorite superset pairings: if two picked exercises match a
   // pairing you've praised in notes before, tag them with a shared group ID
