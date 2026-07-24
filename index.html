@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.6</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.7</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2948,18 +2948,26 @@ function analyzeLiftTrend(exId, exName) {
 
   const allWithEst = all.map(session => {
     let best = 0;
+    let bestSetWeight = 0, bestSetReps = 0;
+    // Track EVERY real set this session (not just the best-1RM one), so a
+    // rep PR at a given weight can be detected even if that set didn't win
+    // on Epley estimate alone — e.g. 280x7 for the first time ever might
+    // estimate slightly below a prior 275x8, but 280x7 is still a genuine
+    // rep PR at 280lbs and real forward progress.
+    const sessionSets = [];
     const sessionBodyweight = isWeightedPullup ? (getMostRecentDailyLog(session.date).bodyweight || 0) : 0;
     session.sets.forEach(s => {
       if (s.isBurnout) return;
       const w = parseFloat(s.weight), r = parseInt(s.reps);
       if (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
         const totalLoad = isWeightedPullup ? (w + parseFloat(sessionBodyweight)) : w;
+        sessionSets.push({ weight: totalLoad, reps: r });
         const cappedReps = Math.min(r, 10);
         const est = totalLoad * (1 + cappedReps / 30);
-        if (est > best) best = est;
+        if (est > best) { best = est; bestSetWeight = totalLoad; bestSetReps = r; }
       }
     });
-    return { date: session.date, est1RM: best, heavy: !!session.heavy };
+    return { date: session.date, est1RM: best, heavy: !!session.heavy, sessionSets, bestSetWeight, bestSetReps };
   }).filter(s => s.est1RM > 0);
 
   const results = [];
@@ -3004,7 +3012,34 @@ function analyzeLiftTrend(exId, exName) {
     const priorFirst = recent[0].est1RM;
 
     const pctChangeFromStart = ((mostRecent - priorFirst) / priorFirst) * 100;
-    const isPlateaued = mostRecent <= priorBest * 1.02;
+
+    // Rep PR check: did the most recent session hit MORE reps than ever
+    // logged before at that same weight (or a heavier weight), for ANY
+    // individual set — not just the session's best-Epley set? A rep PR at
+    // an existing weight is real forward progress even when the estimated
+    // 1RM doesn't tick up, and must not be flagged as a plateau. Compare
+    // against ALL prior sessions in this split, not just the recent
+    // window, since a true PR is measured against full history.
+    const priorSessions = split.slice(0, -1);
+    const mostRecentSession = split[split.length - 1];
+    let hasRepPR = false;
+    (mostRecentSession.sessionSets || []).forEach(currentSet => {
+      // Best reps ever logged at this weight or higher, across all prior sessions
+      let bestPriorRepsAtThisWeightOrMore = 0;
+      priorSessions.forEach(priorSession => {
+        (priorSession.sessionSets || []).forEach(priorSet => {
+          if (priorSet.weight >= currentSet.weight) {
+            bestPriorRepsAtThisWeightOrMore = Math.max(bestPriorRepsAtThisWeightOrMore, priorSet.reps);
+          }
+        });
+      });
+      if (currentSet.reps > bestPriorRepsAtThisWeightOrMore) hasRepPR = true;
+    });
+
+    // Plateau requires stagnation across BOTH weight (est1RM not up) AND
+    // reps (no rep PR at any working weight this session) — either signal
+    // showing real progress rules out a plateau flag.
+    const isPlateaued = (mostRecent <= priorBest * 1.02) && !hasRepPR;
     const isDeclining = mostRecent < priorFirst * 0.97;
 
     results.push({
@@ -3019,6 +3054,7 @@ function analyzeLiftTrend(exId, exName) {
       isDeclining,
       isLowConfidence,
       hasLargeConsecutiveJump, // specifically flags likely variation mismatch, distinct from other confidence issues
+      hasRepPR, // true if the most recent session hit a rep PR at an existing or heavier weight — real progress even without a higher est1RM
     });
   });
 
@@ -3196,7 +3232,8 @@ function buildCoachDataSummary() {
     } else {
       status = l.isDeclining ? 'declining' : l.isPlateaued ? 'plateaued' : 'progressing';
     }
-    lines.push(`- ${l.exName} [${l.dayType} day]: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)`);
+    const repPRNote = l.hasRepPR ? ' — hit a REP PR at an existing or heavier weight in the most recent session; this is real forward progress even if the estimated 1RM number itself did not rise, do not describe this as a plateau' : '';
+    lines.push(`- ${l.exName} [${l.dayType} day]: ~${l.mostRecent}lbs est. (${status}, was ~${l.priorBest}lbs a few sessions ago)${repPRNote}`);
   });
 
   if (report.feelTrend) {
@@ -3525,9 +3562,10 @@ function showCoachTab() {
     }
     const statusIcon = l.isDeclining ? '📉' : l.isPlateaued ? '➡️' : '📈';
     const statusColor = l.isDeclining ? '#ff6b6b' : l.isPlateaued ? 'var(--orange)' : 'var(--accent)';
+    const repPRTag = l.hasRepPR ? ` <span style="color:var(--accent);" title="Rep PR at an existing or heavier weight this session — real progress even if the estimated 1RM didn't rise.">🏆</span>` : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
       <span style="font-size:13px;color:var(--white);">${l.exName}${dayTypeTag}</span>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${statusColor};">${statusIcon} ${l.mostRecent}lbs est.</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${statusColor};">${statusIcon} ${l.mostRecent}lbs est.${repPRTag}</span>
     </div>`;
   }).join('');
 
