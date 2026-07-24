@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.4</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.6</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1845,15 +1845,19 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
     <div id="custom-drops-${idx}-${si}-0"></div>`;
   }).join('');
 
+  const loggedNames = getAllLoggedExerciseNames();
+  const datalistId = 'custom-names-' + idx;
+
   card.style.position = 'relative';
   card.dataset.anchor = '0';
   card.innerHTML = `
+    <datalist id="${datalistId}">${loggedNames.map(n => `<option value="${n}">`).join('')}</datalist>
     <button class="promote-btn" onclick="toggleAnchor(this)" title="Promote to anchor" style="position:absolute;top:8px;right:84px;width:22px;height:22px;background:var(--card2);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
     <button class="move-btn move-btn-up" onclick="moveCard(this, -1)" title="Move up">▲</button>
     <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down">▼</button>
     <button class="delete-exercise-btn" onclick="removeCustomExercise(${idx})" title="Remove">✕</button>
     <div class="custom-exercise-header" style="padding-right:114px;">
-      <input class="custom-exercise-input" type="text" placeholder="Exercise name"
+      <input class="custom-exercise-input" type="text" placeholder="Exercise name" list="${datalistId}"
         value="${name === 'Exercise Name' ? '' : name}"
         oninput="updateCustomName(${idx}, this.value)" />
     </div>
@@ -4931,23 +4935,39 @@ function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, set
   wrapper.className = 'superset-block';
   wrapper.id = 'custom-superset-' + idxA;
 
-  const makeSets = (sets, idx) => (sets && sets.length ? sets : [{ weight: '', reps: '' }]).map((s, si) => `
-    <div class="set-entry">
+  const makeSets = (sets, idx) => (sets && sets.length ? sets : [{ weight: '', reps: '' }]).map((s, si) => {
+    const hasNote = s.note && s.note.trim().length > 0;
+    return `<div class="set-entry">
       <span class="set-num">S${si+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
         value="${s.weight||''}" onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
         value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
-    </div>`).join('');
+      <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
+      <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>
+    </div>
+    <div class="set-notes-area ${hasNote ? 'open' : ''}" id="custom-set-note-area-${idx}-${si}">
+      <textarea class="set-note-input" placeholder="How did that feel? Anything to note..."
+        oninput="updateCustomSetNote(${idx}, ${si}, this.value)">${s.note || ''}</textarea>
+    </div>
+    <div id="custom-drops-${idx}-${si}-0"></div>`;
+  }).join('');
+
+  const loggedNames = getAllLoggedExerciseNames();
+  const datalistId = 'superset-names-' + idxA;
+  const datalistHtml = `<datalist id="${datalistId}">${loggedNames.map(n => `<option value="${n}">`).join('')}</datalist>`;
 
   wrapper.innerHTML = `
+    ${datalistHtml}
     <div class="superset-header">⚡ Superset — back to back
+      <button class="move-btn move-btn-up" onclick="moveCard(this, -1)" title="Move up" style="position:static;float:right;margin-left:6px;">▲</button>
+      <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down" style="position:static;float:right;margin-left:6px;">▼</button>
       <button onclick="removeCustomSuperset(${idxA}, ${idxB})" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;">✕</button>
     </div>
     <div class="custom-exercise-card" style="margin-bottom:3px;border-radius:7px;">
       <div class="custom-exercise-header">
-        <input class="custom-exercise-input" type="text" placeholder="Exercise A"
+        <input class="custom-exercise-input" type="text" placeholder="Exercise A" list="${datalistId}"
           value="${nameA}" oninput="updateCustomName(${idxA}, this.value)" />
       </div>
       <div class="log-area">
@@ -4958,7 +4978,7 @@ function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, set
     <div class="superset-divider">↕ then immediately</div>
     <div class="custom-exercise-card" style="border-radius:7px;">
       <div class="custom-exercise-header">
-        <input class="custom-exercise-input" type="text" placeholder="Exercise B"
+        <input class="custom-exercise-input" type="text" placeholder="Exercise B" list="${datalistId}"
           value="${nameB}" oninput="updateCustomName(${idxB}, this.value)" />
       </div>
       <div class="log-area">
