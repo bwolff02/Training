@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.4</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.5</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -3280,9 +3280,22 @@ function buildCoachDataSummary() {
   lines.push("\nRECENT SESSION HISTORY (last 2 sessions per day-type — read the [DAY TYPE] label carefully, it tells you whether this was a HEAVY day, lower reps/higher weight by design, or a VOLUME day, higher reps/lighter weight by design — these are intentionally different targets, not inconsistency):");
   ['push', 'pull', 'legs', 'upper'].forEach(muscle => {
     ['heavy', 'volume'].forEach(tag => {
-      const key = 'hist_session_' + muscle + '-' + tag;
-      let sessions;
-      try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { sessions = []; }
+      // Upper day history was originally saved under 'sat-upper-<tag>' (the
+      // full variant id minus -a/-b), before getMuscleGroupFromId was fixed
+      // to return the clean 'upper' group name going forward. Check BOTH
+      // key formats so existing sessions already saved under the old key
+      // aren't orphaned by that fix — merge and dedupe by date if both exist.
+      const keysToCheck = muscle === 'upper'
+        ? ['hist_session_upper-' + tag, 'hist_session_sat-upper-' + tag]
+        : ['hist_session_' + muscle + '-' + tag];
+      let sessions = [];
+      keysToCheck.forEach(key => {
+        try {
+          const found = JSON.parse(localStorage.getItem(key) || '[]');
+          found.forEach(s => { if (!sessions.some(existing => existing.date === s.date)) sessions.push(s); });
+        } catch(e) { /* ignore malformed data */ }
+      });
+      sessions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       sessions.slice(-2).forEach(s => {
         const dayTypeLabel = `[DAY TYPE: ${muscle.toUpperCase()} — ${tag.toUpperCase()}]`;
         const feelLabel = s.feel ? ` [FEEL RATING: ${s.feel}/10]` : '';
@@ -4467,9 +4480,16 @@ function getAccessoryUsageHistory(muscleGroup, windowSize) {
   const nameToId = buildExerciseNameToIdMap();
   const heavyKey = 'hist_session_' + muscleGroup + '-heavy';
   const volKey = 'hist_session_' + muscleGroup + '-volume';
+  // Upper day history was originally saved under 'sat-upper-<tag>' before
+  // getMuscleGroupFromId was fixed to return the clean 'upper' group name.
+  // Include the legacy keys too so existing sessions still feed recency
+  // tracking rather than being silently invisible to it.
+  const keysToCheck = muscleGroup === 'upper'
+    ? [heavyKey, volKey, 'hist_session_sat-upper-heavy', 'hist_session_sat-upper-volume']
+    : [heavyKey, volKey];
 
   let sessions = [];
-  [heavyKey, volKey].forEach(key => {
+  keysToCheck.forEach(key => {
     try {
       const raw = JSON.parse(localStorage.getItem(key) || '[]');
       sessions = sessions.concat(raw);
@@ -5001,6 +5021,7 @@ function getMuscleGroupFromId(variantId) {
   if (variantId.includes('legs')) return 'legs';
   if (variantId.includes('push')) return 'push';
   if (variantId.includes('pull')) return 'pull';
+  if (variantId.includes('upper')) return 'upper';
   return variantId.replace(/-[ab]$/, '');
 }
 
@@ -5017,10 +5038,24 @@ function getMuscleGroupHistory(variant) {
   const volumeKey = 'hist_session_' + muscleGroup + '-volume';
   const heavySessions = JSON.parse(localStorage.getItem(heavyKey) || '[]');
   const volumeSessions = JSON.parse(localStorage.getItem(volumeKey) || '[]');
-  const tagged = [
+  let tagged = [
     ...heavySessions.map((s, i) => ({ ...s, _srcKey: heavyKey, _srcIdx: i })),
     ...volumeSessions.map((s, i) => ({ ...s, _srcKey: volumeKey, _srcIdx: i })),
   ];
+  // Upper day history was originally saved under 'sat-upper-<tag>' before
+  // getMuscleGroupFromId was fixed to return the clean 'upper' group name.
+  // Include the legacy key too so existing sessions (like 7/25) don't
+  // disappear from Past Sessions just because new saves use the new key.
+  if (muscleGroup === 'upper') {
+    const legacyHeavyKey = 'hist_session_sat-upper-heavy';
+    const legacyVolumeKey = 'hist_session_sat-upper-volume';
+    const legacyHeavy = JSON.parse(localStorage.getItem(legacyHeavyKey) || '[]');
+    const legacyVolume = JSON.parse(localStorage.getItem(legacyVolumeKey) || '[]');
+    tagged = tagged.concat(
+      legacyHeavy.map((s, i) => ({ ...s, _srcKey: legacyHeavyKey, _srcIdx: i })),
+      legacyVolume.map((s, i) => ({ ...s, _srcKey: legacyVolumeKey, _srcIdx: i }))
+    );
+  }
   return tagged.sort((a, b) => a.date > b.date ? 1 : -1);
 }
 
