@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.4</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -3278,7 +3278,7 @@ function buildCoachDataSummary() {
   }
 
   lines.push("\nRECENT SESSION HISTORY (last 2 sessions per day-type — read the [DAY TYPE] label carefully, it tells you whether this was a HEAVY day, lower reps/higher weight by design, or a VOLUME day, higher reps/lighter weight by design — these are intentionally different targets, not inconsistency):");
-  ['push', 'pull', 'legs'].forEach(muscle => {
+  ['push', 'pull', 'legs', 'upper'].forEach(muscle => {
     ['heavy', 'volume'].forEach(tag => {
       const key = 'hist_session_' + muscle + '-' + tag;
       let sessions;
