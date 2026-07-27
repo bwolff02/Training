@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.8.7</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -836,7 +836,7 @@
 <main id="mainContent"></main>
 <div class="save-bar">
   <button class="btn btn-ghost" onclick="clearDay()">Clear</button>
-  <button class="btn btn-accent" onclick="saveDay()">Save Workout</button>
+  <button class="btn btn-accent" id="saveWorkoutBtn" onclick="saveDay()">Save Workout</button>
 </div>
 <script>
 
@@ -1609,7 +1609,7 @@ function renderDay(index) {
         if (ex.supersetGroup) {
           const partner = savedSnapshot.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id));
           if (partner) {
-            html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
+            html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
             html += renderExercise(ex, isVol);
             html += `<div class="superset-divider">↕ then immediately</div>`;
             html += renderExercise(partner, isVol);
@@ -1625,7 +1625,7 @@ function renderDay(index) {
     } else {
       section.exercises.forEach(ex => {
         if (ex.superset) {
-          html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back</div>`;
+          html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
           ex.exercises.forEach((sex, si) => {
             html += renderExercise(sex, isVol);
             if (si < ex.exercises.length - 1) html += `<div class="superset-divider">↕ then immediately</div>`;
@@ -2353,9 +2353,22 @@ function addBurnoutSet(exId) {
   container.appendChild(dropContainer);
 }
 
+let saveInProgress = false;
+
 async function saveDay() {
+  // Guard against double-tap: if a save is already running, ignore this
+  // call entirely rather than letting a second invocation write the same
+  // session's history twice. Without this, a slow response combined with
+  // an impatient second tap silently duplicates every exercise logged that
+  // day, which corrupts trend detection (the "most recent" and "prior"
+  // session become the same data, masking real PRs as plateaus).
+  if (saveInProgress) return;
+  saveInProgress = true;
+  const saveBtn = document.getElementById('saveWorkoutBtn');
+  if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
+
   const day = PROGRAM[currentDay];
-  if (day.rest) return;
+  if (day.rest) { saveInProgress = false; return; }
   const variant = getCurrentVariant(currentDay);
   const savedDayIndex = currentDay;
   let prMsg = null;
@@ -2519,6 +2532,11 @@ async function saveDay() {
   sessionLogs = {};
   justSavedDay = savedDayIndex;
   renderDay(savedDayIndex);
+  saveInProgress = false; // release the guard so the next real save isn't blocked
+  // Save Workout lives in the static footer outside #mainContent, so
+  // renderDay() does NOT rebuild it — restore its normal appearance here.
+  const saveBtnAfter = document.getElementById('saveWorkoutBtn');
+  if (saveBtnAfter) { saveBtnAfter.textContent = 'Save Workout'; saveBtnAfter.disabled = false; saveBtnAfter.style.opacity = ''; }
 }
 
 function showSaveSuccess(prMsg) {
@@ -2967,7 +2985,7 @@ function analyzeLiftTrend(exId, exName) {
         if (est > best) { best = est; bestSetWeight = totalLoad; bestSetReps = r; }
       }
     });
-    return { date: session.date, est1RM: best, heavy: !!session.heavy, sessionSets, bestSetWeight, bestSetReps };
+    return { date: session.date, est1RM: best, heavy: !!session.heavy, deload: !!session.deload, sessionSets, bestSetWeight, bestSetReps };
   }).filter(s => s.est1RM > 0);
 
   const results = [];
@@ -2975,6 +2993,14 @@ function analyzeLiftTrend(exId, exName) {
   [true, false].forEach(isHeavySplit => {
     let split = allWithEst.filter(s => s.heavy === isHeavySplit);
     if (split.length < 3) return; // not enough data for THIS day type specifically
+
+    // Deload weeks are intentionally lighter by design — excluded entirely
+    // from this split's trend math (not just the jump check), the same way
+    // getAllHistory already excludes deload from the raw pool by default.
+    // A prior version still let deload sessions leak into est1RM history
+    // for the variation check specifically; this removes that gap.
+    split = split.filter(s => !s.deload);
+    if (split.length < 3) return;
 
     // Outlier filtering — same median-based approach as before, but now
     // scoped to just this day type's own sessions.
@@ -2993,10 +3019,12 @@ function analyzeLiftTrend(exId, exName) {
     const recentSpread = recentMax > 0 ? (recentMax - recentMin) / recentMax : 0;
 
     // Variation-mismatch detection: flag if estimated 1RM jumps or drops
-    // more than 20% between any two CONSECUTIVE sessions within this split.
-    // A swing that large between back-to-back sessions of the supposedly
-    // same exercise is much more likely to be a setup/grip/attachment
-    // change logged under the same name than a real strength change.
+    // more than 20% between any two CONSECUTIVE sessions within this split
+    // (deload sessions already excluded above, so this only compares real
+    // working-weight sessions against each other). A swing that large
+    // between back-to-back sessions of the supposedly same exercise is
+    // much more likely to be a setup/grip/attachment change logged under
+    // the same name than a real strength change.
     let hasLargeConsecutiveJump = false;
     for (let i = 1; i < recent.length; i++) {
       const prev = recent[i - 1].est1RM;
@@ -3208,7 +3236,16 @@ function generateCoachReport() {
     });
   }
 
-  return { liftAnalyses, feelTrend, recommendations };
+  // Pool utilization: which pool exercises haven't shown up in the last 8
+  // real sessions of their day type, per muscle group with an accessory
+  // pool — surfaces systematic underselection per spec point 4.
+  const poolUtilization = {};
+  Object.keys(ACCESSORY_POOLS).forEach(muscleGroup => {
+    const unused = getUnusedPoolExercises(muscleGroup);
+    if (unused.length) poolUtilization[muscleGroup] = unused;
+  });
+
+  return { liftAnalyses, feelTrend, recommendations, poolUtilization };
 }
 
 
@@ -3344,6 +3381,16 @@ async function sendCoachMessage() {
     ].join('\n') || '(none yet)';
 
     const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
+
+COACHING PHILOSOPHY — reason like an experienced strength coach, not a generic assistant:
+- Progressive overload is the goal, but it isn't linear every session — a rep PR at an existing weight, a heavier weight at fewer reps, or better bar speed/control at the same numbers are ALL valid progress. Don't fixate on estimated 1RM alone; it's a rough proxy, not the truth.
+- Weigh subjective feel against objective numbers, don't just report both. If feel is low but the numbers are up, say what that combination actually means (pushing through fatigue, or a red flag if it's a pattern). If feel is high but numbers are flat, say that's worth investigating rather than celebrating.
+- Fatigue management matters as much as progression. Chronic under-recovery shows up as: declining trends across MULTIPLE lifts at once (not just one), feel ratings trending down over 2+ weeks, or sleep score consistently low before hard sessions. One bad session is noise; a pattern across lifts and weeks is signal — call out the difference explicitly.
+- Sequencing and fatigue within a session matter for interpreting a single lift's number. A weak set on the 3rd exercise of a superset late in a long session is not the same signal as a weak set leading a fresh session — always check EXERCISE_ORDER before concluding something is a strength issue.
+- When Bryce asks what to do next session, give a specific, actionable call — a weight, a rep target, or "repeat this weight, push reps" — not "listen to your body" as the whole answer. He came to you for a specific opinion; give one, then explain the reasoning briefly.
+- Distinguish between a plateau worth addressing (2-3+ sessions flat with no rep PRs, at a comparable difficulty) and normal week-to-week variance (one session down after a hard week, a single low-feel day, expected fluctuation around a true trend). Don't call something a plateau or a problem after just one data point.
+- When multiple things could explain a result (fatigue, sleep, air quality, sequencing, a real strength change), name the most likely explanation given the specific data in front of you, rather than listing every possibility with equal weight. A good coach commits to a read while staying open to being wrong.
+- Long-term programming logic matters: know when volume should increase vs. when intensity should, recognize when an exercise has run its course and should rotate out, and recognize when Bryce is undertraining a muscle group vs. just varying it session to session.
 
 RANDOMIZER ADJUSTMENT REQUESTS: if, based on reviewing his logged session data, you identify a real issue worth adjusting in the accessory randomizer (unnecessary fatigue from sequencing, a movement pattern appearing too close together, an accessory not appearing often enough to trend, an accessory crowding out others, or a pairing that's demonstrably hurting performance per his own notes), you may propose an adjustment. To do this, end your message with a structured block in exactly this format so the app can offer Bryce a one-tap way to apply it:
 
@@ -3578,6 +3625,15 @@ function showCoachTab() {
       <div style="padding:0 20px 20px;">
         ${recsHtml}
         ${liftRowsHtml ? `<div style="margin-top:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Anchor Lift Trends</div>${liftRowsHtml}</div>` : ''}
+        ${Object.keys(report.poolUtilization).length ? `<div style="margin-top:20px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Underused Pool Exercises (last 8 sessions)</div>
+          ${Object.entries(report.poolUtilization).map(([muscle, names]) => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--muted);text-transform:capitalize;margin-bottom:4px;">${muscle.replace('_',' ')}</div>
+              <div style="font-size:12px;color:var(--white);">${names.join(', ')}</div>
+            </div>
+          `).join('')}
+        </div>` : ''}
 
         <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -4216,6 +4272,24 @@ function weightedPick(items, scoreFn) {
   return items[items.length - 1];
 }
 
+// Like weightedPick, but takes a MULTIPLIER function instead of an additive
+// score function. The base weight (1 + sentiment score) is computed first,
+// then scaled by multiplierFn — this is what lets recency/pattern-detection
+// genuinely suppress an exercise (e.g. 0.02x) regardless of how high its
+// sentiment or Coach frequency weight is, rather than just nudging an
+// additive total. weightedPick's additive-only model can't guarantee that;
+// a multiplicative model can.
+function weightedPickWithMultiplier(items, baseScoreFn, multiplierFn) {
+  const weights = items.map(item => (1 + Math.max(0, baseScoreFn(item))) * Math.max(0.001, multiplierFn(item)));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
 
 // ─── LAST-SESSION ACCESSORY PRESET ──────────────────────────────
 
@@ -4382,6 +4456,99 @@ function violatesDayGapConstraint(candidateId, currentDayIndex, constraints) {
   });
 }
 
+// ─── RANDOMIZER RECENCY & FREQUENCY TRACKING ─────────────────────
+// Scans the last N real sessions of a given muscle-group day type (using
+// the same rolling hist_session_<muscle>-<tag> history Coach already reads)
+// and returns, per exercise id, how many sessions ago it last appeared and
+// how many times it's appeared in the window. Names are resolved back to
+// real ids via the existing name-to-id map, so a rename doesn't break
+// recency tracking the same way it doesn't break trend tracking.
+function getAccessoryUsageHistory(muscleGroup, windowSize) {
+  const nameToId = buildExerciseNameToIdMap();
+  const heavyKey = 'hist_session_' + muscleGroup + '-heavy';
+  const volKey = 'hist_session_' + muscleGroup + '-volume';
+
+  let sessions = [];
+  [heavyKey, volKey].forEach(key => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(key) || '[]');
+      sessions = sessions.concat(raw);
+    } catch (e) { /* ignore malformed data */ }
+  });
+  // Sort oldest to newest so "sessions ago" counts correctly, then take
+  // only the most recent windowSize sessions.
+  sessions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  sessions = sessions.slice(-windowSize);
+
+  // usage[exId] = { lastSeenSessionsAgo: N, timesInWindow: N, recentPositions: [indices] }
+  const usage = {};
+  sessions.forEach((session, idx) => {
+    const sessionsAgo = sessions.length - 1 - idx; // 0 = most recent session
+    (session.exercises || []).forEach(ex => {
+      if (!ex.name) return;
+      const norm = normalizeExerciseName(ex.name);
+      const exId = nameToId[norm];
+      if (!exId) return; // can't resolve to a real id, skip
+      if (!usage[exId]) usage[exId] = { lastSeenSessionsAgo: null, timesInWindow: 0, positions: [] };
+      usage[exId].timesInWindow += 1;
+      usage[exId].positions.push(sessionsAgo);
+      if (usage[exId].lastSeenSessionsAgo === null || sessionsAgo < usage[exId].lastSeenSessionsAgo) {
+        usage[exId].lastSeenSessionsAgo = sessionsAgo;
+      }
+    });
+  });
+
+  return { usage, sessionsInWindow: sessions.length };
+}
+
+// Converts usage history into a per-exercise recency/frequency multiplier
+// applied on top of sentiment + Coach frequency weights:
+// - Used in the last 2 sessions of this day type: heavily suppressed, the
+//   most recent use suppressed hardest.
+// - Appeared 3+ times in the last 5 sessions: pattern detected, force to
+//   near-zero so a different exercise gets picked regardless of other
+//   weights (spec point 3 — "force a different selection").
+// - Appearing disproportionately often relative to an even pool share:
+//   suppressed until the rest of the pool catches up (spec point 2).
+// - Otherwise: the longer since last use (or never used), the higher the
+//   multiplier — rewards pool exercises that have gone unused.
+function getRecencyMultiplier(exId, usage, poolSize) {
+  const record = usage[exId];
+  if (!record) return 1.5; // never appeared in the window — mildly favored, not forced
+
+  // Pattern detection: 3+ times in the last 5 sessions overrides everything
+  // else with a near-zero multiplier, per spec point 3.
+  const last5Positions = record.positions.filter(p => p < 5);
+  if (last5Positions.length >= 3) return 0.02;
+
+  // Recency penalty: used in the last 2 sessions of this day type.
+  if (record.lastSeenSessionsAgo === 0) return 0.05; // used last session — heavily suppressed
+  if (record.lastSeenSessionsAgo === 1) return 0.15; // used 2 sessions ago — still suppressed
+
+  // Frequency/distribution check: if this exercise's share of total
+  // appearances in the window is well above an even pool share, suppress
+  // until the rest of the pool catches up.
+  const totalAppearances = Object.values(usage).reduce((sum, r) => sum + r.timesInWindow, 0);
+  const evenShare = totalAppearances > 0 ? (1 / poolSize) : 0;
+  const actualShare = totalAppearances > 0 ? record.timesInWindow / totalAppearances : 0;
+  if (totalAppearances >= poolSize && actualShare > evenShare * 1.8) return 0.3;
+
+  // Otherwise, reward exercises that haven't been used recently — further
+  // back (or never seen this specific record) scales the multiplier up.
+  const sessionsAgo = record.lastSeenSessionsAgo;
+  return Math.min(1 + sessionsAgo * 0.3, 3); // caps at 3x so it doesn't dominate sentiment entirely
+}
+
+// Reports which pool exercises have NOT appeared in the recent window, for
+// Bryce to review — surfaces systematic underselection per spec point 4.
+function getUnusedPoolExercises(muscleGroup) {
+  const pool = ACCESSORY_POOLS[muscleGroup];
+  if (!pool) return [];
+  const { usage } = getAccessoryUsageHistory(muscleGroup, 8);
+  return pool.filter(ex => !usage[ex.id]).map(ex => ex.name);
+}
+
+
 function randomizeAccessories() {
   const variant = getCurrentVariant(currentDay);
   if (!variant) return;
@@ -4438,13 +4605,25 @@ function randomizeAccessories() {
     byMuscle[ex.muscle].push(ex);
   });
 
+  // ── Recency & frequency tracking: pulls the last 8 real sessions of this
+  // day type and computes a per-exercise recency/pattern multiplier BEFORE
+  // picking starts, so it's available to every pick this round (not
+  // recomputed per-slot). Also track what gets picked THIS session so
+  // back-to-back slots within the same randomize call respect recency too
+  // (spec point 6 — no consecutive-session repeats even for high-weight
+  // exercises), by treating "already picked this round" as sessionsAgo=0.
+  const { usage: usageHistory, sessionsInWindow } = getAccessoryUsageHistory(muscleGroup, 8);
+
   // For each muscle group, weighted-pick N exercises (N = adjusted slot count),
   // favoring exercises with higher sentiment scores AND respecting frequency
-  // weights, pairing exclusions, and day-gap constraints from the Coach.
+  // weights, pairing exclusions, and day-gap constraints from the Coach —
+  // with recency/pattern suppression layered on top via a genuine
+  // multiplier, not just an additive nudge.
   const picked = [];
   Object.entries(slotCounts).forEach(([muscle, count]) => {
     const group = byMuscle[muscle] || [];
     if (!group.length) return;
+    const poolSizeForMuscle = group.length;
     const usedThisRound = new Set();
     for (let i = 0; i < count; i++) {
       // Filter out anything that would violate a pairing exclusion (with
@@ -4458,8 +4637,15 @@ function randomizeAccessories() {
       );
       const available = constraintSafe.length ? constraintSafe : group.filter(ex => !usedThisRound.has(ex.id));
       const pickFrom = available.length ? available : group;
-      const scoreWithFrequency = ex => (exerciseScores[ex.name] || 0) + ((constraints.frequencyWeights[ex.id] || 1) - 1) * 5;
-      const chosen = weightedPick(pickFrom, scoreWithFrequency);
+      const baseScore = ex => (exerciseScores[ex.name] || 0) + ((constraints.frequencyWeights[ex.id] || 1) - 1) * 5;
+      const recencyMultiplier = ex => {
+        // Already picked earlier in THIS randomize call — treat as if used
+        // last session, so a high-weight exercise still can't appear twice
+        // back-to-back within the same session's accessory selection.
+        if (alreadyPickedIds.includes(ex.id)) return 0.05;
+        return getRecencyMultiplier(ex.id, usageHistory, poolSizeForMuscle);
+      };
+      const chosen = weightedPickWithMultiplier(pickFrom, baseScore, recencyMultiplier);
       usedThisRound.add(chosen.id);
       picked.push(chosen);
     }
@@ -4532,7 +4718,7 @@ function randomizeAccessories() {
     if (groupId) {
       const partner = picked.find(p => p.id !== ex.id && supersetAssignments[p.id] === groupId && !rendered.has(p.id));
       if (partner) {
-        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back (a favorite pairing)</div>`;
+        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back (a favorite pairing)<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
         html += renderExercise(ex, isVol);
         html += `<div class="superset-divider">↕ then immediately</div>`;
         html += renderExercise(partner, isVol);
@@ -5172,9 +5358,53 @@ function deleteExerciseCard(btn) {
   if (!card) return;
   const exId = card.dataset.exid;
   if (exId && sessionLogs[exId]) delete sessionLogs[exId];
+
+  // If this card is inside a superset block, removing it can leave the
+  // OTHER exercise orphaned inside a "⚡ Superset — back to back" header
+  // and a leftover "↕ then immediately" divider with nothing to pair
+  // against. Clean that up so deleting one half of a superset genuinely
+  // un-supersets the remaining exercise instead of leaving a broken shell.
+  const supersetBlock = card.closest('.superset-block');
   card.remove();
+
+  if (supersetBlock) {
+    const remainingCards = supersetBlock.querySelectorAll('.exercise-card');
+    if (remainingCards.length <= 1) {
+      // Unwrap: move the remaining exercise (if any) out to sit directly in
+      // the section, then remove the now-empty/single-item superset shell
+      // entirely — no more superset header, no orphaned divider.
+      if (remainingCards.length === 1) {
+        supersetBlock.parentNode.insertBefore(remainingCards[0], supersetBlock);
+      }
+      supersetBlock.remove();
+    }
+  }
 }
 
+// Explicit "un-superset" action — breaks a superset block apart into its
+// individual standalone exercise cards without deleting either one, for
+// when Bryce wants to stop pairing two exercises but keep logging both.
+function breakSuperset(btn) {
+  const supersetBlock = btn.closest('.superset-block');
+  if (!supersetBlock) return;
+  const cards = Array.from(supersetBlock.querySelectorAll('.exercise-card'));
+  cards.forEach(card => supersetBlock.parentNode.insertBefore(card, supersetBlock));
+  supersetBlock.remove();
+}
+
+
+// Autosave whenever the app is backgrounded — locking the phone, switching
+// apps, or a call coming in can all trigger this. switchDay()'s autosave
+// only covers in-app tab navigation; without this, backgrounding mid-entry
+// (especially if iOS later reloads the page) could still lose unsaved
+// weights/reps with no chance for the app to react. This is a pure safety
+// net — it only fires if something is actually there to save, same guard
+// as autosaveCurrentDay itself.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    autosaveCurrentDay();
+  }
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
