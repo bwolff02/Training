@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.5</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.8</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1819,6 +1819,27 @@ function addCustomExercise(listId) {
   appendCustomExerciseCard(currentDay, idx, 'Exercise Name', [], listId);
 }
 
+// Custom exercises (typed by name, not picked from the program) have no
+// fixed exId at render time — getSuggestion() needs a real exercise id to
+// look up history. This resolves a typed name back to whatever real id its
+// history actually lives under (the same resolution Coach and the
+// randomizer already use), then reuses getSuggestion's exact same logic so
+// a custom card gets suggestions from even a single prior session, instead
+// of the plain unsuggested input it silently fell back to before.
+function getCustomExerciseSuggestion(name, isVolumeDay) {
+  if (!name || !name.trim()) return null;
+  const nameToId = buildExerciseNameToIdMap();
+  const norm = normalizeExerciseName(name);
+  const exId = nameToId[norm];
+  if (!exId) return null; // never logged before under any resolvable id — genuinely no data to suggest from
+  // Custom exercises are never anchors (no program-defined anchor status),
+  // so this always goes through getSuggestion's non-anchor "hold weight"
+  // branch — which is exactly right: a custom accessory should suggest
+  // holding its last real working weight, not push/build logic meant for
+  // programmed anchors with a fixed day-type target.
+  return getSuggestion(exId, isVolumeDay, false, null);
+}
+
 function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
   const list = document.getElementById(listId || ('custom-list-' + dayIndex));
   if (!list) return;
@@ -1848,6 +1869,15 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
   const loggedNames = getAllLoggedExerciseNames();
   const datalistId = 'custom-names-' + idx;
 
+  // Suggestion box, matching the preset exercise card's styling exactly —
+  // only rendered if this name resolves to real prior history. isVol is
+  // derived fresh here (not inherited from an outer scope, since this is a
+  // separate top-level function) so heavy vs volume day logic is correct.
+  const dayVariant = getCurrentVariant(dayIndex);
+  const isVolDay = !!(dayVariant && dayVariant.tag === 'volume');
+  const customSugg = getCustomExerciseSuggestion(name, isVolDay);
+  const suggHtml = buildCustomSuggestionHtml(customSugg);
+
   card.style.position = 'relative';
   card.dataset.anchor = '0';
   card.innerHTML = `
@@ -1859,13 +1889,50 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
     <div class="custom-exercise-header" style="padding-right:114px;">
       <input class="custom-exercise-input" type="text" placeholder="Exercise name" list="${datalistId}"
         value="${name === 'Exercise Name' ? '' : name}"
-        oninput="updateCustomName(${idx}, this.value)" />
+        oninput="updateCustomName(${idx}, this.value); refreshCustomSuggestion(${idx}, this.value, ${dayIndex})" />
     </div>
     <div class="log-area">
+      ${suggHtml}
       <div id="custom-sets-${idx}">${setsHtml}</div>
       <button class="add-set-btn" onclick="addCustomSet(${idx})">+ Add Set</button>
     </div>`;
   list.appendChild(card);
+}
+
+// Builds the exact same suggestion box markup preset exercise cards use,
+// so custom exercises get visually identical suggestions instead of a
+// differently-styled (or unstyled, if class names don't match) box.
+function buildCustomSuggestionHtml(sugg) {
+  if (!sugg) return '';
+  const weightDisplay = sugg.recWeight > 0 ? `${sugg.recWeight}lbs` : 'BW';
+  const lastDisplay = sugg.lastWeight > 0 ? `${sugg.lastWeight}lbs` : 'BW';
+  const repHint = (sugg.isVolume || sugg.isDeload) ? `<span style="color:var(--orange);font-size:11px;margin-left:6px;">@ ${sugg.repTarget}</span>` : '';
+  const lastLine = sugg.isDeload
+    ? `${sugg.note} (best: ${lastDisplay})`
+    : `${sugg.note} — last: ${lastDisplay} × ${sugg.maxReps}${sugg.lastDate ? ' (' + sugg.lastDate + ')' : ''}`;
+  return `<div class="suggestion-box">
+    <div class="sugg-title">💡 Suggested</div>
+    <div class="sugg-val">${sugg.arrow} ${weightDisplay}${repHint}</div>
+    <div class="sugg-last">${lastLine}</div>
+  </div>`;
+}
+
+function refreshCustomSuggestion(idx, name, dayIndex) {
+  const card = document.getElementById('custom-ex-' + idx);
+  if (!card) return;
+  const logArea = card.querySelector('.log-area');
+  if (!logArea) return;
+  const existingBox = logArea.querySelector('.suggestion-box');
+  const dayVariant = getCurrentVariant(typeof dayIndex === 'number' ? dayIndex : currentDay);
+  const isVolDay = !!(dayVariant && dayVariant.tag === 'volume');
+  const customSugg = getCustomExerciseSuggestion(name, isVolDay);
+  const html = buildCustomSuggestionHtml(customSugg);
+  if (html) {
+    if (existingBox) existingBox.outerHTML = html;
+    else logArea.insertAdjacentHTML('afterbegin', html);
+  } else if (existingBox) {
+    existingBox.remove();
+  }
 }
 
 function updateCustomName(idx, val) {
@@ -3297,6 +3364,12 @@ function buildCoachDataSummary() {
       });
       sessions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       sessions.slice(-2).forEach(s => {
+        // Compute the actual day of week from the date string rather than
+        // relying on the model to work it out — this also lets us state
+        // Bryce's fixed weekly schedule explicitly (Monday is always Legs,
+        // Tuesday always Push, etc.) so Coach never has to guess or infer
+        // which training day a date corresponds to.
+        const weekdayName = s.date ? new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' }) : '';
         const dayTypeLabel = `[DAY TYPE: ${muscle.toUpperCase()} — ${tag.toUpperCase()}]`;
         const feelLabel = s.feel ? ` [FEEL RATING: ${s.feel}/10]` : '';
         // Bodyweight, Oura score, and external limiter tags surface inline
@@ -3305,7 +3378,7 @@ function buildCoachDataSummary() {
         const bwLabel = s.bodyweight ? ` [BODYWEIGHT: ${s.bodyweight}lbs]` : '';
         const ouraLabel = s.ouraScore ? ` [OURA SLEEP SCORE: ${s.ouraScore}/100]` : '';
         const limiterLabel = (s.limiters && s.limiters.length) ? ` [EXTERNAL LIMITERS: ${s.limiters.join(', ')}]` : '';
-        lines.push(`\n- ${s.date} ${dayTypeLabel}${feelLabel}${bwLabel}${ouraLabel}${limiterLabel}`);
+        lines.push(`\n- ${s.date} (${weekdayName}) ${dayTypeLabel}${feelLabel}${bwLabel}${ouraLabel}${limiterLabel}`);
 
         // Exercise order is meaningful: it reflects the actual sequence performed
         // that session, listed as EXERCISE_ORDER so the coach knows this isn't
@@ -3395,13 +3468,35 @@ async function sendCoachMessage() {
 
     const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
 
+BRYCE'S FIXED WEEKLY SCHEDULE — this never changes and you should never have to infer it from data:
+- Monday: Legs (Quad focus, alternates Heavy/Volume by week)
+- Tuesday: Push
+- Wednesday: Pull (Lat-focus, always)
+- Thursday: Rest
+- Friday: Legs (Glute/Hamstring focus, alternates Heavy/Volume by week)
+- Saturday: Upper (Row-focused in Week A, Chest-focused in Week B)
+- Sunday: Rest
+Every session's date includes its actual day of the week explicitly (e.g. "2026-07-27 (Monday)") — use that directly rather than calculating or guessing it yourself, and cross-reference it against this schedule to know exactly which day type a session belongs to without needing to infer it from the DAY TYPE label alone.
+
 COACHING PHILOSOPHY — reason like an experienced strength coach, not a generic assistant:
+- You are an INDEPENDENT, IMPARTIAL evaluator, not an agreeable assistant. Your job is to tell Bryce what the data actually shows, even when that contradicts what he just said or clearly wants to hear. If he claims progress and the numbers say otherwise, say so plainly. If he blames an external factor (fatigue, sleep, air quality) for a bad session but the data doesn't support that read, say what you actually see instead. Agreement is not the default — accuracy is.
+- Never state a specific number, date, or session detail unless it appears verbatim in the data provided to you below. If you're not sure a detail is in the data, say "I don't have that logged" rather than guessing or reconstructing it from memory or pattern-matching. Fabricating a plausible-sounding number is a serious failure, worse than admitting you don't have the data.
+- Disagreement should be common, not rare. A good coach who always says "yes, that's progress" or "yes, that makes sense" on every single exchange is not doing his job. If you find yourself agreeing with Bryce's read of a session multiple times in a row, treat that as a signal to look harder at the data for a less comfortable but more accurate read.
 - Progressive overload is the goal, but it isn't linear every session — a rep PR at an existing weight, a heavier weight at fewer reps, or better bar speed/control at the same numbers are ALL valid progress. Don't fixate on estimated 1RM alone; it's a rough proxy, not the truth.
 - Weigh subjective feel against objective numbers, don't just report both. If feel is low but the numbers are up, say what that combination actually means (pushing through fatigue, or a red flag if it's a pattern). If feel is high but numbers are flat, say that's worth investigating rather than celebrating.
 - Fatigue management matters as much as progression. Chronic under-recovery shows up as: declining trends across MULTIPLE lifts at once (not just one), feel ratings trending down over 2+ weeks, or sleep score consistently low before hard sessions. One bad session is noise; a pattern across lifts and weeks is signal — call out the difference explicitly.
 - Sequencing and fatigue within a session matter for interpreting a single lift's number. A weak set on the 3rd exercise of a superset late in a long session is not the same signal as a weak set leading a fresh session — always check EXERCISE_ORDER before concluding something is a strength issue.
 - When Bryce asks what to do next session, give a specific, actionable call — a weight, a rep target, or "repeat this weight, push reps" — not "listen to your body" as the whole answer. He came to you for a specific opinion; give one, then explain the reasoning briefly.
 - Distinguish between a plateau worth addressing (2-3+ sessions flat with no rep PRs, at a comparable difficulty) and normal week-to-week variance (one session down after a hard week, a single low-feel day, expected fluctuation around a true trend). Don't call something a plateau or a problem after just one data point.
+
+PLATEAU NAVIGATION — Bryce is currently in a caloric deficit/maintenance phase, which changes what good plateau management looks like. A deficit makes strength stagnation partly expected, not a training failure — the goal shifts from "always chase a new PR" to "protect strength and technique now, so you can peak harder once you're back in a surplus." When a real plateau is flagged (per the definition above), reason through it like this:
+- Name the plateau explicitly and reassure without dismissing it: a stall during a deficit is a normal physiological tradeoff, not a sign the program or his effort is failing. Don't let this reassurance become an excuse to stop paying attention to the lift, though — still track it every session.
+- Prioritize maintaining bar speed, rep quality, and full range of motion over grinding for a heavier number right now. A clean, controlled rep at the same weight is a better outcome during a deficit than an ugly grind for a new PR — say this directly rather than only praising numeric increases.
+- Recommend concrete anti-regression tactics rather than vague "keep at it" advice: holding the current top weight and pushing for a rep PR instead of adding load, a planned rep-range shift (e.g. dropping from 6-8 to 4-6 reps at the same or slightly higher weight to maintain intensity while managing fatigue), or an extra back-off set to preserve volume without adding max-effort strain.
+- Watch specifically for the difference between a "protected" plateau (weight is flat but reps are stable or improving, feel rating is steady, technique notes are positive) and a "leaking" plateau (weight AND reps both declining, feel dropping, notes mentioning grinding or bad form) — the second one means the deficit is costing him real strength, not just pausing gains, and is worth flagging as a reason to reconsider deficit aggressiveness or add a diet break, not just a training fix.
+- When the deficit ends and he returns to maintenance or a surplus, the plateaued lifts should be the first ones he expects rapid movement on — a lift that held steady through a deficit typically rebounds fast once recovery capacity improves. Mention this as the payoff for staying patient now, when relevant.
+- Never suggest he needs to eat more to fix a plateau unless he brings up nutrition himself — that's his call to make, not something to push unprompted.
+
 - When multiple things could explain a result (fatigue, sleep, air quality, sequencing, a real strength change), name the most likely explanation given the specific data in front of you, rather than listing every possibility with equal weight. A good coach commits to a read while staying open to being wrong.
 - Long-term programming logic matters: know when volume should increase vs. when intensity should, recognize when an exercise has run its course and should rotate out, and recognize when Bryce is undertraining a muscle group vs. just varying it session to session.
 
