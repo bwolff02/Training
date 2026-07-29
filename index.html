@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v2.9.8</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -4194,12 +4194,21 @@ const ACCESSORY_POOLS = {
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
     { id:'skull-crusher', name:'Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
-    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
-    { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Full stretch at top, drive elbows down.', target:'3 × 6–9', defaultSets:3, muscle:'lats' },
+    // Lats / Back — tagged with `pattern` (row vs. lat-isolation) so the
+    // Row Focused week (Week A) can guarantee a genuine row-pattern
+    // accessory alongside a pure lat-isolation movement, instead of both
+    // slots potentially landing on the same pattern by chance.
+    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Full stretch at top, drive elbows down.', target:'3 × 6–9', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'row' },
+    { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 9–11', defaultSets:3, muscle:'rear_delt' },
     { id:'db-curl', name:'EZ Bar Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 9–11', defaultSets:3, muscle:'biceps' },
+    // Traps — new addition, matching Wednesday's shrug/forearm-style
+    // accessory so Row Focused Saturday follows the same structure.
+    { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
   push: [
     // Chest
@@ -4218,12 +4227,15 @@ const ACCESSORY_POOLS = {
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
   ],
   pull: [
-    // Lats / Back (expanded pool for 2-3 random picks per session)
-    { id:'cable-pullover', name:'Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
-    { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
-    { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
-    { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats' },
-    { id:'straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Arms straight, lat isolation. Feel the stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats' },
+    // Lats / Back — tagged with a `pattern` in addition to `muscle`, so the
+    // randomizer can guarantee a real mix (a row AND a lat-isolation
+    // movement) instead of picking 2 from an undifferentiated bucket where
+    // both slots could land on the same pattern by chance.
+    { id:'cable-pullover', name:'Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Arms straight, lat isolation. Feel the stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
+    { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'row' },
+    { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
     // Rear delts
     { id:'face-pull-sat', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
@@ -4269,16 +4281,21 @@ function getMuscleGroup(variantId) {
 // Push: chest-heavy + tricep-heavy. Pull: bicep-heavy. Legs: ab-heavy.
 const MUSCLE_SLOT_COUNTS = {
   push:  { chest: 2, delts: 2, triceps: 3 },
-  // Pull base: 2 back, 2 biceps, 1 rear delt, 1 trap. Forearms starts at 0 —
-  // it only shows up when the volume-gap logic detects it's been neglected
-  // relative to the rest of the pool and bumps it to 1 for that session.
-  pull:  { lats: 2, rear_delt: 1, biceps: 2, traps: 1, forearms: 0 },
+  // Pull structure, confirmed directly: 1 row-pattern lift + 2 more
+  // lat-focused lifts (mix of row and pure lat-isolation, guaranteed by
+  // the pattern logic above) + 2-3 biceps + 1 trap/forearm accessory.
+  // lats: 3 covers "a row, and one other lat focused lift" plus room for
+  // the specific row-vs-isolation split; biceps bumped to 3 for the
+  // confirmed 2-3 range. Forearms starts at 0 — it only shows up when the
+  // volume-gap logic detects it's been neglected and bumps it to 1.
+  pull:  { lats: 3, rear_delt: 1, biceps: 3, traps: 1, forearms: 0 },
   legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, abs: 2 },
-  // Upper (Saturday) blends push and pull accessory work regardless of
-  // whether that week is Row Focused or Chest Focused — the fixed anchors
-  // already carry the primary emphasis, so accessories stay balanced across
-  // both push and pull muscle groups rather than needing a separate pool.
-  upper: { chest: 1, delts: 1, triceps: 1, lats: 1, rear_delt: 1, biceps: 1 },
+  // Upper (Saturday) blends push and pull accessory work. lats bumped to 2
+  // (from 1) so Row Focused weeks (Week A) can guarantee a real row +
+  // lat-isolation mix via the pattern-guarantee logic, matching the same
+  // structure confirmed for Wednesday. traps added so Row Focused Saturday
+  // gets the same shrug/accessory finisher Wednesday has.
+  upper: { chest: 1, delts: 1, triceps: 1, lats: 2, rear_delt: 1, biceps: 1, traps: 1 },
 };
 
 
@@ -4595,15 +4612,24 @@ function getAccessoryUsageHistory(muscleGroup, windowSize) {
   sessions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   sessions = sessions.slice(-windowSize);
 
-  // usage[exId] = { lastSeenSessionsAgo: N, timesInWindow: N, recentPositions: [indices] }
+  // usage[key] = { lastSeenSessionsAgo: N, timesInWindow: N, positions: [...] }
+  // Key is the RESOLVED pool/preset id when one exists, so it lines up with
+  // the randomizer's own exercise ids for suppression purposes. But a name
+  // that DOESN'T resolve (a genuinely custom, typed-in exercise with no
+  // matching pool entry) is still tracked — under its own normalized-name
+  // key — rather than silently dropped. Without this, every custom
+  // exercise you log is invisible to recency/pattern tracking entirely,
+  // which gives the randomizer a skewed, incomplete picture of what's
+  // actually been overused recently and can make it feel like it keeps
+  // repeating a small subset of exercises when really it just can't see
+  // everything else you've been doing.
   const usage = {};
   sessions.forEach((session, idx) => {
     const sessionsAgo = sessions.length - 1 - idx; // 0 = most recent session
     (session.exercises || []).forEach(ex => {
       if (!ex.name) return;
       const norm = normalizeExerciseName(ex.name);
-      const exId = nameToId[norm];
-      if (!exId) return; // can't resolve to a real id, skip
+      const exId = nameToId[norm] || ('unresolved:' + norm);
       if (!usage[exId]) usage[exId] = { lastSeenSessionsAgo: null, timesInWindow: 0, positions: [] };
       usage[exId].timesInWindow += 1;
       usage[exId].positions.push(sessionsAgo);
@@ -4671,8 +4697,17 @@ function randomizeAccessories() {
   if (!muscleGroup) return;
 
   const pool = ACCESSORY_POOLS[muscleGroup];
-  const baseSlotCounts = MUSCLE_SLOT_COUNTS[muscleGroup];
+  let baseSlotCounts = MUSCLE_SLOT_COUNTS[muscleGroup];
   if (!pool || !baseSlotCounts) return;
+
+  // Saturday Upper alternates emphasis by week (Row Focused in Week A,
+  // Chest Focused in Week B) — the boosted lats/traps slots (confirmed:
+  // guarantee a row + lat-isolation mix, plus a trap accessory) only make
+  // sense on the Row Focused week. Chest Focused Saturday keeps the
+  // original lighter back allotment since its anchor emphasis is chest.
+  if (muscleGroup === 'upper' && !isWeekA) {
+    baseSlotCounts = { chest: 1, delts: 1, triceps: 1, lats: 1, rear_delt: 1, biceps: 1 };
+  }
 
   // ── Volume-gap analysis: look at the last 4 weeks of real sessions for this
   // muscle group and see which sub-muscles have been UNDER their base target.
@@ -4740,16 +4775,46 @@ function randomizeAccessories() {
     if (!group.length) return;
     const poolSizeForMuscle = group.length;
     const usedThisRound = new Set();
+    // Track which movement PATTERNS (row vs. lat-isolation) have been
+    // filled for this muscle group's slots so far this session — used to
+    // guarantee a real mix on Wednesday Pull and Saturday Row Focused
+    // Upper (2+ lats slots) instead of leaving it to chance whether both
+    // slots land on the same pattern.
+    const patternsFilledThisMuscle = new Set();
     for (let i = 0; i < count; i++) {
       // Filter out anything that would violate a pairing exclusion (with
       // exercises already picked this session) or a day-gap constraint
       // (with fixed anchors on nearby days this week).
       const alreadyPickedIds = picked.map(p => p.id);
-      const constraintSafe = group.filter(ex =>
+      let constraintSafe = group.filter(ex =>
         !usedThisRound.has(ex.id) &&
         !violatesPairingExclusion(ex.id, alreadyPickedIds, constraints) &&
         !violatesDayGapConstraint(ex.id, currentDay, constraints)
       );
+
+      // Pattern-guarantee: if this muscle group has 2+ slots AND uses
+      // pattern tags (currently only 'lats' — row vs. lat-isolation), and
+      // there's still an unrepresented pattern with slots remaining to
+      // fill it, restrict this pick to that pattern specifically. This is
+      // what turns "2 lat exercises, maybe both rows, maybe both
+      // isolation, purely by chance" into "guaranteed one of each."
+      const distinctPatterns = [...new Set(group.filter(ex => ex.pattern).map(ex => ex.pattern))];
+      if (count >= 2 && distinctPatterns.length >= 2) {
+        const remainingSlots = count - i;
+        const unfilledPatterns = distinctPatterns.filter(p => !patternsFilledThisMuscle.has(p));
+        // Only force a specific pattern if there are exactly enough
+        // remaining slots left to guarantee each unfilled pattern gets
+        // covered — otherwise let normal weighted choice continue, so we
+        // don't force a pattern in a way that starves normal variety when
+        // there's slack (e.g. 3 slots, 2 patterns — only force on the
+        // slots that are actually needed to guarantee coverage).
+        if (unfilledPatterns.length > 0 && unfilledPatterns.length >= remainingSlots) {
+          const targetPattern = unfilledPatterns[0];
+          const patternMatches = constraintSafe.filter(ex => ex.pattern === targetPattern);
+          if (patternMatches.length) constraintSafe = patternMatches;
+        }
+      }
+
       const available = constraintSafe.length ? constraintSafe : group.filter(ex => !usedThisRound.has(ex.id));
       const pickFrom = available.length ? available : group;
       const baseScore = ex => (exerciseScores[ex.name] || 0) + ((constraints.frequencyWeights[ex.id] || 1) - 1) * 5;
@@ -4762,15 +4827,36 @@ function randomizeAccessories() {
       };
       const chosen = weightedPickWithMultiplier(pickFrom, baseScore, recencyMultiplier);
       usedThisRound.add(chosen.id);
+      if (chosen.pattern) patternsFilledThisMuscle.add(chosen.pattern);
       picked.push(chosen);
     }
   });
 
-  // Shuffle the final list order, then enforce sequencing constraints on top
-  // of the shuffle — "after" rules (e.g. Lat Pulldown must come after
-  // Weighted Pull Ups when both appear) and position rules (triceps/delt
-  // isolation work pushed to the end, never before primary lifts).
-  picked.sort(() => Math.random() - 0.5);
+  // Default sequencing: rather than a fully random shuffle (which was
+  // producing genuinely arbitrary orderings with no relationship to how a
+  // real session should flow), order by muscle group in a sensible default
+  // sequence — bigger, more central movements before small isolation work.
+  // This is a BASELINE order, not a rigid rule: exercises within the same
+  // muscle group are still shuffled randomly, and Coach's explicit "must
+  // come after X" / "must appear late" constraints below can still
+  // override this default entirely.
+  const MUSCLE_SEQUENCE_PRIORITY = {
+    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, // primary/compound-adjacent muscles first
+    delts: 2, traps: 2, calves: 2,
+    biceps: 3, triceps: 3, rear_delt: 3, forearms: 3, abs: 3, // isolation/finisher work last
+  };
+  picked.sort((a, b) => {
+    const pa = MUSCLE_SEQUENCE_PRIORITY[a.muscle] ?? 2;
+    const pb = MUSCLE_SEQUENCE_PRIORITY[b.muscle] ?? 2;
+    if (pa !== pb) return pa - pb;
+    return Math.random() - 0.5; // random order within the same priority tier
+  });
+
+  // Enforce sequencing constraints on top of the default order — "after"
+  // rules (e.g. Lat Pulldown must come after Weighted Pull Ups when both
+  // appear) and position rules (triceps/delt isolation work pushed to the
+  // end, never before primary lifts) still take precedence over the
+  // baseline muscle-group ordering above.
 
   // Apply "must come after X" sequence constraints
   constraints.sequenceConstraints.forEach(rule => {
