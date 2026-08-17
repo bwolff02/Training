@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -903,23 +903,30 @@ const PROGRAM = [
       ]
     }
   },
-  // TUE — PUSH
+  // TUE — PULL on Week A (Volume, Lat Focused) / PUSH on Week B (Volume)
+  // Asymmetric by design, confirmed directly: only Week A has Push/Pull
+  // swapped between Tuesday and Wednesday, to break up back-to-back chest
+  // days (Sat Week B Chest Focused Upper -> 2 rest days -> what would have
+  // been Tue Week A Heavy Push). Week B keeps the original Tue=Push,
+  // Wed=Pull layout unchanged. Anchor/accessory exercise ids are UNCHANGED
+  // from their original day — this is purely which weekday they render on
+  // for Week A, so all existing history stays correctly attached.
   {
-    label: 'TUE · Push',
+    label: 'TUE · Pull/Push',
     weekA: {
-      id: 'tue-push-a', title: 'PUSH', subtitle: 'Heavy — Incline/Flat', tag: 'heavy',
+      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Focused — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith', name:'Incline Smith Press', note:'Leads today. 3 sets, 4-6 reps. 2 sec descent, blades pinched.', target:'3 × 4–6', anchor:true, defaultSets:3 },
-          { id:'flat-smith', name:'Flat Smith Press', note:'3 sets, 5-7 reps.', target:'3 × 5–7', anchor:true, defaultSets:3 },
+          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Leads today, volume load. 4 sets, 7-10 reps.', target:'4 × 7–10', anchor:true, defaultSets:4, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'military-press', name:'Military Press (Barbell)', note:'3 sets, 5-7 reps.', target:'3 × 5–7', defaultSets:3 },
-          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
-          { id:'ez-bar-front-raise', name:'EZ Bar Front Raise', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'3 sets, 10-14 reps.', target:'3 × 10–14', defaultSets:3 },
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
+          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'incline-curl', name:'Low to High Bayesian Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
+          { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
         ]},
       ]
     },
@@ -941,23 +948,23 @@ const PROGRAM = [
       ]
     }
   },
-  // WED — PULL (Lat Focused, alternates Heavy/Volume by week)
+  // WED — PUSH on Week A (Heavy) / PULL on Week B (Heavy, Lat Focused)
   {
-    label: 'WED · Pull',
+    label: 'WED · Push/Pull',
     weekA: {
-      id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Focused — Volume', tag: 'volume',
+      id: 'tue-push-a', title: 'PUSH', subtitle: 'Heavy — Incline/Flat', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Leads today, volume load. 4 sets, 7-10 reps.', target:'4 × 7–10', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'incline-smith', name:'Incline Smith Press', note:'Leads today. 3 sets, 4-6 reps. 2 sec descent, blades pinched.', target:'3 × 4–6', anchor:true, defaultSets:3 },
+          { id:'flat-smith', name:'Flat Smith Press', note:'3 sets, 5-7 reps.', target:'3 × 5–7', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
-          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'incline-curl', name:'Low to High Bayesian Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
-          { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          { id:'military-press', name:'Military Press (Barbell)', note:'3 sets, 5-7 reps.', target:'3 × 5–7', defaultSets:3 },
+          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
+          { id:'ez-bar-front-raise', name:'EZ Bar Front Raise', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'3 sets, 10-14 reps.', target:'3 × 10–14', defaultSets:3 },
         ]},
       ]
     },
@@ -1172,7 +1179,19 @@ window.addEventListener('DOMContentLoaded', async () => {
   migrateAccessoryIdUnification();
   setWeekBadge();
   buildTabs();
-  await loadDay(0);
+  // Restore whichever day was actually active last, rather than always
+  // starting on Monday — this is what fixes the disorienting reset when
+  // iOS silently reloads a backgrounded PWA after a long time away. Falls
+  // back to 0 (Monday) if nothing's been saved yet, or the saved index is
+  // somehow out of range (e.g. after a program restructure).
+  let restoredDay = 0;
+  try {
+    const saved = parseInt(localStorage.getItem('lastActiveDay'));
+    if (!isNaN(saved) && saved >= 0 && saved < PROGRAM.length) restoredDay = saved;
+  } catch (e) { /* ignore storage errors, fall back to Monday */ }
+  currentDay = restoredDay;
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === restoredDay));
+  await loadDay(restoredDay);
 });
 
 // One-time migration: fold any history still sitting under old, now-removed
@@ -1453,6 +1472,13 @@ async function switchDay(index) {
   const returningToSameUnsavedDay = (currentDay === index);
 
   currentDay = index;
+  // Persist which day is active, so a fresh page load — e.g. iOS silently
+  // reloading a backgrounded PWA after enough time away, which is the
+  // actual cause of the "everything looks reset" flicker — can restore the
+  // real day you were on instead of always defaulting back to Monday. Your
+  // logged weights/reps were never actually lost (autosaveCurrentDay above
+  // already protects that); this fixes the disorienting jump itself.
+  try { localStorage.setItem('lastActiveDay', String(index)); } catch (e) { /* ignore storage errors */ }
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
   const ctab = document.getElementById('coach-tab-btn');
   if (ctab) ctab.classList.remove('active');
@@ -1606,8 +1632,20 @@ function renderDay(index) {
       const rendered = new Set();
       savedSnapshot.forEach(ex => {
         if (rendered.has(ex.id)) return;
+        // Custom-snapshot entries (a typed-in exercise from a prior session,
+        // auto-restored so today defaults to what was actually done last
+        // time) must NOT go through renderExercise — that function builds a
+        // locked preset-style card and has no real name-input field. Doing
+        // so silently broke two things: the exercise permanently lost its
+        // editable name field, and worse, if this same day got saved again
+        // without every lookup finding a match, the raw internal slug id
+        // (e.g. "custom-close-grip-lat-pulldown-") got saved as the
+        // exercise's NAME in history, replacing the real typed name
+        // entirely. These are appended as real custom cards separately,
+        // after this HTML string is injected into the DOM below.
+        if (ex.isCustomSnapshot) { rendered.add(ex.id); return; }
         if (ex.supersetGroup) {
-          const partner = savedSnapshot.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id));
+          const partner = savedSnapshot.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id) && !p.isCustomSnapshot);
           if (partner) {
             html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
             html += renderExercise(ex, isVol);
@@ -1668,6 +1706,43 @@ function renderDay(index) {
     }
   }
   main.innerHTML = html;
+
+  // Restore any custom-snapshot exercises (typed-in exercises from a prior
+  // session, auto-restored so today defaults to what was actually done
+  // last time) as REAL custom exercise cards — not via renderExercise,
+  // which has no editable name field and was the root cause of a raw
+  // internal id (e.g. "custom-close-grip-lat-pulldown-") getting saved as
+  // the exercise's name in history instead of what was actually typed.
+  // sessionLogs._custom is only ever populated by the user typing into a
+  // live custom card, so on a fresh day load it does NOT yet contain these
+  // snapshot entries — seed it here first, then append real cards from it,
+  // so the existing custom-card save path (which correctly preserves the
+  // typed name) is used from this point forward.
+  if (savedSnapshot && savedSnapshot.length && accessoriesSectionId) {
+    const customSnapshotEntries = savedSnapshot.filter(ex => ex.isCustomSnapshot);
+    if (customSnapshotEntries.length) {
+      if (!sessionLogs._custom) sessionLogs._custom = [];
+      const listEl = document.getElementById(accessoriesSectionId);
+      const rendered = new Set();
+      customSnapshotEntries.forEach(ex => {
+        if (rendered.has(ex.id)) return;
+        const newIdx = sessionLogs._custom.length;
+        sessionLogs._custom.push({ name: ex.name, sets: [{ weight: '', reps: '' }] });
+        rendered.add(ex.id);
+        if (ex.supersetGroup) {
+          const partner = customSnapshotEntries.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id));
+          if (partner) {
+            const partnerIdx = sessionLogs._custom.length;
+            sessionLogs._custom.push({ name: partner.name, sets: [{ weight: '', reps: '' }] });
+            rendered.add(partner.id);
+            appendCustomSupersetCard(index, newIdx, partnerIdx, ex.name, partner.name, [], [], accessoriesSectionId);
+            return;
+          }
+        }
+        appendCustomExerciseCard(index, newIdx, ex.name, [], accessoriesSectionId);
+      });
+    }
+  }
 
   // Wrapped in try/catch so that if anything below throws (history section,
   // Add Exercise button, export/import, etc.), the error is shown directly
@@ -1831,13 +1906,60 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
   const nameToId = buildExerciseNameToIdMap();
   const norm = normalizeExerciseName(name);
   const exId = nameToId[norm];
-  if (!exId) return null; // never logged before under any resolvable id — genuinely no data to suggest from
-  // Custom exercises are never anchors (no program-defined anchor status),
-  // so this always goes through getSuggestion's non-anchor "hold weight"
-  // branch — which is exactly right: a custom accessory should suggest
-  // holding its last real working weight, not push/build logic meant for
-  // programmed anchors with a fixed day-type target.
-  return getSuggestion(exId, isVolumeDay, false, null);
+  if (exId) {
+    // Custom exercises are never anchors (no program-defined anchor status),
+    // so this always goes through getSuggestion's non-anchor "hold weight"
+    // branch — which is exactly right: a custom accessory should suggest
+    // holding its last real working weight, not push/build logic meant for
+    // programmed anchors with a fixed day-type target.
+    return getSuggestion(exId, isVolumeDay, false, null);
+  }
+
+  // No known pool/preset id resolves this name — but it may still be a
+  // genuinely custom exercise (never part of any program pool) that's been
+  // logged 1+ times before under a DIFFERENT day's session history.
+  // buildExerciseNameToIdMap only ever maps known pool/preset names, so a
+  // purely custom exercise is invisible to it even with real prior data.
+  // Search session-level history directly by normalized name as a
+  // fallback, and build a simple "last weight" suggestion straight from
+  // the most recent real session found — exactly a same-name match, no
+  // minimum session count, no anchor logic, just reference the last time.
+  let mostRecent = null;
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return; }
+    sessions.forEach(session => {
+      (session.exercises || []).forEach(ex => {
+        if (!ex.name || normalizeExerciseName(ex.name) !== norm) return;
+        if (!mostRecent || (session.date || '') > (mostRecent.date || '')) {
+          mostRecent = { date: session.date, sets: ex.sets };
+        }
+      });
+    });
+  });
+  if (!mostRecent || !mostRecent.sets || !mostRecent.sets.length) return null;
+
+  // Find the best real set (highest weight, or highest reps if tied) from
+  // that most recent session to suggest holding.
+  let bestSet = null;
+  mostRecent.sets.forEach(s => {
+    if (s.isBurnout) return;
+    const w = parseFloat(s.weight), r = parseInt(s.reps);
+    if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
+    if (!bestSet || w > parseFloat(bestSet.weight)) bestSet = s;
+  });
+  if (!bestSet) return null;
+
+  return {
+    note: 'Hold weight —',
+    arrow: '→',
+    recWeight: parseFloat(bestSet.weight) || 0,
+    lastWeight: parseFloat(bestSet.weight) || 0,
+    maxReps: parseInt(bestSet.reps) || 0,
+    lastDate: mostRecent.date,
+    isVolume: false,
+  };
 }
 
 function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
@@ -3468,14 +3590,15 @@ async function sendCoachMessage() {
 
     const systemPrompt = `You are Bryce's personal strength training coach inside his custom training log app. You have access to his real training data below. Use it when relevant to his question — reference actual numbers, trends, and exercises. If his question has nothing to do with his training data, just answer normally without forcing in data references. Be direct and opinionated like a real coach, not vague or hedgy. Keep responses concise — a few sentences to a short paragraph, not an essay, since this is a mobile chat interface.
 
-BRYCE'S FIXED WEEKLY SCHEDULE — this never changes and you should never have to infer it from data:
+BRYCE'S FIXED WEEKLY SCHEDULE — this never changes and you should never have to infer it from data. NOTE: Tuesday and Wednesday are asymmetric between weeks — this is intentional, not an error:
 - Monday: Legs (Quad focus, alternates Heavy/Volume by week)
-- Tuesday: Push
-- Wednesday: Pull (Lat-focus, always)
+- Tuesday: Pull (Volume, Lat-focus) on Week A / Push (Volume) on Week B
+- Wednesday: Push (Heavy) on Week A / Pull (Heavy, Lat-focus) on Week B
 - Thursday: Rest
 - Friday: Legs (Glute/Hamstring focus, alternates Heavy/Volume by week)
 - Saturday: Upper (Row-focused in Week A, Chest-focused in Week B)
 - Sunday: Rest
+This Tuesday/Wednesday swap on Week A exists specifically to break up a chest-day pileup — without it, Chest Focused Saturday (Week B) would sit only 2 rest days before what would otherwise have been Heavy Push on Tuesday of the next week. Do not describe this as inconsistent programming if it comes up — it's a deliberate fix for stacked chest volume.
 Every session's date includes its actual day of the week explicitly (e.g. "2026-07-27 (Monday)") — use that directly rather than calculating or guessing it yourself, and cross-reference it against this schedule to know exactly which day type a session belongs to without needing to infer it from the DAY TYPE label alone.
 
 COACHING PHILOSOPHY — reason like an experienced strength coach, not a generic assistant:
