@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.8</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1177,6 +1177,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   migrateOldExerciseIds();
   migrateClosePulldownCollision();
   migrateAccessoryIdUnification();
+  migrateCustomSlugNames();
   setWeekBadge();
   buildTabs();
   // Restore whichever day was actually active last, rather than always
@@ -1194,9 +1195,69 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDay(restoredDay);
 });
 
-// One-time migration: fold any history still sitting under old, now-removed
-// exercise IDs into their unified canonical replacements, so nothing logged
-// before the ID consolidation gets silently orphaned.
+// One-time migration: repair exercise NAMES in session history that were
+// saved as raw internal slug ids (e.g. "custom-close-grip-lat-pulldown-")
+// instead of the real typed name. This happened when a snapshot-restored
+// custom exercise was rendered as a preset card, so the save path's name
+// lookup found no match and fell back to using the id itself as the name.
+// The rendering cause is fixed, but already-saved history still needs
+// repairing so Past Sessions and the exercise picker read correctly.
+function migrateCustomSlugNames() {
+  if (localStorage.getItem('_migrated_custom_slug_names')) return; // already done
+
+  // Build slug -> real name from accessory snapshots, which correctly
+  // stored BOTH the slug id and the real name side by side.
+  const slugToRealName = {};
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('accessory_snapshot_')) return;
+    try {
+      const snapshot = JSON.parse(localStorage.getItem(key) || '[]');
+      snapshot.forEach(ex => {
+        if (ex && ex.id && ex.name && /^custom-[a-z0-9-]+$/.test(ex.id) && !/^custom-[a-z0-9-]+$/.test(ex.name)) {
+          slugToRealName[ex.id] = ex.name;
+        }
+      });
+    } catch (e) { /* ignore malformed snapshots */ }
+  });
+
+  // De-slugify as a fallback when no snapshot recorded the real name:
+  // "custom-close-grip-lat-pulldown-" -> "Close Grip Lat Pulldown"
+  const deslugify = (slug) => slug
+    .replace(/^custom-/, '')
+    .replace(/-+$/, '')
+    .split('-')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  let repaired = 0;
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return; }
+    if (!Array.isArray(sessions)) return;
+
+    let changed = false;
+    sessions.forEach(session => {
+      (session.exercises || []).forEach(ex => {
+        if (!ex || !ex.name) return;
+        if (!/^custom-[a-z0-9-]+$/.test(ex.name)) return;
+        ex.name = slugToRealName[ex.name] || deslugify(ex.name);
+        changed = true;
+        repaired++;
+      });
+    });
+
+    if (changed) {
+      try { localStorage.setItem(key, JSON.stringify(sessions)); } catch (e) { /* ignore quota errors */ }
+    }
+  });
+
+  if (repaired) console.log(`Repaired ${repaired} slug-named exercise entries in history.`);
+  localStorage.setItem('_migrated_custom_slug_names', 'true');
+}
+
+
 function migrateOldExerciseIds() {
   if (localStorage.getItem('_migrated_v2_6_64')) return; // already done
 
@@ -1707,39 +1768,40 @@ function renderDay(index) {
   }
   main.innerHTML = html;
 
-  // Restore any custom-snapshot exercises (typed-in exercises from a prior
+  // Seed any custom-snapshot exercises (typed-in exercises from a prior
   // session, auto-restored so today defaults to what was actually done
-  // last time) as REAL custom exercise cards — not via renderExercise,
-  // which has no editable name field and was the root cause of a raw
-  // internal id (e.g. "custom-close-grip-lat-pulldown-") getting saved as
-  // the exercise's name in history instead of what was actually typed.
-  // sessionLogs._custom is only ever populated by the user typing into a
-  // live custom card, so on a fresh day load it does NOT yet contain these
-  // snapshot entries — seed it here first, then append real cards from it,
-  // so the existing custom-card save path (which correctly preserves the
-  // typed name) is used from this point forward.
-  if (savedSnapshot && savedSnapshot.length && accessoriesSectionId) {
+  // last time) into sessionLogs._custom — data ONLY, no card rendering.
+  //
+  // Card rendering is deliberately left to the pre-existing
+  // "Restore any already-added custom exercises" pass further below, which
+  // already walks sessionLogs._custom and handles null entries, saved
+  // sets, and index alignment correctly. An earlier version of this block
+  // ALSO appended cards directly, which meant every one of these
+  // exercises got rendered twice — that was the real cause of duplicate
+  // accessories (e.g. seeing "Seated Cable Pullover" and "Bodyweight Pull
+  // Ups" listed twice on Pull day).
+  //
+  // The name check matters because renderDay() runs many times for the
+  // same day (on load, returning from Coach, after a save); without it,
+  // each re-render would stack another copy into sessionLogs._custom.
+  // Skipped entirely once accessories have been randomized this session —
+  // otherwise the old snapshot's custom exercises get seeded straight back
+  // in underneath the fresh picks on the next re-render.
+  if (savedSnapshot && savedSnapshot.length && !sessionLogs._randomized) {
     const customSnapshotEntries = savedSnapshot.filter(ex => ex.isCustomSnapshot);
     if (customSnapshotEntries.length) {
       if (!sessionLogs._custom) sessionLogs._custom = [];
-      const listEl = document.getElementById(accessoriesSectionId);
-      const rendered = new Set();
+      const existingCustomNames = new Set(
+        (sessionLogs._custom || [])
+          .filter(c => c && c.name)
+          .map(c => normalizeExerciseName(c.name))
+      );
       customSnapshotEntries.forEach(ex => {
-        if (rendered.has(ex.id)) return;
-        const newIdx = sessionLogs._custom.length;
+        if (!ex.name) return;
+        const norm = normalizeExerciseName(ex.name);
+        if (existingCustomNames.has(norm)) return;
         sessionLogs._custom.push({ name: ex.name, sets: [{ weight: '', reps: '' }] });
-        rendered.add(ex.id);
-        if (ex.supersetGroup) {
-          const partner = customSnapshotEntries.find(p => p.id !== ex.id && p.supersetGroup === ex.supersetGroup && !rendered.has(p.id));
-          if (partner) {
-            const partnerIdx = sessionLogs._custom.length;
-            sessionLogs._custom.push({ name: partner.name, sets: [{ weight: '', reps: '' }] });
-            rendered.add(partner.id);
-            appendCustomSupersetCard(index, newIdx, partnerIdx, ex.name, partner.name, [], [], accessoriesSectionId);
-            return;
-          }
-        }
-        appendCustomExerciseCard(index, newIdx, ex.name, [], accessoriesSectionId);
+        existingCustomNames.add(norm);
       });
     }
   }
@@ -1920,11 +1982,12 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
   // logged 1+ times before under a DIFFERENT day's session history.
   // buildExerciseNameToIdMap only ever maps known pool/preset names, so a
   // purely custom exercise is invisible to it even with real prior data.
-  // Search session-level history directly by normalized name as a
-  // fallback, and build a simple "last weight" suggestion straight from
-  // the most recent real session found — exactly a same-name match, no
-  // minimum session count, no anchor logic, just reference the last time.
-  let mostRecent = null;
+  // Search session-level history directly by normalized name, collecting
+  // EVERY matching session — not just the most recent one — so the
+  // best-ever set below is picked from full history, matching how preset
+  // exercises work. Using only the latest session meant a fatigued or
+  // lighter day could bury a genuinely better earlier performance.
+  const allMatchingSessions = [];
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('hist_session_')) return;
     let sessions;
@@ -1932,32 +1995,46 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
     sessions.forEach(session => {
       (session.exercises || []).forEach(ex => {
         if (!ex.name || normalizeExerciseName(ex.name) !== norm) return;
-        if (!mostRecent || (session.date || '') > (mostRecent.date || '')) {
-          mostRecent = { date: session.date, sets: ex.sets };
+        if (ex.sets && ex.sets.length) {
+          allMatchingSessions.push({ date: session.date, sets: ex.sets });
         }
       });
     });
   });
-  if (!mostRecent || !mostRecent.sets || !mostRecent.sets.length) return null;
+  if (!allMatchingSessions.length) return null;
 
-  // Find the best real set (highest weight, or highest reps if tied) from
-  // that most recent session to suggest holding.
+  // Find the best set across ALL logged sessions for this exercise, using
+  // Epley estimated 1RM so reps correctly break weight ties. Two bugs
+  // lived here before:
+  //   1. Only the single most recent session was searched, so a lighter
+  //      or fatigued last session buried a genuinely better earlier one.
+  //   2. Comparison was weight-only with a strict `>`, meaning among sets
+  //      at the SAME weight the first one encountered always won and was
+  //      never replaced — so 110x8 beat 110x10 logged later that day.
+  // This now matches how preset exercises pick their best set.
   let bestSet = null;
-  mostRecent.sets.forEach(s => {
-    if (s.isBurnout) return;
-    const w = parseFloat(s.weight), r = parseInt(s.reps);
-    if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
-    if (!bestSet || w > parseFloat(bestSet.weight)) bestSet = s;
+  let bestSetScore = -1;
+  allMatchingSessions.forEach(session => {
+    (session.sets || []).forEach(s => {
+      if (s.isBurnout) return; // burnout sets are intentionally light/high-rep
+      const w = parseFloat(s.weight), r = parseInt(s.reps);
+      if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
+      const score = w > 0 ? w * (1 + r / 30) : r; // bodyweight moves rank by reps
+      if (score > bestSetScore) {
+        bestSetScore = score;
+        bestSet = { weight: w, reps: r, date: session.date };
+      }
+    });
   });
   if (!bestSet) return null;
 
   return {
     note: 'Hold weight —',
     arrow: '→',
-    recWeight: parseFloat(bestSet.weight) || 0,
-    lastWeight: parseFloat(bestSet.weight) || 0,
-    maxReps: parseInt(bestSet.reps) || 0,
-    lastDate: mostRecent.date,
+    recWeight: bestSet.weight || 0,
+    lastWeight: bestSet.weight || 0,
+    maxReps: bestSet.reps || 0,
+    lastDate: bestSet.date,
     isVolume: false,
   };
 }
@@ -1974,10 +2051,10 @@ function appendCustomExerciseCard(dayIndex, idx, name, existingSets, listId) {
     return `<div class="set-entry">
       <span class="set-num">S${si+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-        value="${s.weight||''}" onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
+        value="${s.weight||''}" oninput="updateCustomSet(${idx},${si},'weight',this.value)"/>
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-        value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
+        value="${s.reps||''}" oninput="updateCustomSet(${idx},${si},'reps',this.value)"/>
       <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
       <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>
     </div>
@@ -2069,6 +2146,7 @@ function updateCustomSet(idx, setIdx, field, val) {
   if (!sessionLogs._custom[idx].sets) sessionLogs._custom[idx].sets = [];
   while (sessionLogs._custom[idx].sets.length <= setIdx) sessionLogs._custom[idx].sets.push({ weight:'', reps:'' });
   sessionLogs._custom[idx].sets[setIdx][field] = val;
+  scheduleAutosave();
 }
 
 function addCustomSet(idx) {
@@ -2081,10 +2159,10 @@ function addCustomSet(idx) {
   div.className = 'set-entry';
   div.innerHTML = `<span class="set-num">S${si+1}</span>
     <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-      onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
+      oninput="updateCustomSet(${idx},${si},'weight',this.value)"/>
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-      onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
+      oninput="updateCustomSet(${idx},${si},'reps',this.value)"/>
     <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
     <button class="set-notes-toggle" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>`;
   container.appendChild(div);
@@ -2409,10 +2487,10 @@ function renderExercise(ex, isVol) {
     setsHtml += `<div class="set-entry" style="${isBurnout ? 'background:rgba(255,107,74,0.06);border-radius:8px;padding:4px 6px;margin:-4px -6px 8px;' : ''}">
       ${burnoutLabel}<span class="set-num">S${i+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-        value="${s.weight||''}" onchange="updateSet('${ex.id}',${i},'weight',this.value)"/>
+        value="${s.weight||''}" oninput="updateSet('${ex.id}',${i},'weight',this.value)"/>
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-        value="${s.reps||''}" onchange="updateSet('${ex.id}',${i},'reps',this.value)"/>
+        value="${s.reps||''}" oninput="updateSet('${ex.id}',${i},'reps',this.value)"/>
       <button class="drop-set-link" onclick="addDropSet('${ex.id}', ${i}, 0, this)">↓ drop</button>
       <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleSetNote(this, '${ex.id}', ${i})">✎ note</button>
     </div>
@@ -2455,6 +2533,22 @@ function updateSet(exId, setIndex, field, value) {
   if (!sessionLogs[exId].sets) sessionLogs[exId].sets = [];
   while (sessionLogs[exId].sets.length <= setIndex) sessionLogs[exId].sets.push({ weight:'', reps:'' });
   sessionLogs[exId].sets[setIndex][field] = value;
+  scheduleAutosave();
+}
+
+// Debounced write-through to storage. iOS can discard and reload the page
+// at any time — including while the app is open in front of you, with the
+// screen on — and nothing in JS can prevent that. Previously the only
+// autosaves were on backgrounding or switching days, so a reload mid-set
+// lost whatever was only in memory. This persists shortly after you stop
+// typing, so a surprise reload costs nothing.
+let _autosaveTimer = null;
+function scheduleAutosave() {
+  if (_autosaveTimer) clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(() => {
+    _autosaveTimer = null;
+    try { autosaveCurrentDay(); } catch (e) { console.error('scheduled autosave failed:', e); }
+  }, 1200);
 }
 
 function addSet(exId) {
@@ -2475,10 +2569,10 @@ function addSet(exId) {
   div.className = 'set-entry';
   div.innerHTML = `<span class="set-num">S${setIndex+1}</span>
     <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-      onchange="updateSet('${exId}',${setIndex},'weight',this.value)"/>
+      oninput="updateSet('${exId}',${setIndex},'weight',this.value)"/>
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-      onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
+      oninput="updateSet('${exId}',${setIndex},'reps',this.value)"/>
     <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>
     <button class="set-notes-toggle" onclick="toggleSetNote(this, '${exId}', ${setIndex})">✎ note</button>`;
   container.appendChild(div);
@@ -2525,10 +2619,10 @@ function addBurnoutSet(exId) {
   div.style.cssText = 'background:rgba(255,107,74,0.06);border-radius:8px;padding:4px 6px;margin:-4px -6px 8px;';
   div.innerHTML = `<span style="color:#ff6b4a;font-size:10px;margin-right:4px;" title="Burnout set">🔥</span><span class="set-num">S${setIndex+1}</span>
     <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-      onchange="updateSet('${exId}',${setIndex},'weight',this.value)"/>
+      oninput="updateSet('${exId}',${setIndex},'weight',this.value)"/>
     <span style="color:var(--muted);font-size:12px">×</span>
     <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-      onchange="updateSet('${exId}',${setIndex},'reps',this.value)"/>
+      oninput="updateSet('${exId}',${setIndex},'reps',this.value)"/>
     <button class="drop-set-link" onclick="addDropSet('${exId}', ${setIndex}, 0, this)">↓ drop</button>
     <button class="set-notes-toggle" onclick="toggleSetNote(this, '${exId}', ${setIndex})">✎ note</button>`;
   container.appendChild(div);
@@ -4054,6 +4148,13 @@ function getAllLoggedExerciseNames() {
 
   const consider = (name) => {
     if (!name || name.startsWith('dl-') || name.startsWith('burn-')) return;
+    // Raw internal slug ids (e.g. "custom-close-grip-lat-pulldown-") got
+    // saved as exercise NAMES by an earlier bug where a snapshot-restored
+    // custom exercise fell through the save path's name lookup. They're
+    // not real names and should never appear in the picker — the
+    // migration below rewrites them in history, but this also guards
+    // against any that slip through.
+    if (/^custom-[a-z0-9-]+$/.test(name)) return;
     const key = normalizeExerciseName(name);
     if (!byNormalized[key] || name.length > byNormalized[key].length) {
       byNormalized[key] = name;
@@ -4412,7 +4513,15 @@ const MUSCLE_SLOT_COUNTS = {
   // confirmed 2-3 range. Forearms starts at 0 — it only shows up when the
   // volume-gap logic detects it's been neglected and bumps it to 1.
   pull:  { lats: 3, rear_delt: 1, biceps: 3, traps: 1, forearms: 0 },
-  legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, abs: 2 },
+  // Legs: 'abs: 2' used to sit here, but there are NO abs exercises in the
+  // legs accessory pool — ab work comes from the static Abs section of the
+  // program instead. Those two slots therefore selected nothing at all, so
+  // leg days silently randomized 4 accessories instead of the 6 the config
+  // implied. Removed so the config matches actual behavior.
+  // 'posterior' (Good Mornings) was the opposite problem: it sits in the
+  // pool but had no slot, so the randomizer could never pick it. Given one
+  // slot so it's actually reachable.
+  legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, posterior: 1 },
   // Upper (Saturday) blends push and pull accessory work. lats bumped to 2
   // (from 1) so Row Focused weeks (Week A) can guarantee a real row +
   // lat-isolation mix via the pattern-guarantee logic, matching the same
@@ -4893,11 +5002,20 @@ function randomizeAccessories() {
   // with recency/pattern suppression layered on top via a genuine
   // multiplier, not just an additive nudge.
   const picked = [];
+  // Session-wide dedup: an exercise picked for ANY muscle group must never
+  // be picked again for another. This was previously scoped inside the
+  // per-muscle loop, so it only blocked duplicates within a single group —
+  // an exercise reachable from two groups (or via the pattern-guarantee
+  // fallback paths below) could be selected twice in one session. It was
+  // also only ever a soft 0.05x weight penalty at pick time, which
+  // *discourages* but cannot *prevent* a repeat when the candidate pool is
+  // small. Both are fixed: this set is session-wide, and it's applied as a
+  // hard filter at every fallback level below, not just a low weight.
+  const pickedIdsGlobal = new Set();
   Object.entries(slotCounts).forEach(([muscle, count]) => {
     const group = byMuscle[muscle] || [];
     if (!group.length) return;
     const poolSizeForMuscle = group.length;
-    const usedThisRound = new Set();
     // Track which movement PATTERNS (row vs. lat-isolation) have been
     // filled for this muscle group's slots so far this session — used to
     // guarantee a real mix on Wednesday Pull and Saturday Row Focused
@@ -4905,12 +5023,11 @@ function randomizeAccessories() {
     // slots land on the same pattern.
     const patternsFilledThisMuscle = new Set();
     for (let i = 0; i < count; i++) {
-      // Filter out anything that would violate a pairing exclusion (with
-      // exercises already picked this session) or a day-gap constraint
-      // (with fixed anchors on nearby days this week).
+      // Filter out anything already picked anywhere this session, plus
+      // anything violating a pairing exclusion or day-gap constraint.
       const alreadyPickedIds = picked.map(p => p.id);
       let constraintSafe = group.filter(ex =>
-        !usedThisRound.has(ex.id) &&
+        !pickedIdsGlobal.has(ex.id) &&
         !violatesPairingExclusion(ex.id, alreadyPickedIds, constraints) &&
         !violatesDayGapConstraint(ex.id, currentDay, constraints)
       );
@@ -4938,18 +5055,20 @@ function randomizeAccessories() {
         }
       }
 
-      const available = constraintSafe.length ? constraintSafe : group.filter(ex => !usedThisRound.has(ex.id));
-      const pickFrom = available.length ? available : group;
+      // Every fallback level still excludes already-picked exercises, so a
+      // duplicate can never slip through just because constraints or
+      // pattern rules narrowed the pool to nothing.
+      const notYetPicked = group.filter(ex => !pickedIdsGlobal.has(ex.id));
+      const pickFrom = constraintSafe.length ? constraintSafe : notYetPicked;
+      // If genuinely every exercise in this group is already used this
+      // session, leave the slot unfilled rather than duplicating one —
+      // a shorter accessory list beats the same lift showing up twice.
+      if (!pickFrom.length) continue;
+
       const baseScore = ex => (exerciseScores[ex.name] || 0) + ((constraints.frequencyWeights[ex.id] || 1) - 1) * 5;
-      const recencyMultiplier = ex => {
-        // Already picked earlier in THIS randomize call — treat as if used
-        // last session, so a high-weight exercise still can't appear twice
-        // back-to-back within the same session's accessory selection.
-        if (alreadyPickedIds.includes(ex.id)) return 0.05;
-        return getRecencyMultiplier(ex.id, usageHistory, poolSizeForMuscle);
-      };
+      const recencyMultiplier = ex => getRecencyMultiplier(ex.id, usageHistory, poolSizeForMuscle);
       const chosen = weightedPickWithMultiplier(pickFrom, baseScore, recencyMultiplier);
-      usedThisRound.add(chosen.id);
+      pickedIdsGlobal.add(chosen.id);
       if (chosen.pattern) patternsFilledThisMuscle.add(chosen.pattern);
       picked.push(chosen);
     }
@@ -4964,7 +5083,7 @@ function randomizeAccessories() {
   // come after X" / "must appear late" constraints below can still
   // override this default entirely.
   const MUSCLE_SEQUENCE_PRIORITY = {
-    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, // primary/compound-adjacent muscles first
+    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, posterior: 1, // primary/compound-adjacent muscles first
     delts: 2, traps: 2, calves: 2,
     biceps: 3, triceps: 3, rear_delt: 3, forearms: 3, abs: 3, // isolation/finisher work last
   };
@@ -5031,6 +5150,21 @@ function randomizeAccessories() {
   const existingCards = [...accessoriesSection.querySelectorAll('.exercise-card, .custom-exercise-card, .superset-block')];
   existingCards.forEach(card => card.remove());
 
+  // CRITICAL: removing the custom cards from the DOM is not enough — their
+  // entries live in sessionLogs._custom, and appendHistoryAndAddExercise()
+  // re-renders a card for every entry there on EVERY subsequent renderDay()
+  // (returning from Coach, saving, adding an exercise). Leaving them behind
+  // meant the old custom exercises reappeared stacked on top of the freshly
+  // randomized list — duplicates, wrong exercise counts, and then those
+  // ghosts got captured into the accessory snapshot on save, so the bloat
+  // carried forward into the next session too. Randomizing replaces the
+  // whole accessory list, so the custom entries must go with the cards.
+  sessionLogs._custom = [];
+  // Marks that this session's accessories were deliberately randomized, so
+  // renderDay() does NOT re-seed the old snapshot's custom exercises back in
+  // underneath the new picks.
+  sessionLogs._randomized = true;
+
   // Render fresh cards — pairs flagged in supersetAssignments render together
   // inside a superset-block, matching the visual style used everywhere else.
   const isVol = variant.tag === 'volume';
@@ -5056,6 +5190,13 @@ function randomizeAccessories() {
     rendered.add(ex.id);
   });
   accessoriesSection.insertAdjacentHTML('beforeend', html);
+
+  // Persist the new picks immediately. renderDay() rebuilds the Accessories
+  // section from the saved snapshot, so without this any later re-render
+  // (returning from Coach, saving, adding an exercise) silently threw away
+  // the randomized list and restored the previous one — which looked like
+  // the app inventing its own exercise list at random.
+  try { captureAccessoriesSnapshot(variant, currentDay); } catch (e) { console.error('snapshot capture failed:', e); }
 
   const favoritePairCount = new Set(Object.values(supersetAssignments)).size;
   showToast(favoritePairCount > 0
@@ -5441,11 +5582,13 @@ function moveCard(btn, direction) {
   // Normal move within the same section
   if (direction === -1 && idx > 0) {
     parent.insertBefore(card, siblings[idx - 1]);
+    persistAccessoryOrder();
     return;
   }
   if (direction === 1 && idx < siblings.length - 1) {
     const nextSibling = siblings[idx + 1];
     parent.insertBefore(card, nextSibling.nextSibling);
+    persistAccessoryOrder();
     return;
   }
 
@@ -5463,6 +5606,7 @@ function moveCard(btn, direction) {
     }
     if (!prevSection) return; // already at the very first section
     prevSection.appendChild(card);
+    persistAccessoryOrder();
   } else {
     // Moving down past the bottom of this section: find the next .section,
     // drop the card at the START of it (right after the section-label).
@@ -5477,7 +5621,20 @@ function moveCard(btn, direction) {
     } else {
       nextSection.appendChild(card);
     }
+    persistAccessoryOrder();
   }
+}
+
+// Records the CURRENT on-screen accessory order into the day's snapshot.
+// moveCard() only reordered the DOM, so any later re-render (returning from
+// Coach, saving, adding an exercise) rebuilt the section from the stored
+// snapshot and silently threw the manual ordering away. Persisting on each
+// move makes a reorder actually stick.
+function persistAccessoryOrder() {
+  try {
+    const variant = getCurrentVariant(currentDay);
+    if (variant) captureAccessoriesSnapshot(variant, currentDay);
+  } catch (e) { console.error('persistAccessoryOrder failed:', e); }
 }
 
 
@@ -5503,10 +5660,10 @@ function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, set
     return `<div class="set-entry">
       <span class="set-num">S${si+1}</span>
       <input class="log-input" style="width:75px" type="number" inputmode="decimal" placeholder="lbs"
-        value="${s.weight||''}" onchange="updateCustomSet(${idx},${si},'weight',this.value)"/>
+        value="${s.weight||''}" oninput="updateCustomSet(${idx},${si},'weight',this.value)"/>
       <span style="color:var(--muted);font-size:12px">×</span>
       <input class="log-input" style="width:60px" type="number" inputmode="numeric" placeholder="reps"
-        value="${s.reps||''}" onchange="updateCustomSet(${idx},${si},'reps',this.value)"/>
+        value="${s.reps||''}" oninput="updateCustomSet(${idx},${si},'reps',this.value)"/>
       <button class="drop-set-link" onclick="addCustomDropSet(${idx}, ${si}, 0, this)">↓ drop</button>
       <button class="set-notes-toggle ${hasNote ? 'has-note' : ''}" onclick="toggleCustomSetNote(this, ${idx}, ${si})">✎ note</button>
     </div>
@@ -5759,11 +5916,46 @@ if ('serviceWorker' in navigator) {
     registrations.forEach(reg => reg.unregister());
   });
 }
-// Hard reload if cached version detected
+// Hard reload if a stale cached version is detected on a back/forward
+// (bfcache) restore. IMPORTANT: on iOS this can fire while the app is
+// still open in the foreground — the WebView gets restored and this
+// listener nuked the live page. That is the likeliest cause of the
+// "app reset itself mid-workout" behavior: exercise order and any
+// unsaved on-screen state vanished even though logged weights/reps
+// survived (autosave had already written them to storage).
+//
+// The stale-cache concern is already covered by the service worker
+// unregistration above, so this reload is only a backstop — and it must
+// never run while a workout is actually in progress.
 window.addEventListener('load', () => {
-  if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
-    window.location.reload(true);
+  if (!(window.performance && window.performance.navigation
+        && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD)) {
+    return;
   }
+
+  // Is there real in-progress data logged for today? If so, skip the
+  // reload entirely — a stale-version backstop is not worth interrupting
+  // a live session for.
+  let hasWorkoutInProgress = false;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('log_')) continue;
+      let log;
+      try { log = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) { continue; }
+      if (!log || log._date !== today) continue;
+      const hasSets = Object.keys(log).some(k => {
+        if (k.startsWith('_')) return false;
+        const entry = log[k];
+        return entry && entry.sets && entry.sets.some(s => s && (s.weight || s.reps));
+      });
+      const hasCustom = (log._custom || []).some(c => c && c.sets && c.sets.some(s => s && (s.weight || s.reps)));
+      if (hasSets || hasCustom) { hasWorkoutInProgress = true; break; }
+    }
+  } catch (e) { /* if this check fails, err toward NOT reloading */ hasWorkoutInProgress = true; }
+
+  if (!hasWorkoutInProgress) window.location.reload(true);
 });
 </script>
 </body>
