@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.0.8</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.1.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1676,7 +1676,10 @@ function renderDay(index) {
   </div>`;
 
   let accessoriesSectionId = null;
-  const savedSnapshot = typeof getAccessoriesSnapshot === 'function' ? getAccessoriesSnapshot(variant.id) : null;
+  let savedSnapshot = typeof getAccessoriesSnapshot === 'function' ? getAccessoriesSnapshot(variant.id) : null;
+  // Discard a snapshot from an unusually short session so one outlier day
+  // doesn't permanently reduce this day's volume.
+  if (savedSnapshot && snapshotIsVolumeOutlier(variant, savedSnapshot)) savedSnapshot = null;
   variant.sections.forEach((section, sIdx) => {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
@@ -1849,8 +1852,21 @@ function appendHistoryAndAddExercise(index, variant) {
   // throws trying to read .name off null — which is exactly what broke the
   // whole render (and hid Past Sessions/Export) on Friday Push.
   const customExercises = sessionLogs._custom || [];
+  const renderedCustom = new Set();
   customExercises.forEach((ex, i) => {
-    if (!ex) return;
+    if (!ex || renderedCustom.has(i)) return;
+    // Re-pair supersets on restore. Each half stores supersetPair pointing at
+    // its partner's index; without this the pairing was lost on every
+    // re-render and a saved superset came back as two unrelated cards.
+    const pairIdx = typeof ex.supersetPair === 'number' ? ex.supersetPair : null;
+    const partner = pairIdx !== null ? customExercises[pairIdx] : null;
+    if (partner && pairIdx > i && !renderedCustom.has(pairIdx)) {
+      renderedCustom.add(i);
+      renderedCustom.add(pairIdx);
+      appendCustomSupersetCard(index, i, pairIdx, ex.name || '', partner.name || '', ex.sets, partner.sets, accessoriesId);
+      return;
+    }
+    renderedCustom.add(i);
     appendCustomExerciseCard(index, i, ex.name, ex.sets, accessoriesId);
   });
 
@@ -1995,7 +2011,9 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
     sessions.forEach(session => {
       (session.exercises || []).forEach(ex => {
         if (!ex.name || normalizeExerciseName(ex.name) !== norm) return;
-        if (ex.sets && ex.sets.length) {
+        // Same PR cutoff as preset exercises — pre-cutoff entries are not
+        // trusted as a benchmark.
+        if (ex.sets && ex.sets.length && session.date && session.date >= PR_CUTOFF_DATE) {
           allMatchingSessions.push({ date: session.date, sets: ex.sets });
         }
       });
@@ -2302,9 +2320,11 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
     }
     // No direct history - try relatedId for deload extras
     if (relatedId) {
+      // Same PR cutoff applies here — pre-cutoff entries and the built-in
+      // baseline are unreliable, so a deload target must not be derived
+      // from them.
       const relStored = JSON.parse(localStorage.getItem('hist_' + relatedId) || '[]');
-      const relBuiltin = HISTORY[relatedId] || [];
-      const relAll = [...relBuiltin, ...relStored];
+      const relAll = relStored.filter(isAfterPRCutoff);
       let relBest = 0;
       relAll.forEach(s => {
         if (!s.sets) return;
@@ -3170,8 +3190,26 @@ const ANCHOR_LIFTS = [
 // reference point in suggestions, PRs, or progress charts. Pass
 // includeDeload=true explicitly for the rare case a caller actually wants
 // deload sets included (e.g. showing full session history in Past Sessions).
+// Anything logged before this date is treated as unreliable and excluded
+// from suggestions, best-set lookups, PR detection and trends. Two reasons:
+//   1. Early entries predate the current exercise ids, so several lifts were
+//      renamed on top of an id that already held a DIFFERENT exercise's
+//      numbers — e.g. 'close-pulldown' holds heavy Close Grip Lat Pulldown
+//      sets (160x7) but now displays as "Seated Cable High to Low Row",
+//      making that number look like a row PR it never was.
+//   2. The hardcoded HISTORY baseline below is all April-June placeholder
+//      data, not real logged training — this cutoff removes it from
+//      benchmarks automatically, since every seed date falls before it.
+// Past Sessions still shows everything; this only affects what counts as a
+// benchmark to beat.
+const PR_CUTOFF_DATE = '2026-07-01';
+function isAfterPRCutoff(session) {
+  return !!(session && session.date && session.date >= PR_CUTOFF_DATE);
+}
+
 function getAllHistory(exId, includeDeload) {
-  const stored = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+  const raw = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
+  const stored = raw.filter(isAfterPRCutoff);
   const filtered = includeDeload ? stored : stored.filter(s => !s.deload);
   if (filtered.length > 0) {
     return [...filtered].sort((a, b) => a.date > b.date ? 1 : -1);
@@ -3182,8 +3220,10 @@ function getAllHistory(exId, includeDeload) {
   if (!includeDeload && stored.length > 0) {
     return [...stored].sort((a, b) => a.date > b.date ? 1 : -1);
   }
-  const builtin = HISTORY[exId] || [];
-  return [...builtin].sort((a, b) => a.date > b.date ? 1 : -1);
+  // Built-in baseline is pre-cutoff by definition, so it is intentionally
+  // NOT used as a fallback anymore. No trustworthy data means no suggestion,
+  // which is better than anchoring to a number that was never real.
+  return [];
 }
 
 function epley1RM(weight, reps) {
@@ -4161,12 +4201,21 @@ function getAllLoggedExerciseNames() {
     }
   };
 
+  // Names that appear in REAL logged sessions, as opposed to names that only
+  // exist as program/pool definitions. Used below to avoid suppressing a name
+  // that has genuinely been trained under.
+  const actuallyLoggedKeys = new Set();
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('hist_session_')) return;
     try {
       const sessions = JSON.parse(localStorage.getItem(key));
       sessions.forEach(session => {
-        (session.exercises || []).forEach(ex => consider(ex.name));
+        (session.exercises || []).forEach(ex => {
+          consider(ex.name);
+          if (ex.name && !/^custom-[a-z0-9-]+$/.test(ex.name)) {
+            actuallyLoggedKeys.add(normalizeExerciseName(ex.name));
+          }
+        });
       });
     } catch(e) {}
   });
@@ -4198,7 +4247,17 @@ function getAllLoggedExerciseNames() {
       }
     });
   });
-  renamedOriginalKeys.forEach(key => delete byNormalized[key]);
+  // Only suppress a renamed exercise's ORIGINAL name when that name has never
+  // actually been logged. Otherwise this wrongly deletes a name that a
+  // DIFFERENT exercise legitimately uses: e.g. the id 'close-pulldown' was
+  // renamed to "Seated Cable High to Low Row", which suppressed the name
+  // "Close Grip Lat Pulldown" globally — even though that's a real, separately
+  // logged exercise. It vanished from the picker while still resolving fine
+  // when typed by hand, since suggestions look names up in history directly.
+  renamedOriginalKeys.forEach(key => {
+    if (actuallyLoggedKeys.has(key)) return; // real logged exercise — keep it
+    delete byNormalized[key];
+  });
 
   return Object.values(byNormalized).sort((a, b) => a.localeCompare(b));
 }
@@ -4522,12 +4581,14 @@ const MUSCLE_SLOT_COUNTS = {
   // pool but had no slot, so the randomizer could never pick it. Given one
   // slot so it's actually reachable.
   legs:  { quads: 1, hamstrings: 1, glutes: 1, calves: 1, posterior: 1 },
-  // Upper (Saturday) blends push and pull accessory work. lats bumped to 2
-  // (from 1) so Row Focused weeks (Week A) can guarantee a real row +
-  // lat-isolation mix via the pattern-guarantee logic, matching the same
-  // structure confirmed for Wednesday. traps added so Row Focused Saturday
-  // gets the same shrug/accessory finisher Wednesday has.
-  upper: { chest: 1, delts: 1, triceps: 1, lats: 2, rear_delt: 1, biceps: 1, traps: 1 },
+  // Upper (Saturday) blends push and pull accessory work. Counts were far
+  // below the volume actually programmed (the static Upper day defines 9
+  // accessories) and below what gets trained in practice, so randomizing
+  // shrank the session. Raised to match real Upper volume, capped by what
+  // each muscle's pool can actually supply.
+  // Week A (Row Focused) leans back: 3 lats slots keep the guaranteed
+  // row + lat-isolation mix. Week B (Chest Focused) leans push instead.
+  upper: { chest: 2, delts: 2, triceps: 1, lats: 3, rear_delt: 1, biceps: 2, traps: 1 },
 };
 
 
@@ -4715,6 +4776,50 @@ function getAccessoriesSnapshot(variantId) {
   const raw = localStorage.getItem('accessory_snapshot_' + variantId);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
+// The accessory snapshot defaults a day to whatever was done last time,
+// which is usually what you want — but it means ONE unusually short
+// session permanently shrinks that day going forward. A 4-exercise Upper
+// day after a cut-short session would keep suggesting 4 forever, even
+// though every previous Upper day had far more volume.
+//
+// This compares the snapshot against the median exercise count of recent
+// logged sessions for the same day type. If the snapshot is well below
+// that median, it's treated as an outlier and ignored, so the day falls
+// back to the full programmed list instead of the short session.
+function snapshotIsVolumeOutlier(variant, snapshot) {
+  if (!snapshot || !snapshot.length) return false;
+  try {
+    const muscleGroup = getMuscleGroupFromId(variant.id);
+    const keys = ['hist_session_' + muscleGroup + '-' + variant.tag];
+    if (muscleGroup === 'upper') keys.push('hist_session_sat-upper-' + variant.tag);
+
+    let counts = [];
+    keys.forEach(key => {
+      let sessions;
+      try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return; }
+      sessions.forEach(sess => {
+        // Only trust post-cutoff sessions, same rule as PR benchmarks.
+        if (!sess || !sess.date || sess.date < PR_CUTOFF_DATE) return;
+        const n = (sess.exercises || []).length;
+        if (n > 0) counts.push({ date: sess.date, n });
+      });
+    });
+    if (counts.length < 2) return false; // not enough history to judge
+
+    counts.sort((a, b) => (a.date > b.date ? 1 : -1));
+    const recent = counts.slice(-6).map(c => c.n).sort((a, b) => a - b);
+    const median = recent.length % 2
+      ? recent[(recent.length - 1) / 2]
+      : Math.round((recent[recent.length / 2 - 1] + recent[recent.length / 2]) / 2);
+
+    // Snapshot holds accessories only, sessions hold anchors too, so compare
+    // generously — flag only when the snapshot is dramatically smaller.
+    return snapshot.length < Math.floor(median * 0.5);
+  } catch (e) {
+    return false; // never let this check break rendering
+  }
 }
 
 
@@ -4938,7 +5043,7 @@ function randomizeAccessories() {
   // sense on the Row Focused week. Chest Focused Saturday keeps the
   // original lighter back allotment since its anchor emphasis is chest.
   if (muscleGroup === 'upper' && !isWeekA) {
-    baseSlotCounts = { chest: 1, delts: 1, triceps: 1, lats: 1, rear_delt: 1, biceps: 1 };
+    baseSlotCounts = { chest: 2, delts: 2, triceps: 2, lats: 2, rear_delt: 1, biceps: 1, traps: 1 };
   }
 
   // ── Volume-gap analysis: look at the last 4 weeks of real sessions for this
@@ -5639,12 +5744,92 @@ function persistAccessoryOrder() {
 
 
 // ─── CUSTOM SUPERSET ─────────────────────────────────────────
+// Adding a superset now walks through the SAME exercise picker used by
+// "+ Add Exercise" — pick the first movement, then the second — instead of
+// dropping in two blank cards to type into. Names picked this way resolve
+// against logged history, so each half gets a real weight suggestion.
+let _pendingSuperset = null;
+
 function addCustomSuperset(listId, dayIndex) {
+  _pendingSuperset = { listId, dayIndex, nameA: null };
+  openSupersetPicker(listId, dayIndex, 1);
+}
+
+function openSupersetPicker(listId, dayIndex, slot) {
+  closeExercisePicker();
+  const names = getAllLoggedExerciseNames();
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-modal-overlay';
+  overlay.id = 'exercise-picker-overlay';
+
+  const optionsHtml = names.length
+    ? names.map(n => `<button class="picker-option" onclick="pickSupersetExercise('${listId}', ${dayIndex}, ${slot}, this)">${n}</button>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);padding:12px 0;">No logged exercises yet — type a new name instead.</div>`;
+
+  const slotLabel = slot === 1 ? 'First Exercise' : 'Second Exercise';
+  const contextLine = slot === 2 && _pendingSuperset && _pendingSuperset.nameA
+    ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">⚡ Supersetting with <strong style="color:var(--white);">${_pendingSuperset.nameA}</strong> — pick what follows it.</div>`
+    : `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Pick the first half of the superset.</div>`;
+
+  overlay.innerHTML = `
+    <div class="edit-modal">
+      <div class="edit-modal-title">
+        <span>⚡ ${slotLabel}</span>
+        <button class="edit-modal-close" onclick="cancelSupersetPicker()">✕</button>
+      </div>
+      ${contextLine}
+      <input type="text" class="picker-search" id="pickerSearch" placeholder="Search or type a new name..." oninput="filterPickerOptions(this.value)" autofocus>
+      <div class="picker-options" id="pickerOptionsList">${optionsHtml}</div>
+      <button class="edit-save-btn" onclick="addBrandNewSupersetExercise('${listId}', ${dayIndex}, ${slot})">+ Use as New Exercise</button>
+      <button class="edit-save-btn" style="background:none;border:1px solid var(--border);color:var(--muted);margin-top:6px;" onclick="skipSupersetPick('${listId}', ${dayIndex}, ${slot})">Leave blank — I'll type it in</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cancelSupersetPicker(); });
+  setTimeout(() => { const el = document.getElementById('pickerSearch'); if (el) el.focus(); }, 50);
+}
+
+function pickSupersetExercise(listId, dayIndex, slot, btn) {
+  handleSupersetName(listId, dayIndex, slot, btn.textContent);
+}
+
+function addBrandNewSupersetExercise(listId, dayIndex, slot) {
+  const el = document.getElementById('pickerSearch');
+  const typed = el ? el.value.trim() : '';
+  handleSupersetName(listId, dayIndex, slot, typed);
+}
+
+function skipSupersetPick(listId, dayIndex, slot) {
+  handleSupersetName(listId, dayIndex, slot, '');
+}
+
+// Cancelling partway out discards the whole pending superset rather than
+// leaving a half-built one behind.
+function cancelSupersetPicker() {
+  _pendingSuperset = null;
+  closeExercisePicker();
+}
+
+function handleSupersetName(listId, dayIndex, slot, name) {
+  closeExercisePicker();
+  if (slot === 1) {
+    _pendingSuperset = { listId, dayIndex, nameA: name };
+    // Brief gap so the first modal is fully gone before the second opens.
+    setTimeout(() => openSupersetPicker(listId, dayIndex, 2), 120);
+    return;
+  }
+  const nameA = _pendingSuperset ? (_pendingSuperset.nameA || '') : '';
+  _pendingSuperset = null;
+  createSupersetWithNames(listId, dayIndex, nameA, name || '');
+}
+
+function createSupersetWithNames(listId, dayIndex, nameA, nameB) {
   if (!sessionLogs._custom) sessionLogs._custom = [];
   const idx = sessionLogs._custom.length;
-  sessionLogs._custom.push({ name: 'Exercise A', sets: [{ weight: '', reps: '' }], supersetPair: idx + 1 });
-  sessionLogs._custom.push({ name: 'Exercise B', sets: [{ weight: '', reps: '' }], supersetPair: idx });
-  appendCustomSupersetCard(dayIndex, idx, idx + 1, '', '', [], [], listId);
+  sessionLogs._custom.push({ name: nameA, sets: [{ weight: '', reps: '' }], supersetPair: idx + 1 });
+  sessionLogs._custom.push({ name: nameB, sets: [{ weight: '', reps: '' }], supersetPair: idx });
+  appendCustomSupersetCard(dayIndex, idx, idx + 1, nameA, nameB, [], [], listId);
+  if (nameA || nameB) showToast('Superset added!');
 }
 
 function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, setsB, listId) {
@@ -5678,6 +5863,17 @@ function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, set
   const datalistId = 'superset-names-' + idxA;
   const datalistHtml = `<datalist id="${datalistId}">${loggedNames.map(n => `<option value="${n}">`).join('')}</datalist>`;
 
+  // Suggestion boxes, same as standalone custom cards get.
+  const dayVariantSS = getCurrentVariant(dayIndex);
+  const isVolSS = !!(dayVariantSS && dayVariantSS.tag === 'volume');
+  const suggA = buildCustomSuggestionHtml(getCustomExerciseSuggestion(nameA, isVolSS));
+  const suggB = buildCustomSuggestionHtml(getCustomExerciseSuggestion(nameB, isVolSS));
+
+  // NOTE: the inner cards MUST carry id="custom-ex-<idx>". saveDay() resolves
+  // a custom card back to its sessionLogs._custom entry purely from that id
+  // and bails out (`if (idx === null) return;`) when it's missing — so
+  // without these ids, every exercise inside a custom superset was silently
+  // dropped at save time and never reached history at all.
   wrapper.innerHTML = `
     ${datalistHtml}
     <div class="superset-header">⚡ Superset — back to back
@@ -5685,23 +5881,25 @@ function appendCustomSupersetCard(dayIndex, idxA, idxB, nameA, nameB, setsA, set
       <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down" style="position:static;float:right;margin-left:6px;">▼</button>
       <button onclick="removeCustomSuperset(${idxA}, ${idxB})" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;">✕</button>
     </div>
-    <div class="custom-exercise-card" style="margin-bottom:3px;border-radius:7px;">
+    <div class="custom-exercise-card" id="custom-ex-${idxA}" style="margin-bottom:3px;border-radius:7px;">
       <div class="custom-exercise-header">
         <input class="custom-exercise-input" type="text" placeholder="Exercise A" list="${datalistId}"
-          value="${nameA}" oninput="updateCustomName(${idxA}, this.value)" />
+          value="${nameA}" oninput="updateCustomName(${idxA}, this.value); refreshCustomSuggestion(${idxA}, this.value, ${dayIndex})" />
       </div>
       <div class="log-area">
+        ${suggA}
         <div id="custom-sets-${idxA}">${makeSets(setsA, idxA)}</div>
         <button class="add-set-btn" onclick="addCustomSet(${idxA})">+ Add Set</button>
       </div>
     </div>
     <div class="superset-divider">↕ then immediately</div>
-    <div class="custom-exercise-card" style="border-radius:7px;">
+    <div class="custom-exercise-card" id="custom-ex-${idxB}" style="border-radius:7px;">
       <div class="custom-exercise-header">
         <input class="custom-exercise-input" type="text" placeholder="Exercise B" list="${datalistId}"
-          value="${nameB}" oninput="updateCustomName(${idxB}, this.value)" />
+          value="${nameB}" oninput="updateCustomName(${idxB}, this.value); refreshCustomSuggestion(${idxB}, this.value, ${dayIndex})" />
       </div>
       <div class="log-area">
+        ${suggB}
         <div id="custom-sets-${idxB}">${makeSets(setsB, idxB)}</div>
         <button class="add-set-btn" onclick="addCustomSet(${idxB})">+ Add Set</button>
       </div>
