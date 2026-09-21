@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.1.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.2.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -917,7 +917,15 @@ const PROGRAM = [
       id: 'wed-pull-a', title: 'PULL', subtitle: 'Lat Focused — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Leads today, volume load. 4 sets, 7-10 reps.', target:'4 × 7–10', anchor:true, defaultSets:4, anchorVol:true },
+          // Pull anchors alternate by week so both movements get a real
+          // primary slot: Week A leads with Barbell Row, Week B leads with
+          // Weighted Pull Ups. Rows previously only lived on Saturday, one
+          // day after Friday RDLs — Bryce logged on 7/18 that RDL soreness
+          // hurt the lift, and there's a standing randomizer exclusion for
+          // that pairing. Tuesday sits 4 days off RDL day, so rows get a
+          // fresh back here instead of a pre-fatigued one.
+          { id:'barbell-row-vol-sat', name:'Barbell Row', note:'Leads today. Strict, chest-supported tempo. 4 sets, 8-10 reps.', target:'4 × 8–10', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Secondary vertical pull. 3 sets, 7-10 reps.', target:'3 × 7–10', defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
@@ -1680,6 +1688,8 @@ function renderDay(index) {
   // Discard a snapshot from an unusually short session so one outlier day
   // doesn't permanently reduce this day's volume.
   if (savedSnapshot && snapshotIsVolumeOutlier(variant, savedSnapshot)) savedSnapshot = null;
+  // Restore any guaranteed muscle group the snapshot dropped (see below).
+  if (savedSnapshot) savedSnapshot = restoreRequiredMuscles(variant, savedSnapshot);
   variant.sections.forEach((section, sIdx) => {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
@@ -1984,14 +1994,64 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
   const nameToId = buildExerciseNameToIdMap();
   const norm = normalizeExerciseName(name);
   const exId = nameToId[norm];
-  if (exId) {
-    // Custom exercises are never anchors (no program-defined anchor status),
-    // so this always goes through getSuggestion's non-anchor "hold weight"
-    // branch — which is exactly right: a custom accessory should suggest
-    // holding its last real working weight, not push/build logic meant for
-    // programmed anchors with a fixed day-type target.
-    return getSuggestion(exId, isVolumeDay, false, null);
+
+  // An exercise's sets can be split across more than one storage key: the
+  // preset's own hist_<id>, plus any sessions where the same movement was
+  // logged as a custom entry (which lands under a custom- slug instead).
+  // Reading only hist_<id> meant the best set could sit in a key the
+  // suggestion never looked at. Gather every set logged under this display
+  // name so "best ever" really means best ever.
+  const nameMatchedSessions = [];
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return; }
+    sessions.forEach(session => {
+      (session.exercises || []).forEach(ex => {
+        if (!ex.name || normalizeExerciseName(ex.name) !== norm) return;
+        if (ex.sets && ex.sets.length && session.date && session.date >= PR_CUTOFF_DATE) {
+          nameMatchedSessions.push({ date: session.date, sets: ex.sets });
+        }
+      });
+    });
+  });
+
+  function bestFromSessions(list) {
+    let bs = null, score = -1;
+    list.forEach(session => {
+      (session.sets || []).forEach(st => {
+        if (st.isBurnout) return;
+        const w = parseFloat(st.weight), r = parseInt(st.reps);
+        if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
+        const v = w > 0 ? w * (1 + r / 30) : r;
+        if (v > score) { score = v; bs = { weight: w, reps: r, date: session.date, score: v }; }
+      });
+    });
+    return bs;
   }
+
+  if (exId) {
+    // Preset history is authoritative, but if this same movement was also
+    // logged by name somewhere heavier, prefer whichever is genuinely better.
+    const presetSugg = getSuggestion(exId, isVolumeDay, false, null);
+    const byName = bestFromSessions(nameMatchedSessions);
+    if (presetSugg && byName) {
+      const presetScore = presetSugg.lastWeight > 0
+        ? presetSugg.lastWeight * (1 + (presetSugg.maxReps || 1) / 30)
+        : 0;
+      if (byName.score > presetScore) {
+        return {
+          note: 'Hold weight —', arrow: '→', recWeight: byName.weight,
+          lastWeight: byName.weight, maxReps: byName.reps,
+          lastDate: byName.date, isVolume: false
+        };
+      }
+    }
+    if (presetSugg) return presetSugg;
+  }
+
+  // No preset id resolves this name (or it was renamed away) — fall through
+  // to the name-matched session history gathered above.
 
   // No known pool/preset id resolves this name — but it may still be a
   // genuinely custom exercise (never part of any program pool) that's been
@@ -2003,22 +2063,7 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
   // best-ever set below is picked from full history, matching how preset
   // exercises work. Using only the latest session meant a fatigued or
   // lighter day could bury a genuinely better earlier performance.
-  const allMatchingSessions = [];
-  Object.keys(localStorage).forEach(key => {
-    if (!key.startsWith('hist_session_')) return;
-    let sessions;
-    try { sessions = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return; }
-    sessions.forEach(session => {
-      (session.exercises || []).forEach(ex => {
-        if (!ex.name || normalizeExerciseName(ex.name) !== norm) return;
-        // Same PR cutoff as preset exercises — pre-cutoff entries are not
-        // trusted as a benchmark.
-        if (ex.sets && ex.sets.length && session.date && session.date >= PR_CUTOFF_DATE) {
-          allMatchingSessions.push({ date: session.date, sets: ex.sets });
-        }
-      });
-    });
-  });
+  const allMatchingSessions = nameMatchedSessions;
   if (!allMatchingSessions.length) return null;
 
   // Find the best set across ALL logged sessions for this exercise, using
@@ -2354,9 +2399,21 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   // "Best" here means: heaviest weight, with the most reps at that weight
   // if there's a tie, found by comparing estimated 1RM across every set
   // you've ever logged for this exercise.
+  // Several lifts share ONE exercise id across both a heavy day and a volume
+  // day (flat-smith anchors Wednesday Heavy AND Tuesday Volume, for example),
+  // so their history mixes 240x3 top sets with 215x10 volume sets. Judging a
+  // volume day against a heavy session made the code think the lift "looks
+  // heavy" and back-calculate a lighter volume weight (225 * 0.875 = 195),
+  // telling you to drop below a volume weight you'd already hit for 10.
+  // Match the session type to the day being suggested for, exactly as the
+  // trend analysis already does. Falls back to the full set if there aren't
+  // enough same-type sessions to judge from.
+  const sameType = all.filter(sess => !!sess.heavy === !isVolumeDay);
+  const pool = sameType.length >= 1 ? sameType : all;
+
   let bestSet = null;
   let bestSetScore = -1;
-  all.forEach(session => {
+  pool.forEach(session => {
     if (!session.sets) return;
     session.sets.forEach(s => {
       if (s.isBurnout) return; // burnout sets are intentionally light/high-rep — never count toward "best"
@@ -2379,7 +2436,8 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   // used to judge "are you still hitting your rep target right now" for the
   // hold/bump/build logic below — that part should stay recency-based even
   // though the weight reference point itself is now best-ever.
-  const lastValidSets = last.sets
+  const lastSameType = pool[pool.length - 1] || last;
+  const lastValidSets = lastSameType.sets
     .map(s => ({ weight: parseFloat(s.weight), reps: parseInt(s.reps) }))
     .filter(s => !isNaN(s.weight) && s.weight > 0 && !isNaN(s.reps));
   const lastReps = lastValidSets.length ? lastValidSets.map(s => s.reps) : [maxReps];
@@ -2394,7 +2452,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   let best1RM = 0;
   let bestSessionWeight = 0;
   let bestSessionReps = 0;
-  all.forEach(session => {
+  pool.forEach(session => {
     if (!session.sets) return;
     session.sets.forEach(s => {
       const w = parseFloat(s.weight);
@@ -4309,11 +4367,28 @@ function buildExerciseNameToIdMap() {
 
   // 5. Custom name overrides (renamed presets) — map the CURRENT display name
   // back to the underlying preset id it was renamed from.
+  const renamedIds = {};
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('name_')) return;
     const originalId = key.replace('name_', '');
     const displayName = localStorage.getItem(key);
-    if (displayName) map[normalizeExerciseName(displayName)] = originalId;
+    if (displayName) {
+      map[normalizeExerciseName(displayName)] = originalId;
+      renamedIds[originalId] = normalizeExerciseName(displayName);
+    }
+  });
+
+  // 6. Drop a renamed id's ORIGINAL name from the map.
+  // Steps 1-2 registered every pool/program name, including names that have
+  // since been renamed away. Left in place, the old name still resolves to an
+  // id that now holds a DIFFERENT exercise's history — so asking for
+  // "Close Grip Lat Pulldown" returned the history of 'close-pulldown', which
+  // was renamed to "Seated Cable High to Low Row", and suggested 110 instead
+  // of the 160x8 actually logged under the real name. Removing these lets the
+  // name fall through to the session-history search, which finds the real data.
+  Object.keys(map).forEach(nameKey => {
+    const id = map[nameKey];
+    if (renamedIds[id] && renamedIds[id] !== nameKey) delete map[nameKey];
   });
 
   return map;
@@ -4473,6 +4548,7 @@ const ACCESSORY_POOLS = {
   upper: [
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
+    { id:'military-press', name:'Military Press', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 7–9', defaultSets:3, muscle:'delts_compound' },
     { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
@@ -4492,6 +4568,7 @@ const ACCESSORY_POOLS = {
     // Traps — new addition, matching Wednesday's shrug/forearm-style
     // accessory so Row Focused Saturday follows the same structure.
     { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
+    { id:'shrug-db', name:'Dumbbell Shrug', note:'Heavy dumbbells, pause and squeeze at the top. No rolling.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
   push: [
     // Chest
@@ -4500,6 +4577,11 @@ const ACCESSORY_POOLS = {
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
     { id:'db-flat-fly', name:'Flat DB Flys', note:'Full stretch at bottom. Control the eccentric.', target:'3 × 12', defaultSets:3, muscle:'chest' },
     // Delts
+    // Compound shoulder press. Tagged 'delts_compound' rather than 'delts'
+    // deliberately: the 'delts → late' sequencing rule exists for lateral
+    // raise variations, and forcing a heavy overhead press to the end of
+    // the session would be wrong. This category sequences early instead.
+    { id:'military-press', name:'Military Press (Barbell)', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 5–7', defaultSets:3, muscle:'delts_compound' },
     { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-front-raise', name:'Plate / DB Front Raise', note:'Controlled — alternate or together.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
@@ -4535,6 +4617,7 @@ const ACCESSORY_POOLS = {
     { id:'wrist-curl-db', name:'Dumbbell Wrist Curl', note:'Seated, forearms on thighs, full range wrist flexion.', target:'3 × 15–20', defaultSets:3, muscle:'forearms' },
     // Traps
     { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
+    { id:'shrug-db', name:'Dumbbell Shrug', note:'Heavy dumbbells, pause and squeeze at the top. No rolling.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
   legs: [
     // Hamstrings
@@ -4563,7 +4646,7 @@ function getMuscleGroup(variantId) {
 // patterns (averaged across real sessions) — NOT an even 1-per-muscle split.
 // Push: chest-heavy + tricep-heavy. Pull: bicep-heavy. Legs: ab-heavy.
 const MUSCLE_SLOT_COUNTS = {
-  push:  { chest: 2, delts: 2, triceps: 3 },
+  push:  { chest: 2, delts: 2, delts_compound: 1, triceps: 3 },
   // Pull structure, confirmed directly: 1 row-pattern lift + 2 more
   // lat-focused lifts (mix of row and pure lat-isolation, guaranteed by
   // the pattern logic above) + 2-3 biceps + 1 trap/forearm accessory.
@@ -4588,7 +4671,7 @@ const MUSCLE_SLOT_COUNTS = {
   // each muscle's pool can actually supply.
   // Week A (Row Focused) leans back: 3 lats slots keep the guaranteed
   // row + lat-isolation mix. Week B (Chest Focused) leans push instead.
-  upper: { chest: 2, delts: 2, triceps: 1, lats: 3, rear_delt: 1, biceps: 2, traps: 1 },
+  upper: { chest: 2, delts: 2, delts_compound: 1, triceps: 1, lats: 3, rear_delt: 1, biceps: 2, traps: 1 },
 };
 
 
@@ -4788,6 +4871,109 @@ function getAccessoriesSnapshot(variantId) {
 // logged sessions for the same day type. If the snapshot is well below
 // that median, it's treated as an outlier and ignored, so the day falls
 // back to the full programmed list instead of the short session.
+// Some muscle groups should appear on a day EVERY time, not just when the
+// randomizer happens to pick them. Because a day defaults to its saved
+// snapshot, once a muscle got dropped from that snapshot — randomized out,
+// or manually deleted during a rushed session — it could never come back on
+// its own, and the day silently lost that work permanently. Traps are the
+// clearest case: Week B pull and Week B upper both lost shrugs this way and
+// stayed lost, while the Week A versions kept them.
+// ─── ABS ROTATION (Mon / Wed / Fri) ──────────────────────────────
+// Abs are scheduled by DAY rather than by muscle group, because the muscle
+// group pools are shared across two days each (the push pool feeds both
+// Tuesday and Wednesday, for example) and abs are only wanted on Mon/Wed/Fri.
+// Each day gets a different emphasis so the same two movements aren't
+// repeated three times a week:
+//   Monday    — loaded flexion (upper abs)
+//   Wednesday — anti-rotation and obliques
+//   Friday    — lower abs / hip flexion
+// All ids below already exist with logged history, so suggestions carry over.
+const ABS_POOL = {
+  flexion: [
+    { id:'rope-crunch', name:'Cable Rope Crunch', note:'Round the spine, pull with abs not arms.', target:'3 × 10–12', defaultSets:3, muscle:'abs' },
+    { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'Knees up, curl the pelvis. Controlled down.', target:'3 × 8–10', defaultSets:3, muscle:'abs' },
+  ],
+  obliques: [
+    { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate from the torso, hips square. Slow return.', target:'3 × 10–12', defaultSets:3, muscle:'abs' },
+    { id:'oblique-ext', name:'Oblique Extension', note:'Side bend through full range, pause at stretch.', target:'3 × 10–12', defaultSets:3, muscle:'abs' },
+    { id:'pallof-press', name:'Pallof Press', note:'Anti-rotation. Resist the pull, press straight out.', target:'3 × 10–12 / side', defaultSets:3, muscle:'abs' },
+  ],
+  lower: [
+    { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'Control the lower half, no swinging.', target:'3 × 8–10', defaultSets:3, muscle:'abs' },
+    { id:'hang-leg-raise', name:'Hanging Leg Raise', note:'Curl the pelvis at the top, slow eccentric.', target:'3 × 8–10', defaultSets:3, muscle:'abs' },
+  ],
+};
+
+// Which abs focus each day variant gets. Wednesday's two variant ids are
+// 'tue-push-a' (Week A, Push Heavy) and 'wed-pull-b' (Week B, Pull Heavy) —
+// those ids were deliberately left unchanged when Tue/Wed were swapped so
+// history stayed attached, so they look mismatched but are correct.
+const ABS_DAY_FOCUS = {
+  'mon-legs-a': 'flexion',  'mon-legs-b': 'flexion',
+  'tue-push-a': 'obliques', 'wed-pull-b': 'obliques',
+  'fri-legs-a': 'lower',    'fri-legs-b': 'lower',
+};
+const ABS_SLOTS = 2;
+
+function getAbsForVariant(variantId, exclude) {
+  const focus = ABS_DAY_FOCUS[variantId];
+  if (!focus) return [];
+  const pool = ABS_POOL[focus] || [];
+  const taken = exclude || [];
+  const avail = pool.filter(e => !taken.some(t => t === e.id));
+  const picks = [];
+  const bag = avail.slice();
+  // Target count must be captured BEFORE the loop: splice() shrinks bag, so
+  // comparing against a live bag.length stopped after a single pick whenever
+  // the focus group had exactly 2 exercises (Monday and Friday both do).
+  const target = Math.min(ABS_SLOTS, bag.length);
+  while (picks.length < target) {
+    const i = Math.floor(Math.random() * bag.length);
+    picks.push({ ...bag.splice(i, 1)[0], supersetGroup: null });
+  }
+  return picks;
+}
+
+const REQUIRED_MUSCLES = { pull: ['traps'], upper: ['traps'] };
+
+function restoreRequiredMuscles(variant, snapshot) {
+  try {
+    const muscleGroup = getMuscleGroupFromId(variant.id);
+    const out0 = snapshot.slice();
+    // Abs are day-scheduled, not pool-scheduled, so they're topped up here
+    // too — otherwise one session where they got deleted would remove them
+    // from that day permanently, exactly as happened with shrugs.
+    if (ABS_DAY_FOCUS[variant.id]) {
+      const hasAbs = out0.some(i => i && (i.muscle === 'abs' || ABS_DAY_FOCUS[variant.id] && Object.values(ABS_POOL).some(g => g.some(e => e.id === i.id))));
+      if (!hasAbs) {
+        getAbsForVariant(variant.id, out0.map(i => i.id)).forEach(a => out0.push(a));
+      }
+    }
+    const required = REQUIRED_MUSCLES[muscleGroup];
+    if (!required || !required.length) return out0;
+    snapshot = out0;
+    const pool = (typeof ACCESSORY_POOLS !== 'undefined' && ACCESSORY_POOLS[muscleGroup]) || [];
+    if (!pool.length) return snapshot;
+
+    const out = snapshot.slice();
+    required.forEach(muscle => {
+      const present = out.some(item => {
+        if (item && item.muscle === muscle) return true;
+        const def = pool.find(p => p.id === item.id);
+        return !!(def && def.muscle === muscle);
+      });
+      if (present) return;
+      const candidates = pool.filter(p => p.muscle === muscle && !out.some(i => i.id === p.id));
+      if (!candidates.length) return;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      out.push({ ...pick, supersetGroup: null });
+    });
+    return out;
+  } catch (e) {
+    return snapshot; // never let this break rendering
+  }
+}
+
 function snapshotIsVolumeOutlier(variant, snapshot) {
   if (!snapshot || !snapshot.length) return false;
   try {
@@ -5043,7 +5229,7 @@ function randomizeAccessories() {
   // sense on the Row Focused week. Chest Focused Saturday keeps the
   // original lighter back allotment since its anchor emphasis is chest.
   if (muscleGroup === 'upper' && !isWeekA) {
-    baseSlotCounts = { chest: 2, delts: 2, triceps: 2, lats: 2, rear_delt: 1, biceps: 1, traps: 1 };
+    baseSlotCounts = { chest: 2, delts: 2, delts_compound: 1, triceps: 2, lats: 2, rear_delt: 1, biceps: 1, traps: 1 };
   }
 
   // ── Volume-gap analysis: look at the last 4 weeks of real sessions for this
@@ -5179,6 +5365,12 @@ function randomizeAccessories() {
     }
   });
 
+  // Abs are day-scheduled (Mon/Wed/Fri) rather than drawn from the muscle
+  // pool, so append them here. They sort to the end via the 'abs' sequence
+  // priority, which is correct — abs go after the main lifts, never before,
+  // since pre-fatigued abs compromise bracing on squats and RDLs.
+  getAbsForVariant(variant.id, picked.map(p => p.id)).forEach(a => picked.push(a));
+
   // Default sequencing: rather than a fully random shuffle (which was
   // producing genuinely arbitrary orderings with no relationship to how a
   // real session should flow), order by muscle group in a sensible default
@@ -5188,7 +5380,7 @@ function randomizeAccessories() {
   // come after X" / "must appear late" constraints below can still
   // override this default entirely.
   const MUSCLE_SEQUENCE_PRIORITY = {
-    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, posterior: 1, // primary/compound-adjacent muscles first
+    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, posterior: 1, delts_compound: 1, // primary/compound-adjacent muscles first
     delts: 2, traps: 2, calves: 2,
     biceps: 3, triceps: 3, rear_delt: 3, forearms: 3, abs: 3, // isolation/finisher work last
   };
