@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.6.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.9.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -870,11 +870,18 @@ const PROGRAM = [
           { id:'smith-lunge', name:'Smith Machine Lunges', note:'3 sets, 7-8 reps. Front shin vertical, full range.', target:'3 × 7–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'3 sets, 10-12 reps, paused reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'leg-ext-mon', name:'Leg Extension', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'prone-curl-light', name:'Prone Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10 reps.', target:'2 × 10 / side', defaultSets:2 },
-          { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Full stretch at bottom, pause at top.', target:'3 × 12–15', defaultSets:3 },
+          // Goblet squat removed: it was a third knee-dominant move after squats and
+          // lunges. Those sets went to the leg extension, which is the only thing here
+          // that trains the rectus femoris (squats barely touch it).
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back — less hip flexion grows the rectus femoris better. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze at the top, or run them single leg.', target:'3 × 10–12', defaultSets:3 },
+          { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2 },
+          // Glute + unweighted quad work paired: the sissy squat carries no load,
+          // so it costs nothing to run it on the back half.
+          { superset:true, exercises:[
+            { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats. Controlled, full range.', target:'3 × 12–15 / side', defaultSets:3 },
+            { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight. Knees travel forward, lean back, slow down. Back half of the superset.', target:'2 × 10–15', defaultSets:2 },
+          ]},
+          { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
@@ -890,11 +897,23 @@ const PROGRAM = [
           { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'3 sets, 9-12 reps.', target:'3 × 9–12 / leg', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'bulgarian', name:'Elevated Close Squat (Smith)', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'leg-ext-mon', name:'Leg Extension', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10-12 reps.', target:'2 × 10–12 / side', defaultSets:2 },
-          { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Full stretch at bottom, pause at top.', target:'3 × 12–15', defaultSets:3 },
+          // Goblet squat removed: it was a third knee-dominant move after squats and
+          // lunges. Those sets went to the leg extension, which is the only thing here
+          // that trains the rectus femoris (squats barely touch it).
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back — less hip flexion grows the rectus femoris better. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze at the top, or run them single leg.', target:'3 × 10–12', defaultSets:3 },
+          { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2 },
+          // Glute + unweighted quad work paired: the sissy squat carries no load,
+          // so it costs nothing to run it on the back half.
+          { superset:true, exercises:[
+            { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats. Controlled, full range.', target:'3 × 12–15 / side', defaultSets:3 },
+            { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight. Knees travel forward, lean back, slow down. Back half of the superset.', target:'2 × 10–15', defaultSets:2 },
+          ]},
+          // Calves live on the volume days only (MON B / FRI A) — 3 sets a week.
+          // Adductors + calves: opposite ends of the leg, no interference.
+          { superset:true, exercises:[
+            { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
+            { id:'calf-vert', name:'Vertical Calf Raise (Smith)', note:'Superset with adduction. Full stretch at the bottom, pause at the top.', target:'3 × 10–15', defaultSets:3 },
+          ]},
         ]},
         { label: 'Abs', exercises: [
           { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
@@ -969,10 +988,17 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
           { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest. Wide grip is easier on the shoulder joint.', target:'3 × 10–12', defaultSets:3 },
-          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Second side delt move, kept apart from the upright row so both get fresh sets.', target:'3 × 12–15', defaultSets:3 },
-          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'3 sets, 10-14 reps.', target:'3 × 10–14', defaultSets:3 },
+          { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest.', target:'3 × 10–12', defaultSets:3 },
+          // Triceps + side delts paired: different muscles, so neither one suffers.
+          { superset:true, exercises:[
+            { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Superset with lateral raises.', target:'3 × 8–10', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Second side delt move, kept apart from the upright row.', target:'3 × 12–15', defaultSets:3 },
+          ]},
+          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
+        ]},
+        { label: 'Abs', exercises: [
+          { id:'pallof-press', name:'Pallof Press', note:'Anti-rotation. Resist the pull, press straight out, hips square.', target:'3 × 10–12 / side', defaultSets:3 },
+          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate from the torso, hips square. Slow return.', target:'3 × 10–12', defaultSets:3 },
         ]},
       ]
     },
@@ -983,14 +1009,24 @@ const PROGRAM = [
           { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Leads today, heavy. 4 sets, 5-8 reps. Push weight here.', target:'4 × 5–8', anchor:true, defaultSets:4 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-8 reps. 2-3 sec eccentric.', target:'3 × 6–8', defaultSets:3 },
-          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'cable-row-wide', name:'Seated Cable Row Close Grip', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
-          { id:'db-curl', name:'EZ Bar Curl', note:'3 sets, 11-14 reps.', target:'3 × 11–14', defaultSets:3 },
-          { id:'incline-curl-b', name:'Incline Dumbbell Curl', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
-          { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'shrug-wed', name:'Smith Machine Shrug', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
+          // Back first while you're fresh and grip is strong.
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', defaultSets:3 },
+          { id:'cable-row-wide', name:'Seated Cable Row (Close Grip)', note:'Chest tall, squeeze at the back.', target:'3 × 8–10', defaultSets:3 },
+          { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Elbows softly bent, long stretch overhead.', target:'3 × 10–12', defaultSets:3 },
+          // Then arms + rear delts paired: they don't compete, so neither loses reps.
+          { superset:true, exercises:[
+            { id:'db-curl', name:'EZ Bar Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 8–10', defaultSets:3 },
+            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
+          ]},
+          { superset:true, exercises:[
+            { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Long head stretch. Superset with reverse flys.', target:'3 × 9–11', defaultSets:3 },
+            { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
+          ]},
+          { id:'shrug-wed', name:'Smith Machine Shrug', note:'Finisher. Full range, pause at top.', target:'3 × 15–20', defaultSets:3 },
+        ]},
+        { label: 'Abs', exercises: [
+          { id:'oblique-ext', name:'Oblique Extension', note:'Side bend through full range, pause at the stretch.', target:'3 × 10–12', defaultSets:3 },
+          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate from the torso, hips square. Slow return.', target:'3 × 10–12', defaultSets:3 },
         ]},
       ]
     }
@@ -1007,9 +1043,19 @@ const PROGRAM = [
           { id:'rdl', name:'Romanian Deadlift', note:'Leads today, volume load. 3 sets, 9-11 reps.', target:'3 × 9–11', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-kickback', name:'Cable Kickbacks', note:'Glute focus. Slight forward lean, squeeze at the top, no lower-back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
-          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Glute med. Controlled, no swinging.', target:'2 × 12–15 / side', defaultSets:2 },
+          { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 10–12', defaultSets:3 },
+          // Second curl, different hip angle. Prone trains the knee-flexion job with
+          // the hips extended, which the seated version doesn't cover.
+          { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 8–10', defaultSets:3 },
+          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch — the half kickbacks miss. Hinge back, drive the hips to lock out. Cable pulls horizontally, so no spinal load.', target:'3 × 12–15', defaultSets:3 },
+          // Calves live on the volume days only (MON B / FRI A) — 3 sets a week.
+          { superset:true, exercises:[
+            { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with calves. Controlled, full range.', target:'2 × 12–15 / side', defaultSets:2 },
+            { id:'calf-vert-fri', name:'Vertical Calf Raise (Smith)', note:'Full stretch at the bottom, pause at the top.', target:'3 × 10–15', defaultSets:3 },
+          ]},
+          // Quad slot: machine, end of the day, no bracing after heavy RDLs.
+          { id:'leg-press-fri', name:'Leg Press', note:'Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
@@ -1024,10 +1070,12 @@ const PROGRAM = [
           { id:'rdl-thu-heavy', name:'Romanian Deadlift', note:'Leads today, heavy. 3 sets, 6-8 reps. Push weight here — this is progressing.', target:'3 × 6–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-kickback', name:'Cable Kickbacks', note:'Glute focus. Slight forward lean, squeeze at the top, no lower-back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
-          { id:'prone-curl-mon', name:'Prone Leg Curl', note:'3 sets, 7-9 reps.', target:'3 × 7–9', defaultSets:3 },
-          { id:'seated-curl', name:'Seated Leg Curl', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
-          { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'2 sets, 10 reps.', target:'2 × 10 / side', defaultSets:2 },
+          { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
+          { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 8–10', defaultSets:3 },
+          { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 7–9', defaultSets:3 },
+          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch — the half kickbacks miss. Hinge back, drive the hips to lock out. Cable pulls horizontally, so no spinal load.', target:'3 × 12–15', defaultSets:3 },
+          { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Controlled, full range.', target:'2 × 10 / side', defaultSets:2 },
+          { id:'leg-press-fri', name:'Leg Press', note:'Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
@@ -1789,6 +1837,9 @@ function renderDay(index) {
   // Restore any guaranteed muscle group the snapshot dropped (see below).
   if (savedSnapshot) savedSnapshot = restoreRequiredMuscles(variant, savedSnapshot);
   if (savedSnapshot) savedSnapshot = applyDayRules(variant.id, savedSnapshot);
+  // Same ordering and superset rules a fresh randomize gets, so a day you've
+  // already logged doesn't come back as a jumbled list with no pairings.
+  if (savedSnapshot) savedSnapshot = structureAccessories(savedSnapshot, variant.id);
   variant.sections.forEach((section, sIdx) => {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
@@ -2182,7 +2233,7 @@ function getCustomExerciseSuggestion(name, isVolumeDay) {
       const w = parseFloat(s.weight), r = parseInt(s.reps);
       if (isNaN(w) || isNaN(r) || w < 0 || r <= 0) return;
       const score = w > 0 ? w * (1 + r / 30) : r; // bodyweight moves rank by reps
-      if (score > bestSetScore) {
+      if (score > bestSetScore || (score === bestSetScore && bestSet && session.date >= bestSet.date)) {
         bestSetScore = score;
         bestSet = { weight: w, reps: r, date: session.date };
       }
@@ -2559,7 +2610,10 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
       const r = parseInt(s.reps);
       if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
       const score = w * (1 + r / 30); // Epley 1RM as the comparison metric
-      if (score > bestSetScore) {
+      // Ties go to the MOST RECENT session. History is sorted oldest-first,
+      // so a strict `>` meant an identical performance from July kept
+      // outranking the same numbers hit in September.
+      if (score > bestSetScore || (score === bestSetScore && bestSet && session.date >= bestSet.date)) {
         bestSetScore = score;
         bestSet = { weight: w, reps: r, date: session.date };
       }
@@ -3497,9 +3551,29 @@ function getNameMatchedHistory(exId) {
   return out;
 }
 
+// A session is the same session if it's the same date with the same sets —
+// the two sources overlap, so this keeps a duplicate from counting twice.
+function sessionFingerprint(sess) {
+  if (!sess) return '';
+  const sets = (sess.sets || []).map(s => `${s.weight}x${s.reps}`).join(',');
+  return `${sess.date}|${sets}`;
+}
+
 function getAllHistory(exId, includeDeload) {
   let raw = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
-  if (!raw.length) raw = getNameMatchedHistory(exId);
+  // Name-matched sessions used to be a FALLBACK — only consulted when the
+  // preset key was empty. That silently hid newer work: cable kickbacks had
+  // one old entry under hist_kickback-fri, so every later session logged
+  // under the custom id was never looked at, and 30x7 from August kept
+  // beating 30x12 from September. Merge both sources, then dedupe.
+  const nameMatched = getNameMatchedHistory(exId) || [];
+  if (nameMatched.length) {
+    const seen = new Set(raw.map(sessionFingerprint));
+    nameMatched.forEach(sess => {
+      const fp = sessionFingerprint(sess);
+      if (!seen.has(fp)) { seen.add(fp); raw = raw.concat([sess]); }
+    });
+  }
   const stored = raw.filter(isAfterPRCutoff);
   const filtered = includeDeload ? stored : stored.filter(s => !s.deload);
   if (filtered.length > 0) {
@@ -3536,7 +3610,7 @@ function getLifePR(exId) {
       const r = parseInt(s.reps);
       if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
       const est = epley1RM(w, r);
-      if (est > prEstimate) {
+      if (est > prEstimate || (est === prEstimate && pr && session.date >= pr.date)) {
         prEstimate = est;
         pr = { weight: w, reps: r, date: session.date, estimated1RM: Math.round(est) };
       }
@@ -4423,7 +4497,7 @@ function getDeloadExtras(variantId) {
     ],
     'wed-pull': [
       { id:'dl-incline-curl-extra', name:'Incline Dumbbell Curl', note:'Deload extra — bicep stretch position. Slow eccentric, light weight.', target:'3 × 15 / arm', defaultSets:3, relatedId:'incline-curl' },
-      { id:'dl-straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Deload extra — lat isolation. Arms straight, feel the lat stretch and contract.', target:'3 × 15', defaultSets:3, relatedId:'cable-pullover' },
+      { id:'dl-cable-pullover', name:'Seated Cable Pullover', note:'Deload extra — lat isolation. Long stretch, light weight.', target:'3 × 15', defaultSets:3, relatedId:'cable-pullover' },
     ],
     'fri-legs': [
       { id:'dl-ham-curl', name:'Leg Curl (Slow Eccentric)', note:'Deload extra — slow 4-sec down. Hamstring isolation at light weight.', target:'3 × 15', defaultSets:3, relatedId:'seated-curl' },
@@ -4790,7 +4864,7 @@ const ACCESSORY_POOLS = {
     // Row Focused week (Week A) can guarantee a genuine row-pattern
     // accessory alongside a pure lat-isolation movement, instead of both
     // slots potentially landing on the same pattern by chance.
-    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Seated. Elbows softly bent (not locked), long stretch overhead.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
     { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Full stretch at top, drive elbows down.', target:'3 × 6–9', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
     { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
@@ -4831,8 +4905,7 @@ const ACCESSORY_POOLS = {
     // randomizer can guarantee a real mix (a row AND a lat-isolation
     // movement) instead of picking 2 from an undifferentiated bucket where
     // both slots could land on the same pattern by chance.
-    { id:'cable-pullover', name:'Cable Pullover', note:'Arms straight, feel the lat stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
-    { id:'straight-arm-pulldown', name:'Straight Arm Pulldown', note:'Arms straight, lat isolation. Feel the stretch and contract.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
+    { id:'cable-pullover', name:'Seated Cable Pullover', note:'Seated. Elbows softly bent (not locked), long stretch overhead.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
     { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
@@ -4859,7 +4932,10 @@ const ACCESSORY_POOLS = {
     { id:'prone-curl-mon', name:'Prone Leg Curl', note:'Slow eccentric, full range.', target:'3 × 10–12', defaultSets:3, muscle:'hamstrings' },
     { id:'seated-curl', name:'Seated Leg Curl', note:'Upper hamstring emphasis. High reps.', target:'3 × 12–15', defaultSets:3, muscle:'hamstrings' },
     // Quads
-    { id:'leg-ext-mon', name:'Leg Extension', note:'Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+    { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+    { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled.', target:'3 × 12–15 / side', defaultSets:3, muscle:'adductors' },
+    { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight quad work. Knees forward, lean back, slow down.', target:'3 × 10–15', defaultSets:3, muscle:'quads' },
+    { id:'leg-press-fri', name:'Leg Press', note:'Machine — no spinal load. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
     // Glutes/Hip
     { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled. Glute med isolation.', target:'3 × 15 / side', defaultSets:3, muscle:'glutes' },
     { id:'cable-pull-through', name:'Cable Pull-Through', note:'Hinge at the hips, squeeze glutes to stand. Light spinal load.', target:'3 × 12–15', defaultSets:3, muscle:'glutes' },
@@ -5151,9 +5227,11 @@ const ABS_POOL = {
 // always renders. Listing them here too injected a SECOND set of abs into
 // the accessories on those days — duplicate exercises. Wednesday has no Abs
 // section, so it's the only day that needs abs added this way.
-const ABS_DAY_FOCUS = {
-  'tue-push-a': 'obliques', 'wed-pull-b': 'obliques',
-};
+// Empty on purpose. Every day that gets abs now has its own 'Abs' section in
+// the program (Mon: flexion, Wed: obliques, Fri: lower), so abs render as a
+// separate block instead of being mixed into the accessories — and a re-roll
+// of the accessories can't shuffle them around or drop them.
+const ABS_DAY_FOCUS = {};
 const ABS_SLOTS = 2;
 
 function getAbsForVariant(variantId, exclude) {
@@ -5222,6 +5300,8 @@ function restoreRequiredMuscles(variant, snapshot) {
 // coming back. These rules run on both restored snapshots and fresh re-rolls.
 const FRIDAY_QUAD_PATTERN = /sissy|lunge|leg extension|goblet|split squat|close squat/i;
 const FRIDAY_QUAD_IDS = ['leg-ext-mon','goblet-squat','smith-lunge','smith-lunge-thu','bulgarian-mon','bulgarian'];
+const LEG_PRESS_FRI = { id:'leg-press-fri', name:'Leg Press', note:'Friday quad slot. Machine on purpose — no bracing after heavy RDLs. Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' };
+const SEATED_CURL_LIGHT = { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set. Seated beats prone here — hips flexed puts the hamstrings at a longer length.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
 const PRONE_LIGHT = { id:'prone-curl-light', name:'Prone Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
 const MILITARY_PRESS_DEF = { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3, muscle:'delts_compound' };
 const UPRIGHT_ROW_DEF = { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
@@ -5234,6 +5314,177 @@ const REV_FLY_DEF = { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', no
 const CALF_DEF = { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Full stretch at bottom, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'calves' };
 const CHEST_SUPPORTED_ROW = { id:'chest-supported-row', name:'Chest-Supported Row', note:'Chest on the pad, no lower back involvement.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' };
 
+// ─── SESSION STRUCTURE ────────────────────────────────────────────────
+// Every day should read the same way: heaviest compound work first, mid-size
+// muscles next, isolation/finisher work last, with 1-3 supersets pairing
+// muscles that don't compete with each other. This runs on BOTH a restored
+// snapshot and a fresh randomize, so a day can't come back jumbled and can't
+// come back with zero supersets.
+const MUSCLE_SEQUENCE_PRIORITY = {
+  chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, posterior: 1, delts_compound: 1,
+  delts: 2, traps: 2, calves: 2, adductors: 2,
+  biceps: 3, triceps: 3, rear_delt: 3, forearms: 3,
+  abs: 4,
+};
+const SUPERSET_TARGET = 2;   // aim for this many per day
+const SUPERSET_MAX = 3;      // never build more than this
+
+// Snapshot and program entries often carry no muscle tag (only pool defs do),
+// so resolve by id against the pools first, then fall back to the name.
+function inferMuscle(item) {
+  if (!item) return null;
+  if (item.muscle) return item.muscle;
+  let found = null;
+  try {
+    Object.values(ACCESSORY_POOLS || {}).forEach(pool =>
+      pool.forEach(ex => { if (ex.id === item.id && ex.muscle) found = ex.muscle; }));
+  } catch (e) {}
+  if (found) return found;
+  const t = ((item.name || '') + ' ' + (item.id || '')).toLowerCase();
+  if (/rear|face.?pull|reverse fly|rev-fly/.test(t)) return 'rear_delt';
+  if (/lateral raise|upright row|front raise|lat-raise/.test(t)) return 'delts';
+  if (/military|shoulder press|overhead press/.test(t)) return 'delts_compound';
+  if (/shrug|trap/.test(t)) return 'traps';
+  if (/crunch|leg raise|pallof|oblique|rotation/.test(t)) return 'abs';
+  if (/calf|calve/.test(t)) return 'calves';
+  if (/leg curl/.test(t)) return 'hamstrings';
+  if (/curl/.test(t)) return 'biceps';
+  if (/tricep|jm press|skull|pushdown|dip/.test(t)) return 'triceps';
+  if (/adduction|adductor/.test(t)) return 'adductors';
+  if (/glute|kickback|hip thrust|abduction|pull.?through/.test(t)) return 'glutes';
+  if (/rdl|deadlift|good morning/.test(t)) return 'posterior';
+  if (/squat|lunge|leg ext|leg press|bulgarian|step.?up/.test(t)) return 'quads';
+  if (/row|pulldown|pull.?up|pullover/.test(t)) return 'lats';
+  if (/wrist|forearm|grip/.test(t)) return 'forearms';
+  if (/press|fly|bench/.test(t)) return 'chest';
+  return null;
+}
+
+// Which head of the shoulder a move hits, so two moves for the SAME head are
+// never supersetted and never left back to back (v3.6.1 rule, generalized).
+function deltHead(item) {
+  if (!item) return null;
+  const t = ((item.name || '') + ' ' + (item.id || '')).toLowerCase();
+  if (/rear|face.?pull|reverse fly|rev-fly/.test(t)) return 'rear';
+  if (/front raise|front-raise/.test(t)) return 'front';
+  if (/lateral raise|lat-raise|upright row|upright/.test(t)) return 'side';
+  return null;
+}
+
+// Within one muscle, the heavier/more compound version leads — an upright row
+// or a press before a raise, a row before a pullover. Purely a tiebreak.
+function withinTierRank(item) {
+  const t = ((item && item.name || '') + ' ' + (item && item.id || '')).toLowerCase();
+  if (/press|upright row|\brow\b|pulldown|pull.?up/.test(t)) return 0;
+  return 1;
+}
+
+function musclePriority(item, lateMuscles) {
+  const m = inferMuscle(item);
+  if (m === 'abs') return 4;               // abs always last
+  if (lateMuscles && lateMuscles.has(m)) return 3.5;
+  return MUSCLE_SEQUENCE_PRIORITY[m] ?? 2;
+}
+
+// Two exercises can share a superset only if neither steals reps from the
+// other: never the same muscle, never the same delt head, never a heavy
+// compound, and never abs (they live in their own section).
+// Unweighted work — no external load, so it doesn't carry the fatigue cost
+// that keeps compounds out of supersets.
+const BODYWEIGHT_MOVE_IDS = ['custom-bodyweight-sissy-squats', 'sissy-squat'];
+function isBodyweightMove(item) {
+  if (!item) return false;
+  if (BODYWEIGHT_MOVE_IDS.includes(item.id)) return true;
+  return /sissy|bodyweight/i.test(item.name || '');
+}
+
+function canSuperset(a, b) {
+  const ma = inferMuscle(a), mb = inferMuscle(b);
+  if (!ma || !mb || ma === mb) return false;
+  if (ma === 'abs' || mb === 'abs') return false;
+  const pa = MUSCLE_SEQUENCE_PRIORITY[ma] ?? 2, pb = MUSCLE_SEQUENCE_PRIORITY[mb] ?? 2;
+  // Compounds get straight sets — but an unweighted move costs almost nothing
+  // systemically, so it can ride the back half of a pair even on leg day.
+  const bwA = isBodyweightMove(a), bwB = isBodyweightMove(b);
+  if ((pa < 2 && !bwA) || (pb < 2 && !bwB)) return false;
+  const da = deltHead(a), db = deltHead(b);
+  if (da && db && da === db) return false;
+  return true;
+}
+
+// Order a day's accessories and build its supersets. Returns a flat list with
+// supersetGroup set on paired items, partners adjacent.
+function structureAccessories(list, variantId, opts) {
+  if (!Array.isArray(list) || list.length < 2) return list;
+  opts = opts || {};
+  const lateMuscles = opts.lateMuscles || null;
+  const items = list.filter(Boolean);
+
+  // Keep existing pairs together as single units through the sort.
+  const units = [];
+  const seen = new Set();
+  items.forEach(it => {
+    if (seen.has(it)) return;
+    const g = it.supersetGroup;
+    if (g) {
+      const members = items.filter(o => o.supersetGroup === g);
+      members.forEach(m => seen.add(m));
+      units.push({ members, group: g });
+    } else {
+      seen.add(it);
+      units.push({ members: [it], group: null });
+    }
+  });
+
+  // Sort by the leading member's priority; ties hold their existing order so
+  // a day you've already arranged doesn't get reshuffled for no reason.
+  units.forEach((u, i) => {
+    u._idx = i;
+    u._p = Math.min(...u.members.map(m => musclePriority(m, lateMuscles)));
+    u._r = Math.min(...u.members.map(withinTierRank));
+  });
+  units.sort((a, b) => (a._p - b._p) || (a._r - b._r) || (a._idx - b._idx));
+
+  // Build supersets out of the finisher work until we hit the target.
+  let pairCount = units.filter(u => u.members.length > 1).length;
+  if (pairCount < SUPERSET_TARGET) {
+    for (let i = units.length - 1; i > 0 && pairCount < Math.min(SUPERSET_TARGET, SUPERSET_MAX); i--) {
+      const u = units[i];
+      if (u.members.length > 1 || u._p < 2 || inferMuscle(u.members[0]) === 'abs') continue;
+      for (let j = i - 1; j >= 0; j--) {
+        const v = units[j];
+        if (v.members.length > 1 || v._p < 2) continue;
+        if (!canSuperset(u.members[0], v.members[0])) continue;
+        const gid = 'ss-auto-' + pairCount + '-' + Date.now().toString(36);
+        v.members.push(u.members[0]);
+        v.group = gid;
+        units.splice(i, 1);
+        pairCount++;
+        break;
+      }
+    }
+  }
+
+  // Never leave two moves for the same delt head back to back as straight
+  // sets — if that happens, push the second one to the end of the day.
+  for (let i = 1; i < units.length; i++) {
+    const a = units[i - 1], b = units[i];
+    if (a.members.length > 1 || b.members.length > 1) continue;
+    const da = deltHead(a.members[0]), db = deltHead(b.members[0]);
+    if (da && db && da === db && units.length > i + 1) {
+      units.push(units.splice(i, 1)[0]);
+      i--;
+    }
+  }
+
+  const out = [];
+  units.forEach(u => {
+    const g = u.members.length > 1 ? (u.group || 'ss-auto-' + out.length) : null;
+    u.members.forEach(m => out.push({ ...m, supersetGroup: g }));
+  });
+  return out;
+}
+
 function applyDayRules(variantId, list) {
   if (!Array.isArray(list)) return list;
   let out = list.slice();
@@ -5244,11 +5495,15 @@ function applyDayRules(variantId, list) {
   if (isFri) {
     // Friday is glute/ham. Quad-dominant work here was landing 3 days before
     // Monday's squat/lunge day and stacking the same muscles twice.
-    out = out.filter(item => item && !FRIDAY_QUAD_IDS.includes(item.id) && !FRIDAY_QUAD_PATTERN.test(item.name || ''));
+    // The leg press is the one exception: it's the deliberate low-fatigue quad
+    // slot, machine-based, no spinal load, and it sits at the end of the day.
+    out = out.filter(item => item && (item.id === 'leg-press-fri' ||
+      (!FRIDAY_QUAD_IDS.includes(item.id) && !FRIDAY_QUAD_PATTERN.test(item.name || ''))));
   }
   if (isMon) {
     // Monday hamstring work stays light so Friday's heavy curls aren't repeated at full effort.
-    out = out.map(item => item && item.id === 'prone-curl-mon' ? { ...PRONE_LIGHT, supersetGroup: item.supersetGroup || null } : item);
+    out = out.map(item => item && (item.id === 'prone-curl-mon' || item.id === 'prone-curl-light')
+      ? { ...SEATED_CURL_LIGHT, supersetGroup: item.supersetGroup || null } : item);
   }
   if (isSat) {
     // No bent-over barbell rows on Saturday: they sat between Friday RDLs and
@@ -5302,8 +5557,17 @@ function applyDayRules(variantId, list) {
   }
   if (variantId === 'wed-pull-b') {
     // Week B's back day had only one rear delt move; both pull days now get two.
-    if (!has(i => /^face-pull/.test(i.id))) out.push({ ...FACE_PULL_DEF, supersetGroup: null });
-    if (!has(i => i.id === 'db-rev-fly')) out.push({ ...REV_FLY_DEF, supersetGroup: null });
+    // Place them with the arms/rear-delt block at the end of the day rather
+    // than appending blindly, so the day keeps its back-first structure.
+    const isArmOrRear = i => !!i && (/curl/i.test(i.name || '') || /face-pull|rev-fly/.test(i.id) || /rear|face pull/i.test(i.name || ''));
+    const addToCluster = def => {
+      let at = -1;
+      out.forEach((i, idx) => { if (isArmOrRear(i)) at = idx; });
+      const item = { ...def, supersetGroup: null };
+      if (at >= 0) out.splice(at + 1, 0, item); else out.push(item);
+    };
+    if (!has(i => /^face-pull/.test(i.id))) addToCluster(FACE_PULL_DEF);
+    if (!has(i => i.id === 'db-rev-fly')) addToCluster(REV_FLY_DEF);
   }
   if (isSat) {
     // Saturdays had no rear delt work at all.
@@ -5765,26 +6029,6 @@ function randomizeAccessories() {
   getAbsForVariant(variant.id, picked.map(p => p.id)).forEach(a => picked.push(a));
   { const ruled = applyDayRules(variant.id, picked); picked.length = 0; picked.push(...ruled); }
 
-  // Default sequencing: rather than a fully random shuffle (which was
-  // producing genuinely arbitrary orderings with no relationship to how a
-  // real session should flow), order by muscle group in a sensible default
-  // sequence — bigger, more central movements before small isolation work.
-  // This is a BASELINE order, not a rigid rule: exercises within the same
-  // muscle group are still shuffled randomly, and Coach's explicit "must
-  // come after X" / "must appear late" constraints below can still
-  // override this default entirely.
-  const MUSCLE_SEQUENCE_PRIORITY = {
-    chest: 1, lats: 1, quads: 1, hamstrings: 1, glutes: 1, posterior: 1, delts_compound: 1, // primary/compound-adjacent muscles first
-    delts: 2, traps: 2, calves: 2,
-    biceps: 3, triceps: 3, rear_delt: 3, forearms: 3, abs: 3, // isolation/finisher work last
-  };
-  picked.sort((a, b) => {
-    const pa = MUSCLE_SEQUENCE_PRIORITY[a.muscle] ?? 2;
-    const pb = MUSCLE_SEQUENCE_PRIORITY[b.muscle] ?? 2;
-    if (pa !== pb) return pa - pb;
-    return Math.random() - 0.5; // random order within the same priority tier
-  });
-
   // Enforce sequencing constraints on top of the default order — "after"
   // rules (e.g. Lat Pulldown must come after Weighted Pull Ups when both
   // appear) and position rules (triceps/delt isolation work pushed to the
@@ -5807,18 +6051,14 @@ function randomizeAccessories() {
   // muscle category is flagged 'late' to the end of the list, preserving
   // relative order among themselves.
   const lateCategories = new Set(constraints.sequencePositionRules.filter(r => r.position === 'late').map(r => r.muscleCategory));
-  if (lateCategories.size) {
-    const early = picked.filter(p => !lateCategories.has(p.muscle));
-    const late = picked.filter(p => lateCategories.has(p.muscle));
-    picked.length = 0;
-    picked.push(...early, ...late);
-  }
 
   // ── Recreate favorite superset pairings: if two picked exercises match a
   // pairing you've praised in notes before, tag them with a shared group ID
   // so they render as a superset instead of standalone.
   const supersetAssignments = {}; // exercise id -> group id
   let groupCounter = 0;
+  // Favorite pairings are seeded first so structureAccessories keeps them and
+  // only adds pairs on top if the day is still short of its target.
   for (let i = 0; i < picked.length; i++) {
     if (supersetAssignments[picked[i].id]) continue;
     for (let j = i + 1; j < picked.length; j++) {
@@ -5832,6 +6072,10 @@ function randomizeAccessories() {
       }
     }
   }
+
+  picked.forEach(p => { if (supersetAssignments[p.id]) p.supersetGroup = supersetAssignments[p.id]; });
+  { const structured = structureAccessories(picked, variant.id, { lateMuscles: lateCategories });
+    picked.length = 0; picked.push(...structured); }
 
   // Find the Accessories section in the DOM and replace its exercise cards
   const accessoriesSection = document.getElementById('section-accessories-' + currentDay);
@@ -5863,11 +6107,11 @@ function randomizeAccessories() {
   let html = '';
   picked.forEach(ex => {
     if (rendered.has(ex.id)) return;
-    const groupId = supersetAssignments[ex.id];
+    const groupId = ex.supersetGroup;
     if (groupId) {
-      const partner = picked.find(p => p.id !== ex.id && supersetAssignments[p.id] === groupId && !rendered.has(p.id));
+      const partner = picked.find(p => p.id !== ex.id && p.supersetGroup === groupId && !rendered.has(p.id));
       if (partner) {
-        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back (a favorite pairing)<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
+        html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
         html += renderExercise(ex, isVol);
         html += `<div class="superset-divider">↕ then immediately</div>`;
         html += renderExercise(partner, isVol);
@@ -5889,9 +6133,9 @@ function randomizeAccessories() {
   // the app inventing its own exercise list at random.
   try { captureAccessoriesSnapshot(variant, currentDay); } catch (e) { console.error('snapshot capture failed:', e); }
 
-  const favoritePairCount = new Set(Object.values(supersetAssignments)).size;
-  showToast(favoritePairCount > 0
-    ? `Randomized — kept ${favoritePairCount} favorite pairing${favoritePairCount > 1 ? 's' : ''}!`
+  const pairCount = new Set(picked.filter(p => p.supersetGroup).map(p => p.supersetGroup)).size;
+  showToast(pairCount > 0
+    ? `Randomized — ${pairCount} superset${pairCount > 1 ? 's' : ''} built in!`
     : 'Accessories randomized!');
 }
 
