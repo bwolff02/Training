@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.9.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.10.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -870,18 +870,14 @@ const PROGRAM = [
           { id:'smith-lunge', name:'Smith Machine Lunges', note:'3 sets, 7-8 reps. Front shin vertical, full range.', target:'3 × 7–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          // Goblet squat removed: it was a third knee-dominant move after squats and
-          // lunges. Those sets went to the leg extension, which is the only thing here
-          // that trains the rectus femoris (squats barely touch it).
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back — less hip flexion grows the rectus femoris better. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze at the top, or run them single leg.', target:'3 × 10–12', defaultSets:3 },
-          { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2 },
-          // Glute + unweighted quad work paired: the sissy squat carries no load,
-          // so it costs nothing to run it on the back half.
+          // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
+          // and goblet squat build the quads, adduction + calves close it out.
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
+          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'Paused reps. Heels elevated, full depth.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats. Controlled, full range.', target:'3 × 12–15 / side', defaultSets:3 },
-            { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight. Knees travel forward, lean back, slow down. Back half of the superset.', target:'2 × 10–15', defaultSets:2 },
+            { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
+            { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
           ]},
-          { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
@@ -897,22 +893,13 @@ const PROGRAM = [
           { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'3 sets, 9-12 reps.', target:'3 × 9–12 / leg', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          // Goblet squat removed: it was a third knee-dominant move after squats and
-          // lunges. Those sets went to the leg extension, which is the only thing here
-          // that trains the rectus femoris (squats barely touch it).
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back — less hip flexion grows the rectus femoris better. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze at the top, or run them single leg.', target:'3 × 10–12', defaultSets:3 },
-          { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2 },
-          // Glute + unweighted quad work paired: the sissy squat carries no load,
-          // so it costs nothing to run it on the back half.
-          { superset:true, exercises:[
-            { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats. Controlled, full range.', target:'3 × 12–15 / side', defaultSets:3 },
-            { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight. Knees travel forward, lean back, slow down. Back half of the superset.', target:'2 × 10–15', defaultSets:2 },
-          ]},
-          // Calves live on the volume days only (MON B / FRI A) — 3 sets a week.
-          // Adductors + calves: opposite ends of the leg, no interference.
+          // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
+          // and goblet squat build the quads, adduction + calves close it out.
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
+          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'Paused reps. Heels elevated, full depth.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
-            { id:'calf-vert', name:'Vertical Calf Raise (Smith)', note:'Superset with adduction. Full stretch at the bottom, pause at the top.', target:'3 × 10–15', defaultSets:3 },
+            { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
           ]},
         ]},
         { label: 'Abs', exercises: [
@@ -947,13 +934,18 @@ const PROGRAM = [
           { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Secondary vertical pull. 3 sets, 7-10 reps.', target:'3 × 7–10', defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'3 sets, 6-9 reps. 2-3 sec eccentric.', target:'3 × 6–9', defaultSets:3 },
-          { id:'cable-pullover', name:'Seated Cable Pullover', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
-          { id:'incline-curl', name:'Low to High Bayesian Curl', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'face-pull-wed', name:'Face Pull', note:'3 sets, 15-20 reps.', target:'3 × 15–20', defaultSets:3 },
-          { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          // Barbell Row + Weighted Pull Ups already cover rowing and vertical pulling,
+          // so the third row came out. Arms and rear delts pair at the end.
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', defaultSets:3 },
+          { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Long stretch, slight bend at the elbow.', target:'3 × 10–12', defaultSets:3 },
+          { superset:true, exercises:[
+            { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 9–11', defaultSets:3 },
+            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
+          ]},
+          { superset:true, exercises:[
+            { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Long head stretch. Superset with reverse flys.', target:'3 × 10–12', defaultSets:3 },
+            { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 9–11', defaultSets:3 },
+          ]},
         ]},
       ]
     },
@@ -965,12 +957,14 @@ const PROGRAM = [
           { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press', note:'4 sets, 12-15 reps.', target:'4 × 12–15', anchor:true, defaultSets:4, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'3 sets, 10-13 reps.', target:'3 × 10–13', defaultSets:3 },
-          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-13 reps.', target:'3 × 10–13', defaultSets:3 },
-          { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delt day. Controlled, stop at shoulder height, no swinging.', target:'3 × 10–12', defaultSets:3 },
-          { id:'tri-lth', name:'Cable Rope Low to High Tricep Extension', note:'3 sets, 13-15 reps.', target:'3 × 13–15', defaultSets:3 },
-          { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Second front delt move, kept apart from the dumbbell raise.', target:'3 × 10–12', defaultSets:3 },
-          { id:'smith-jm-press', name:'Smith JM Press', note:'3 sets, 9-11 reps.', target:'3 × 9–11', defaultSets:3 },
+          { id:'custom-seated-cable-low-to-high-flys', name:'Seated Cable Low to High Flys', note:'Your best chest isolation. Control the eccentric, squeeze at the top.', target:'3 × 8–10', defaultSets:3 },
+          { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–13', defaultSets:3 },
+          // Front delts + triceps: different muscles, so neither loses reps.
+          { superset:true, exercises:[
+            { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delts. Controlled, no swing. Superset with tricep extensions.', target:'3 × 10–12', defaultSets:3 },
+            { id:'tri-lth-b', name:'Cable Rope Low to High Tricep Extension', note:'Long head. Full overhead stretch.', target:'3 × 13–15', defaultSets:3 },
+          ]},
+          { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled.', target:'3 × 9–11', defaultSets:3 },
         ]},
       ]
     }
@@ -988,13 +982,11 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
           { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
-          { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest.', target:'3 × 10–12', defaultSets:3 },
-          // Triceps + side delts paired: different muscles, so neither one suffers.
           { superset:true, exercises:[
             { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Superset with lateral raises.', target:'3 × 8–10', defaultSets:3 },
-            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Second side delt move, kept apart from the upright row.', target:'3 × 12–15', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Lean away slightly, full range.', target:'3 × 12–15', defaultSets:3 },
           ]},
-          { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
+          { id:'custom-smith-overhead-tricep-extension', name:'Smith Overhead Tricep Extension', note:'Long head stretch. Your best tricep pump.', target:'3 × 8–10', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'pallof-press', name:'Pallof Press', note:'Anti-rotation. Resist the pull, press straight out, hips square.', target:'3 × 10–12 / side', defaultSets:3 },
@@ -1009,11 +1001,8 @@ const PROGRAM = [
           { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Leads today, heavy. 4 sets, 5-8 reps. Push weight here.', target:'4 × 5–8', anchor:true, defaultSets:4 },
         ]},
         { label: 'Accessories', exercises: [
-          // Back first while you're fresh and grip is strong.
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', defaultSets:3 },
           { id:'cable-row-wide', name:'Seated Cable Row (Close Grip)', note:'Chest tall, squeeze at the back.', target:'3 × 8–10', defaultSets:3 },
-          { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Elbows softly bent, long stretch overhead.', target:'3 × 10–12', defaultSets:3 },
-          // Then arms + rear delts paired: they don't compete, so neither loses reps.
           { superset:true, exercises:[
             { id:'db-curl', name:'EZ Bar Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 8–10', defaultSets:3 },
             { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
@@ -1022,7 +1011,6 @@ const PROGRAM = [
             { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Long head stretch. Superset with reverse flys.', target:'3 × 9–11', defaultSets:3 },
             { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
           ]},
-          { id:'shrug-wed', name:'Smith Machine Shrug', note:'Finisher. Full range, pause at top.', target:'3 × 15–20', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'oblique-ext', name:'Oblique Extension', note:'Side bend through full range, pause at the stretch.', target:'3 × 10–12', defaultSets:3 },
@@ -1045,17 +1033,13 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
           { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 10–12', defaultSets:3 },
-          // Second curl, different hip angle. Prone trains the knee-flexion job with
-          // the hips extended, which the seated version doesn't cover.
           { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 8–10', defaultSets:3 },
-          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch — the half kickbacks miss. Hinge back, drive the hips to lock out. Cable pulls horizontally, so no spinal load.', target:'3 × 12–15', defaultSets:3 },
-          // Calves live on the volume days only (MON B / FRI A) — 3 sets a week.
+          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
+          // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
           { superset:true, exercises:[
-            { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with calves. Controlled, full range.', target:'2 × 12–15 / side', defaultSets:2 },
-            { id:'calf-vert-fri', name:'Vertical Calf Raise (Smith)', note:'Full stretch at the bottom, pause at the top.', target:'3 × 10–15', defaultSets:3 },
+            { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 12–15 / side', defaultSets:2 },
+            { id:'custom-bodyweight-sissy-squats', name:'Bodyweight Sissy Squats', note:'Light quad work on hamstring day. Knees forward, lean back, slow down.', target:'2 × 10–15', defaultSets:2 },
           ]},
-          // Quad slot: machine, end of the day, no bracing after heavy RDLs.
-          { id:'leg-press-fri', name:'Leg Press', note:'Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
@@ -1073,9 +1057,12 @@ const PROGRAM = [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
           { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 8–10', defaultSets:3 },
           { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 7–9', defaultSets:3 },
-          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch — the half kickbacks miss. Hinge back, drive the hips to lock out. Cable pulls horizontally, so no spinal load.', target:'3 × 12–15', defaultSets:3 },
-          { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Controlled, full range.', target:'2 × 10 / side', defaultSets:2 },
-          { id:'leg-press-fri', name:'Leg Press', note:'Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3 },
+          { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
+          // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
+          { superset:true, exercises:[
+            { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 10 / side', defaultSets:2 },
+            { id:'custom-bodyweight-sissy-squats', name:'Bodyweight Sissy Squats', note:'Light quad work on hamstring day. Knees forward, lean back, slow down.', target:'2 × 10–15', defaultSets:2 },
+          ]},
         ]},
         { label: 'Abs', exercises: [
           { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
@@ -1228,6 +1215,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   migrateCustomSlugNames();
   migrateCleanupV340();
   migrateSaturdayLayoutsV360();
+  migrateStorageCleanupV3100();
   setWeekBadge();
   buildTabs();
   // Restore whichever day was actually active last, rather than always
@@ -1343,6 +1331,241 @@ function migrateCleanupV340() {
   });
 
   localStorage.setItem('_migrated_v3_4_0', 'true');
+}
+
+// ─── v3.10.0 STORAGE CLEANUP ──────────────────────────────────────────
+// The export had ballooned because the same sets are stored three times:
+// per-exercise in hist_*, again in full session archives in hist_session_*,
+// and again in the current-day log_* keys. This trims that down WITHOUT
+// losing any performance you could ever want to look back at.
+//
+// The rule it enforces: every exercise keeps at least one baseline — its
+// most recent logged performance — even if that exercise hasn't been
+// trained in months and its session archive gets trimmed away.
+
+const SESSIONS_TO_KEEP = 8;  // matches what Past Sessions actually shows
+
+// Days that no longer exist in the program. Nothing reads these.
+const DEAD_KEYS = [
+  'log_thu-legs-a', 'log_thu-legs-b', 'log_fri-push-a', 'log_fri-push-b',
+  'log_sat-pull-a', 'log_sat-pull-b',
+  'accessory_snapshot_thu-legs-a', 'accessory_snapshot_fri-push-a',
+  'accessory_snapshot_sat-pull-b',
+];
+
+// A performance is identified by exercise + date + the sets themselves.
+function perfKey(name, date, sets) {
+  const s = (sets || [])
+    .filter(x => x && x.weight !== '' && x.reps !== '')
+    .map(x => `${x.weight}x${x.reps}`).join(',');
+  return `${normalizeExerciseName(name || '')}|${date}|${s}`;
+}
+
+// Index every performance visible anywhere, so we can prove nothing vanished.
+function indexAllPerformances(store) {
+  const idx = new Map();
+  const add = (name, date, sets, src) => {
+    const k = perfKey(name, date, sets);
+    if (!k.split('|')[2]) return;           // no real sets, nothing to lose
+    if (!idx.has(k)) idx.set(k, []);
+    idx.get(k).push(src);
+  };
+  Object.keys(store).forEach(key => {
+    let val;
+    try { val = JSON.parse(store[key]); } catch (e) { return; }
+    if (key.startsWith('hist_session_')) {
+      (val || []).forEach(sess => (sess.exercises || [])
+        .forEach(ex => add(ex.name, sess.date, ex.sets, key)));
+    } else if (key.startsWith('hist_archive_baselines')) {
+      (val || []).forEach(b => add(b.name, b.date, b.sets, key));
+    } else if (key.startsWith('hist_')) {
+      const name = resolveName(store, key.slice(5));
+      (val || []).forEach(sess => add(name, sess.date, sess.sets, key));
+    } else if (key.startsWith('log_')) {
+      const date = val._date;
+      Object.keys(val).forEach(k2 => {
+        if (k2.startsWith('_')) return;
+        add(resolveName(store, k2), date, (val[k2] || {}).sets, key);
+      });
+      (val._custom || []).forEach(c => c && add(c.name, date, c.sets, key));
+    }
+  });
+  return idx;
+}
+
+// Strip what carries no information: blank set rows, empty drop/note arrays,
+// and deload:false (absence already means the same thing).
+function compactValue(key, val) {
+  const cleanSets = sets => (sets || [])
+    .filter(s => s && !(String(s.weight) === '' && String(s.reps) === ''))
+    .map(s => {
+      const o = { weight: s.weight, reps: s.reps };
+      if (s.note) o.note = s.note;
+      if (s.drops && s.drops.length) o.drops = cleanSets(s.drops);
+      if (s.isBurnout) o.isBurnout = true;
+      return o;
+    });
+  const cleanSess = sess => {
+    const o = { date: sess.date, sets: cleanSets(sess.sets) };
+    if (sess.heavy) o.heavy = true;
+    if (sess.deload) o.deload = true;
+    if (sess.notes && sess.notes.length) o.notes = sess.notes;
+    return o;
+  };
+  if (key.startsWith('hist_session_')) {
+    return (val || []).map(sess => {
+      const o = { date: sess.date, week: sess.week, feel: sess.feel };
+      if (sess.notes) o.notes = sess.notes;
+      if (sess.bodyweight) o.bodyweight = sess.bodyweight;
+      if (sess.ouraScore) o.ouraScore = sess.ouraScore;
+      if (sess.coachNotes) o.coachNotes = sess.coachNotes;
+      o.exercises = (sess.exercises || []).map(ex => {
+        const e = { name: ex.name, sets: cleanSets(ex.sets) };
+        if (ex.supersetGroup) e.supersetGroup = ex.supersetGroup;
+        return e;
+      }).filter(e => e.sets.length);
+      return o;
+    });
+  }
+  if (key.startsWith('hist_')) return (val || []).map(cleanSess);
+  if (key.startsWith('log_')) {
+    const o = {};
+    Object.keys(val).forEach(k2 => {
+      if (k2 === '_custom') {
+        const c = (val._custom || []).filter(Boolean)
+          .map(x => ({ name: x.name, sets: cleanSets(x.sets) }))
+          .filter(x => x.sets.length);
+        if (c.length) o._custom = c;
+      } else if (k2.startsWith('_')) {
+        o[k2] = val[k2];
+      } else {
+        const sets = cleanSets((val[k2] || {}).sets);
+        if (sets.length) o[k2] = { sets };
+      }
+    });
+    return o;
+  }
+  return val;
+}
+
+function migrateStorageCleanupV3100() {
+  const store = {};
+  Object.keys(localStorage).forEach(k => { store[k] = localStorage.getItem(k); });
+  const result = runStorageCleanup(store);
+  if (!result.skipped) {
+    if (result.lostPerformances && result.lostPerformances.length) {
+      // Safety valve: if the audit finds ANY performance that would vanish,
+      // write nothing at all and leave storage exactly as it was.
+      console.warn('v3.10.0 cleanup aborted - would have lost', result.lostPerformances);
+      return result;
+    }
+    Object.keys(localStorage).forEach(k => { if (!(k in store)) localStorage.removeItem(k); });
+    Object.keys(store).forEach(k => localStorage.setItem(k, store[k]));
+  }
+  return result;
+}
+
+function runStorageCleanup(store) {
+  if (store['_migrated_v3_10_0']) return { skipped: true };
+  const before = indexAllPerformances(store);
+  const report = { compacted: 0, deleted: [], trimmed: 0, baselinesKept: 0, refused: [] };
+
+  // 1. Compact every value in place. Lossless by construction.
+  Object.keys(store).forEach(key => {
+    if (!/^(hist_|log_)/.test(key)) return;
+    let val; try { val = JSON.parse(store[key]); } catch (e) { return; }
+    const out = JSON.stringify(compactValue(key, val));
+    if (out.length < store[key].length) { report.compacted += store[key].length - out.length; }
+    store[key] = out;
+  });
+
+  // 2. Trim session archives, preserving a baseline for any exercise that
+  //    would otherwise disappear entirely.
+  const baselines = JSON.parse(store['hist_archive_baselines'] || '[]');
+  const stillCovered = name => {
+    const target = normalizeExerciseName(name || '');
+    let found = false;
+    Object.keys(store).forEach(key => {
+      if (found) return;
+      if (key.startsWith('hist_session_') || key.startsWith('hist_archive_baselines')) return;
+      if (!key.startsWith('hist_')) return;
+      const n = resolveName(store, key.slice(5));
+      if (normalizeExerciseName(n) === target) {
+        try { if (JSON.parse(store[key]).length) found = true; } catch (e) {}
+      }
+    });
+    return found;
+  };
+  Object.keys(store).forEach(key => {
+    if (!key.startsWith('hist_session_')) return;
+    let sessions; try { sessions = JSON.parse(store[key]); } catch (e) { return; }
+    if (sessions.length <= SESSIONS_TO_KEEP) return;
+    const sorted = [...sessions].sort((a, b) => a.date > b.date ? 1 : -1);
+    const keep = sorted.slice(-SESSIONS_TO_KEEP);
+    const drop = sorted.slice(0, sorted.length - SESSIONS_TO_KEEP);
+    const keptNames = new Set();
+    keep.forEach(s => (s.exercises || []).forEach(e => keptNames.add(normalizeExerciseName(e.name || ''))));
+    drop.forEach(sess => (sess.exercises || []).forEach(ex => {
+      const n = normalizeExerciseName(ex.name || '');
+      if (keptNames.has(n) || stillCovered(ex.name)) return;
+      // Only copy of this exercise — keep its best-dated performance as a baseline.
+      const existing = baselines.find(b => normalizeExerciseName(b.name) === n);
+      if (!existing || existing.date < sess.date) {
+        if (existing) baselines.splice(baselines.indexOf(existing), 1);
+        baselines.push({ name: ex.name, date: sess.date, sets: ex.sets, fromArchive: key });
+        report.baselinesKept++;
+      }
+    }));
+    report.trimmed += drop.length;
+    store[key] = JSON.stringify(keep);
+  });
+  if (baselines.length) store['hist_archive_baselines'] = JSON.stringify(baselines);
+
+  // 3. Delete dead keys — but only after proving every performance in them
+  //    still exists somewhere else.
+  DEAD_KEYS.forEach(key => {
+    if (!store[key]) return;
+    const saved = store[key];
+    delete store[key];
+    const after = indexAllPerformances(store);
+    const lost = [];
+    before.forEach((srcs, k) => {
+      if (srcs.includes(key) && !after.has(k)) lost.push(k);
+    });
+    if (lost.length) { store[key] = saved; report.refused.push({ key, lost }); }
+    else report.deleted.push(key);
+  });
+
+  // Every day was rebuilt across v3.8-v3.10.1 (legs restructured, push/pull
+  // trimmed, upright row retired, superset structure). A day renders from its
+  // last saved layout, so without clearing these the old shapes keep showing
+  // — which is exactly why Friday still looked like 3 exercises and the pull
+  // day like 11. Layout only: logged sets, history and PRs are untouched.
+  Object.keys(store).forEach(k => {
+    if (k.startsWith('accessory_snapshot_')) delete store[k];
+  });
+
+  store['_migrated_v3_10_0'] = 'true';
+
+  // 4. Final audit: nothing indexed before may be missing now.
+  const after = indexAllPerformances(store);
+  report.lostPerformances = [];
+  before.forEach((srcs, k) => { if (!after.has(k)) report.lostPerformances.push(k); });
+  return report;
+}
+
+// An exercise id must resolve to the same NAME everywhere, or the audit sees
+// one performance as two and the trim looks like a loss when it isn't. In the
+// app this goes through getExerciseNameById (program + snapshots + renames);
+// the test injects the same mapping.
+function resolveName(store, id) {
+  if (store['name_' + id]) return store['name_' + id];
+  if (typeof getExerciseNameById === 'function') {
+    const n = getExerciseNameById(id);
+    if (n) return n;
+  }
+  if (typeof ID_NAME_HINTS === 'object' && ID_NAME_HINTS[id]) return ID_NAME_HINTS[id];
+  return id;
 }
 
 // v3.6.0: Saturdays were rebuilt (trimmed from 11-12 exercises to 9-10). A day
@@ -3529,6 +3752,13 @@ function getNameMatchedHistory(exId) {
   if (!name) return [];
   const target = normalizeExerciseName(name);
   const out = [];
+  // Baselines rescued from trimmed session archives (v3.10.0) count too.
+  try {
+    JSON.parse(localStorage.getItem('hist_archive_baselines') || '[]').forEach(b => {
+      if (!b || !b.name || normalizeExerciseName(b.name) !== target || !b.sets || !b.sets.length) return;
+      out.push({ date: b.date, sets: b.sets, heavy: /-heavy$/.test(b.fromArchive || ''), deload: false, notes: [] });
+    });
+  } catch (e) {}
   Object.keys(localStorage).forEach(key => {
     if (!key.startsWith('hist_session_')) return;
     let sessions;
@@ -4853,6 +5083,9 @@ const ACCESSORY_POOLS = {
   // whether that week is Row Focused or Chest Focused (the fixed anchors
   // already carry the primary emphasis for the week).
   upper: [
+    { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Basically a fly machine. Full stretch.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
+    { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Dumbbells, elbows at 90.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
+    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
     { id:'military-press', name:'Military Press', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 7–9', defaultSets:3, muscle:'delts_compound' },
@@ -4878,6 +5111,10 @@ const ACCESSORY_POOLS = {
     { id:'shrug-db', name:'Dumbbell Shrug', note:'Heavy dumbbells, pause and squeeze at the top. No rolling.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
   ],
   push: [
+    { id:'custom-seated-cable-low-to-high-flys', name:'Seated Cable Low to High Flys', note:'Upper chest. Control the eccentric.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
+    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
+    { id:'custom-smith-overhead-tricep-extension', name:'Smith Overhead Tricep Extension', note:'Long head stretch.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
+    { id:'custom-single-arm-cable-low-to-high-upper-chest-isolation', name:'Single Arm Cable Low to High Upper Chest Isolation', note:'Upper chest, one side at a time.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     // Chest
     { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
@@ -4893,7 +5130,6 @@ const ACCESSORY_POOLS = {
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
     { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
-    { id:'upright-row', name:'Wide Grip Upright Row', note:'Hands just outside shoulders, elbows to shoulder height, bar to lower chest.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
     // Triceps
     { id:'skull-crusher', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
     { id:'rope-pushdown', name:'Rope Pushdown', note:'Elbows pinned, flare at bottom.', target:'3 × 12–15', defaultSets:3, muscle:'triceps' },
@@ -4934,7 +5170,7 @@ const ACCESSORY_POOLS = {
     // Quads
     { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
     { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled.', target:'3 × 12–15 / side', defaultSets:3, muscle:'adductors' },
-    { id:'custom-bodyweight-sissy-squats', name:'Sissy Squats', note:'Bodyweight quad work. Knees forward, lean back, slow down.', target:'3 × 10–15', defaultSets:3, muscle:'quads' },
+    { id:'custom-bodyweight-sissy-squats', name:'Bodyweight Sissy Squats', note:'Bodyweight quad work. Knees forward, lean back, slow down.', target:'3 × 10–15', defaultSets:3, muscle:'quads' },
     { id:'leg-press-fri', name:'Leg Press', note:'Machine — no spinal load. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
     // Glutes/Hip
     { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled. Glute med isolation.', target:'3 × 15 / side', defaultSets:3, muscle:'glutes' },
@@ -5304,6 +5540,7 @@ const LEG_PRESS_FRI = { id:'leg-press-fri', name:'Leg Press', note:'Friday quad 
 const SEATED_CURL_LIGHT = { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set. Seated beats prone here — hips flexed puts the hamstrings at a longer length.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
 const PRONE_LIGHT = { id:'prone-curl-light', name:'Prone Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
 const MILITARY_PRESS_DEF = { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3, muscle:'delts_compound' };
+// Retired in v3.10.1 — kept only so old saved layouts referencing it resolve.
 const UPRIGHT_ROW_DEF = { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
 const CABLE_LAT_DEF = { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Second side delt move, kept apart from the upright row.', target:'3 × 12–15', defaultSets:3, muscle:'delts' };
 const FRONT_RAISE_DEF = { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delt day. Controlled, stop at shoulder height, no swinging.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
@@ -5414,6 +5651,27 @@ function canSuperset(a, b) {
 
 // Order a day's accessories and build its supersets. Returns a flat list with
 // supersetGroup set on paired items, partners adjacent.
+// How many accessories a day is ALLOWED to show. Taken from the program
+// itself, so the program stays the single source of truth. This is what
+// stops a saved snapshot from an old randomized session — or a run of
+// one-at-a-time additions — from quietly growing a day to 11 exercises.
+function programAccessoryCap(variantId) {
+  try {
+    let cap = null;
+    PROGRAM.forEach(day => ['weekA', 'weekB'].forEach(w => {
+      const v = day[w];
+      if (!v || v.id !== variantId) return;
+      (v.sections || []).forEach(sec => {
+        if (sec.label !== 'Accessories') return;
+        let n = 0;
+        sec.exercises.forEach(e => { n += e.superset ? e.exercises.length : 1; });
+        cap = n;
+      });
+    }));
+    return cap;
+  } catch (e) { return null; }
+}
+
 function structureAccessories(list, variantId, opts) {
   if (!Array.isArray(list) || list.length < 2) return list;
   opts = opts || {};
@@ -5482,6 +5740,20 @@ function structureAccessories(list, variantId, opts) {
     const g = u.members.length > 1 ? (u.group || 'ss-auto-' + out.length) : null;
     u.members.forEach(m => out.push({ ...m, supersetGroup: g }));
   });
+
+  // Cap the day. Units are already ordered heaviest-first, so dropping from
+  // the end removes finisher work, never a compound. Supersets are dropped
+  // whole rather than leaving an orphaned half.
+  const cap = opts.cap != null ? opts.cap : programAccessoryCap(variantId);
+  if (cap && out.length > cap) {
+    const trimmed = [];
+    units.forEach(u => {
+      const g = u.members.length > 1 ? u.group : null;
+      if (trimmed.length + u.members.length > cap) return;
+      u.members.forEach(m => trimmed.push({ ...m, supersetGroup: g }));
+    });
+    if (trimmed.length) return trimmed;
+  }
   return out;
 }
 
@@ -5497,7 +5769,7 @@ function applyDayRules(variantId, list) {
     // Monday's squat/lunge day and stacking the same muscles twice.
     // The leg press is the one exception: it's the deliberate low-fatigue quad
     // slot, machine-based, no spinal load, and it sits at the end of the day.
-    out = out.filter(item => item && (item.id === 'leg-press-fri' ||
+    out = out.filter(item => item && (item.id === 'leg-press-fri' || item.id === 'custom-bodyweight-sissy-squats' ||
       (!FRIDAY_QUAD_IDS.includes(item.id) && !FRIDAY_QUAD_PATTERN.test(item.name || ''))));
   }
   if (isMon) {
@@ -5531,18 +5803,18 @@ function applyDayRules(variantId, list) {
   const isTri   = i => !!i && (/^tri-|jm-press|skull|pushdown|double-tri/.test(i.id) || /tricep|jm press|skull|pushdown/i.test(i.name || ''));
   const placeAfterTri = item => { const at = out.findIndex(isTri); if (at >= 0) out.splice(at + 1, 0, item); else out.push(item); };
   if (variantId === 'tue-push-a') {
-    out = out.filter(i => !isFront(i));
-    if (!has(i => i.id === 'upright-row')) {
-      const at = out.findIndex(isSide);
-      const item = { ...UPRIGHT_ROW_DEF, supersetGroup: null };
-      if (at >= 0) out.splice(at, 0, item);
-      else { const t = out.findIndex(isTri); if (t >= 0) out.splice(t, 0, item); else out.push(item); }
-    }
+    // Side delt day, front raises belong on Tuesday B. The upright row came
+    // out entirely in v3.10.1 — it's a rowing pattern on a push day, and the
+    // cable lateral raise covers side delts without that confusion. Any
+    // upright row left in an old saved layout gets removed here too.
+    out = out.filter(i => !isFront(i) && i.id !== 'upright-row' && !/upright row/i.test(i.name || ''));
     let keptLat = false;
-    out = out.filter(i => { if (isSide(i) && i.id !== 'upright-row') { if (keptLat) return false; keptLat = true; } return true; });
+    out = out.filter(i => { if (isSide(i)) { if (keptLat) return false; keptLat = true; } return true; });
     if (!keptLat) placeAfterTri({ ...CABLE_LAT_DEF, supersetGroup: null });
   }
   if (variantId === 'tue-push-b') {
+    // v3.10.1 cut Tuesday B to one front raise; this rule used to force two.
+    const FRONT_RAISES_TUE_B = 1;
     const fronts = [FRONT_RAISE_DEF, CABLE_FRONT_RAISE_DEF];
     let frontCount = out.filter(isFront).length;
     const used = new Set(out.filter(isFront).map(i => i.id));
@@ -5550,10 +5822,14 @@ function applyDayRules(variantId, list) {
     const rebuilt = [];
     out.forEach(i => {
       if (!isSide(i)) { rebuilt.push(i); return; }
-      if (frontCount < 2) { const f = nextFront(); if (f) { rebuilt.push({ ...f, supersetGroup: i.supersetGroup || null }); frontCount++; } }
+      if (frontCount < FRONT_RAISES_TUE_B) { const f = nextFront(); if (f) { rebuilt.push({ ...f, supersetGroup: i.supersetGroup || null }); frontCount++; } }
     });
     out = rebuilt;
-    while (frontCount < 2) { const f = nextFront(); if (!f) break; placeAfterTri({ ...f, supersetGroup: null }); frontCount++; }
+    while (frontCount < FRONT_RAISES_TUE_B) { const f = nextFront(); if (!f) break; placeAfterTri({ ...f, supersetGroup: null }); frontCount++; }
+    // Never more than the program asks for — an old layout with two front
+    // raises gets trimmed back to one instead of crowding out the triceps.
+    let seenFront = 0;
+    out = out.filter(i => !isFront(i) || ++seenFront <= FRONT_RAISES_TUE_B);
   }
   if (variantId === 'wed-pull-b') {
     // Week B's back day had only one rear delt move; both pull days now get two.
