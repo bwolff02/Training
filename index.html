@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.10.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.11.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -866,7 +866,7 @@ const PROGRAM = [
       id: 'mon-legs-a', title: 'LEGS', subtitle: 'Quad Focused — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. 4 sets, 4-6 reps. 2–3 sec descent. All in.', target:'4 × 4–6', anchor:true, defaultSets:4 },
+          { id:'squat', name:'Barbell Squat', note:'Leads today — Week A heavy. Holding 245 until both sets hit 6. 2–3 sec descent. Set 1: top set, leave 1 rep in the tank. Set 2: back-off, drop ~10% and chase reps.', target:'2 × 5–6', anchor:true, defaultSets:2 },
           { id:'smith-lunge', name:'Smith Machine Lunges', note:'3 sets, 7-8 reps. Front shin vertical, full range.', target:'3 × 7–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
@@ -889,7 +889,7 @@ const PROGRAM = [
       id: 'mon-legs-b', title: 'LEGS', subtitle: 'Quad Focused — Volume', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'squat-mon-b', name:'Barbell Squat', note:'Volume day — Week B. 4 sets, 10-12 reps.', target:'4 × 10–12', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'squat-mon-b', name:'Barbell Squat', note:'Volume day — Week B. 3 sets, 10-12 reps.', target:'3 × 10–12', anchor:true, defaultSets:3, anchorVol:true },
           { id:'bulgarian-mon', name:'Bulgarian Split Squat (Smith)', note:'3 sets, 9-12 reps.', target:'3 × 9–12 / leg', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
@@ -930,13 +930,18 @@ const PROGRAM = [
           // hurt the lift, and there's a standing randomizer exclusion for
           // that pairing. Tuesday sits 4 days off RDL day, so rows get a
           // fresh back here instead of a pre-fatigued one.
-          { id:'barbell-row-vol-sat', name:'Barbell Row', note:'Leads today. Strict, chest-supported tempo. 4 sets, 8-10 reps.', target:'4 × 8–10', anchor:true, defaultSets:4, anchorVol:true },
-          { id:'wtd-pullup-vol-wed', name:'Weighted Pull Ups', note:'Secondary vertical pull. 3 sets, 7-10 reps.', target:'3 × 7–10', defaultSets:3 },
+          { id:'barbell-row-vol-sat', name:'Barbell Row', note:'Leads today. Strict tempo. 3 sets, 8-10 reps.', target:'3 × 8–10', anchor:true, defaultSets:3, anchorVol:true },
+          // Weighted pull-ups now live on Wednesday B only. They'd been flat
+          // since July (45x8 -> 50x6) with the same movement twice a week, and
+          // Bryce was already swapping in lat pulldown here (9/08: 160x10,9,9).
+          // A pulldown loads independent of bodyweight and gives elbows and
+          // grip a real break before Wednesday's heavy pull-ups.
+          { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'Secondary vertical pull. Full stretch at the top, drive elbows down to the ribs.', target:'3 × 8–10', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           // Barbell Row + Weighted Pull Ups already cover rowing and vertical pulling,
           // so the third row came out. Arms and rear delts pair at the end.
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', defaultSets:3 },
+          { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Upper back. Wide pull, squeeze the shoulder blades at the top.', target:'3 × 9–11', defaultSets:3 },
           { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Long stretch, slight bend at the elbow.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 9–11', defaultSets:3 },
@@ -953,8 +958,8 @@ const PROGRAM = [
       id: 'tue-push-b', title: 'PUSH', subtitle: 'Volume — Flat + Flys', tag: 'volume',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'flat-smith', name:'Flat Smith Bench Press', note:'Leads today, volume load. 4 sets, 9-12 reps.', target:'4 × 9–12', anchor:true, defaultSets:4, anchorVol:true },
-          { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press', note:'4 sets, 12-15 reps.', target:'4 × 12–15', anchor:true, defaultSets:4, anchorVol:true },
+          { id:'flat-smith', name:'Flat Smith Bench Press', note:'Leads today, volume load. 3 sets, 9-12 reps.', target:'3 × 9–12', anchor:true, defaultSets:3, anchorVol:true },
+          { id:'smith-shoulder-press-vol', name:'Smith Machine Shoulder Press', note:'3 sets, 12-15 reps.', target:'3 × 12–15', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
           { id:'custom-seated-cable-low-to-high-flys', name:'Seated Cable Low to High Flys', note:'Your best chest isolation. Control the eccentric, squeeze at the top.', target:'3 × 8–10', defaultSets:3 },
@@ -977,7 +982,7 @@ const PROGRAM = [
       sections: [
         { label: 'Anchors', exercises: [
           { id:'incline-smith', name:'Incline Smith Press', note:'RESET BLOCK: 195–205, all 3 sets clean, nothing to failure. +5 lb once every set hits 8. Retest 235 after the block.', target:'3 × 8', anchor:true, defaultSets:3 },
-          { id:'flat-smith', name:'Flat Smith Press', note:'3 sets, 5-7 reps.', target:'3 × 5–7', anchor:true, defaultSets:3 },
+          { id:'flat-smith', name:'Flat Smith Press', note:'Second heavy press of the day. Set 1: top set, leave 1 rep in the tank. Set 2: back-off, drop ~10% and chase reps.', target:'2 × 5–7', anchor:true, defaultSets:2 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
@@ -998,11 +1003,11 @@ const PROGRAM = [
       id: 'wed-pull-b', title: 'PULL', subtitle: 'Lat Focused — Heavy', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Leads today, heavy. 4 sets, 5-8 reps. Push weight here.', target:'4 × 5–8', anchor:true, defaultSets:4 },
+          { id:'wtd-pullup', name:'Weighted Pull Ups', note:'Leads today, heavy. Push weight here. Set 1: top set, leave 1 rep in the tank. Set 2: back-off, drop ~10% and chase reps.', target:'2 × 5–8', anchor:true, defaultSets:2 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', defaultSets:3 },
-          { id:'cable-row-wide', name:'Seated Cable Row (Close Grip)', note:'Chest tall, squeeze at the back.', target:'3 × 8–10', defaultSets:3 },
+          { id:'custom-close-grip-seated-row', name:'Close Grip Seated Row', note:'Chest tall, squeeze at the back.', target:'3 × 8–10', defaultSets:3 },
           { superset:true, exercises:[
             { id:'db-curl', name:'EZ Bar Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 8–10', defaultSets:3 },
             { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
@@ -1075,26 +1080,29 @@ const PROGRAM = [
   {
     label: 'SAT · Upper',
     weekA: {
-      id: 'sat-upper-a', title: 'UPPER', subtitle: 'Row Focused — Back Primary', tag: 'heavy',
+      id: 'sat-upper-a', title: 'UPPER', subtitle: 'Lat Focused — Back Primary', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'chest-supported-row', name:'Chest-Supported Row', note:'Leads today. Chest on the pad, no lower back involvement — keeps your spine fresh for Monday squats.', target:'3 × 6–8', anchor:true, defaultSets:3 },
+          // Week A's Tuesday already leads with Barbell Row plus a rope row, so
+          // Saturday A is the lat day instead of a second row day. Chest-
+          // Supported Row now lives on Saturday B only — once every two weeks.
+          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Leads today. 2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Vertical pull (neither Saturday had one). 2-3 sec eccentric, elbows to hips.', target:'3 × 8–10', defaultSets:3 },
-          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 9–11', defaultSets:3 },
-          { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3 },
-          { id:'decline-smith', name:'Decline Smith Press', note:'Straight sets, full rest.', target:'3 × 6–8', defaultSets:3 },
-          { id:'cable-fly-lth', name:'Cable Fly Low to High', note:'Straight sets. Squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
-          { superset:true, exercises:[
-            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
-            { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
+            { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Lat-biased row. Full stretch at top, drive elbows down.', target:'3 × 9–11', defaultSets:3 },
+            // Grinder. Comes after two lat movements on purpose — expect ~8 hard reps.
+            { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang at the bottom, slow 2-3 sec lower. Aim for 8.', target:'2 × 6–8', defaultSets:2 },
+            { id:'decline-smith', name:'Decline Smith Press', note:'Straight sets, full rest.', target:'3 × 6–8', defaultSets:3 },
+            { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3 },
+            { superset:true, exercises:[
+              { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
+              { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
+            ]},
+            { superset:true, exercises:[
+              { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body. Superset with triceps.', target:'3 × 9–11', defaultSets:3 },
+              { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
+            ]},
           ]},
-          { superset:true, exercises:[
-            { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body. Superset with triceps.', target:'3 × 9–11', defaultSets:3 },
-            { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
-          ]},
-        ]},
       ]
     },
     weekB: {
@@ -2294,7 +2302,15 @@ function appendHistoryAndAddExercise(index, variant) {
         if (!ex.sets || !ex.sets.length) return;
         const validSets = ex.sets.filter(s => s.weight || s.reps);
         if (!validSets.length) return;
-        const setsStr = validSets.map(s => `${s.isBurnout ? '🔥' : ''}${s.weight||'BW'}×${s.reps||'?'}`).join('  ');
+        // Drop sets were always saved — they just weren't displayed. Each one
+        // now shows after its set: 160×7 ↘85×6
+        const fmtSet = s => {
+          const main = `${s.isBurnout ? '🔥' : ''}${s.weight||'BW'}×${s.reps||'?'}`;
+          const drops = (s.drops || []).filter(d => d && (d.weight || d.reps))
+            .map(d => ` ↘${d.weight||'BW'}×${d.reps||'?'}`).join('');
+          return main + drops;
+        };
+        const setsStr = validSets.map(fmtSet).join('  ');
         const hasNotes = validSets.some(s => s.note && s.note.trim());
         const notesStr = hasNotes ? validSets.filter(s => s.note).map(s => s.note).join(' / ') : '';
         
@@ -2720,7 +2736,15 @@ function getResetBlockSuggestion(exId) {
     : { note: 'Reset block — hold until all ' + rb.sets + ' sets hit ' + rb.reps, arrow: '→', recWeight: W, lastWeight: W, maxReps, lastDate: last.date, repTarget: target, isVolume: false };
 }
 
-function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
+// Parse a program target like '3 × 8–10' or '2 × 5–6' or '3 × 8'.
+function parseRepTarget(target) {
+  const m = String(target || '').match(/(\d+)\s*[×x]\s*(\d+)(?:\s*[–-]\s*(\d+))?/);
+  if (!m) return { sets: 3, lo: 8, hi: 12, label: '8–12 reps' };
+  const lo = +m[2], hi = m[3] ? +m[3] : +m[2];
+  return { sets: +m[1], lo, hi, label: lo === hi ? lo + ' reps' : lo + '–' + hi + ' reps' };
+}
+
+function getSuggestion(exId, isVolumeDay, isAnchor, relatedId, target) {
   const resetSugg = getResetBlockSuggestion(exId);
   if (resetSugg) return resetSugg;
   // Burn finisher: 60-70% of the related exercise's best weight, high reps.
@@ -2820,7 +2844,7 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
   // Match the session type to the day being suggested for, exactly as the
   // trend analysis already does. Falls back to the full set if there aren't
   // enough same-type sessions to judge from.
-  const sameType = all.filter(sess => !!sess.heavy === !isVolumeDay);
+  const sameType = isAnchorExercise(exId) ? all.filter(sess => !!sess.heavy === !isVolumeDay) : all;
   const pool = sameType.length >= 1 ? sameType : all;
 
   let bestSet = null;
@@ -2882,65 +2906,86 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId) {
     });
   });
 
-  if (!isAnchor) {
-    return { note: 'Hold weight —', arrow: '→', recWeight: lastWeight, lastWeight, maxReps, lastDate: bestSet.date, isVolume: false };
+  // ── PROGRESSION DECISION (v3.11.0) ───────────────────────────────────
+  // Bryce trains every set close to failure, so reps are SUPPOSED to fall
+  // off across sets — 11, 10, 9 or 12, 10, 8 on a 3 × 8–10. Requiring every
+  // set to hit the top of the range (or averaging 11 on an 8-12 range, which
+  // is what the old code did) meant he could almost never earn an increase,
+  // and accessories had no progression rule at all.
+  //
+  // New rule, judged on the sets done together:
+  //   • Earned: average reps across the working sets reaches the top of the
+  //     range (11,10,9 → 10 ✓ · 12,10,8 → 10 ✓) — or set 1 blows 2+ past it —
+  //     and no set collapses more than a rep below the bottom (14,10,6 ✗).
+  //   • Two-set heavy anchors (top set + back-off): judged on the TOP SET only;
+  //     the back-off is lighter on purpose and doesn't count against you.
+  //   • Missed: an anchor's latest top set at or above the working weight came
+  //     in under the bottom of the range → reset ~5% below that attempt.
+  //   • Otherwise hold and push reps.
+  const tgt = parseRepTarget(target);
+  // Dumbbells, cable stacks and belt plates all move in 5s at his weights.
+  const bumpFor = w => (w >= 20 ? 5 : w > 0 ? 2.5 : 0);
+  const round5 = w => Math.max(0, Math.round(w / 5) * 5);
+
+  // Working sets = sets at the session's top weight. Back-offs, drops and
+  // burnouts are lighter by design and never count toward the decision.
+  const workingSetsOf = sess => {
+    const sets = (sess.sets || []).filter(x => !x.isBurnout)
+      .map(x => ({ w: parseFloat(x.weight), r: parseInt(x.reps) }))
+      .filter(x => x.w > 0 && x.r > 0);
+    if (!sets.length) return [];
+    const top = Math.max(...sets.map(x => x.w));
+    return sets.filter(x => x.w === top);
+  };
+  let latest = null;     // most recent session with real working sets
+  let atBest = null;     // most recent session worked at or above the best weight
+  for (let k = pool.length - 1; k >= 0; k--) {
+    const ws = workingSetsOf(pool[k]);
+    if (!ws.length) continue;
+    if (!latest) latest = { date: pool[k].date, sets: ws };
+    if (!atBest && ws[0].w >= lastWeight) atBest = { date: pool[k].date, sets: ws };
+    if (latest && atBest) break;
   }
 
-  if (isVolumeDay) {
-    const looksLikeHeavy = avgReps <= 5; // 6+ reps avg is solidly volume territory
-    if (looksLikeHeavy) {
-      const volWeight = lastWeight > 0 ? Math.round((lastWeight * 0.875) / 5) * 5 : 0;
-      return { note: 'Est. from heavy —', arrow: '→', recWeight: volWeight, lastWeight, maxReps, lastDate: bestSet.date, repTarget: '8–12 reps', isVolume: true };
-    } else {
-      let recWeight = lastWeight;
-      let arrow = '→';
-      let note = '';
-      if (avgReps >= 11) {
-        const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : 2.5;
-        recWeight = lastWeight + bump;
-        arrow = '↑';
-        note = 'Top of range — push to';
-      } else if (avgReps >= 8) {
-        note = 'Stay in range —';
-      } else {
-        note = 'Build here — stay at';
-      }
-      return { note, arrow, recWeight, lastWeight, maxReps, lastDate: bestSet.date, repTarget: '8–12 reps', isVolume: true };
-    }
-  } else {
-    // Heavy day: derive working weight from best 1RM estimate across ALL sessions
-    // Target ~85% of estimated 1RM for a solid 4-8 rep working weight
-    const heavyFromBest1RM = best1RM > 0 ? Math.round((best1RM * 0.85) / 5) * 5 : lastWeight;
+  const base = { lastWeight, maxReps, lastDate: bestSet.date, repTarget: tgt.label, isVolume: !!isVolumeDay };
+  const topSetOnly = isAnchor && !isVolumeDay && tgt.sets <= 2;
 
-    let recWeight = Math.max(lastWeight, heavyFromBest1RM);
-    let arrow = '→';
-    let note = '';
-
-    if (heavyFromBest1RM > lastWeight + 5) {
-      // Volume sessions indicate capacity beyond last heavy weight
-      recWeight = heavyFromBest1RM;
-      arrow = '↑';
-      note = 'Capacity up — try';
-    } else if (avgReps >= 7.5) {
-      const bump = lastWeight >= 200 ? 5 : lastWeight >= 100 ? 5 : lastWeight > 0 ? 2.5 : 0;
-      recWeight = lastWeight + bump;
-      arrow = '↑';
-      note = 'Looking strong — try';
-    } else if (avgReps <= 5) {
-      note = 'Build here — stay at';
-    } else {
-      note = 'Match last session —';
-    }
-    return { note, arrow, recWeight, lastWeight, maxReps, lastDate: bestSet.date, isVolume: false };
+  // Missed: the latest attempt at or above the working weight failed.
+  if (isAnchor && latest && latest.sets[0].w >= lastWeight && latest.sets[0].r < tgt.lo) {
+    const resetW = round5(latest.sets[0].w * 0.95);
+    return { ...base, note: 'Missed last time (' + latest.sets[0].w + '×' + latest.sets[0].r + ') — reset to', arrow: '↓', recWeight: resetW };
   }
+
+  const judge = atBest || latest;
+  if (!judge) return { ...base, note: 'Hold weight —', arrow: '→', recWeight: lastWeight };
+
+  const reps = judge.sets.map(x => x.r);
+  const first = reps[0];
+  const avg = reps.reduce((a, b) => a + b, 0) / reps.length;
+  const floorOk = Math.min(...reps) >= tgt.lo - 1;
+  const earned = topSetOnly
+    ? first >= tgt.hi
+    : floorOk && (avg >= tgt.hi || first >= tgt.hi + 2);
+
+  if (earned) {
+    return { ...base, note: 'Earned it (' + reps.join(', ') + ') — go to', arrow: '↑', recWeight: judge.sets[0].w + bumpFor(judge.sets[0].w) };
+  }
+  const need = topSetOnly ? 'top set to ' + tgt.hi : 'average ' + tgt.hi + ' across sets';
+  return { ...base, note: 'Hold — push reps (' + need + ') at', arrow: '→', recWeight: judge.sets[0].w };
 }
+
+const MAX_WORKING_SETS = 3;
 
 function renderExercise(ex, isVol) {
   const log = sessionLogs[ex.id] || {};
-  // Deload week: bump sets by 1 for anchors, keep accessories same
-  const deloadSets = isDeloadWeek && ex.anchor ? (ex.defaultSets || 3) + 1 : (ex.defaultSets || 3);
-  const sets = log.sets || Array(deloadSets).fill(null).map(() => ({ weight: '', reps: '' }));
-  const sugg = getSuggestion(ex.id, isVol, ex.anchor, ex.relatedId);
+  // Bryce's rule: 2-3 working sets, never more. His logs show set 2 of a
+  // truly heavy lift already falls off hard, so sets 4-5 were never going to
+  // be quality work. Deload weeks used to ADD a set to every anchor — that's
+  // where the 4- and 5-set prescriptions were coming from. Deload now lowers
+  // the weight (75%) and keeps the set count the same.
+  const plannedSets = Math.min(ex.defaultSets || 3, MAX_WORKING_SETS);
+  const sets = log.sets || Array(plannedSets).fill(null).map(() => ({ weight: '', reps: '' }));
+  const sugg = getSuggestion(ex.id, isVol, ex.anchor, ex.relatedId, ex.target);
   const anchorClass = ex.anchor ? (ex.anchorVol ? ' anchor-vol' : ' anchor') : '';
   // If ex.forceName is set (e.g. picked explicitly from the exercise history
   // picker), always use it as-is and ignore any stored rename for this ID —
@@ -3182,7 +3227,17 @@ async function saveDay() {
         // weights are deliberately lightened and should never be mistaken
         // for a real "last session" reference point.
         hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek, notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
-        if (hist.length > 12) hist.shift();
+        if (hist.length > 12) {
+          // Trim the oldest session EXCEPT the one holding the best-ever set,
+          // so a baseline can never age out just because 12 newer sessions
+          // happened to be lighter.
+          let bestIdx = -1, bestScore = -1;
+          hist.forEach((h, hi) => (h.sets || []).forEach(x => {
+            const w = parseFloat(x.weight), r = parseInt(x.reps);
+            if (w > 0 && r > 0 && !x.isBurnout && w * (1 + r / 30) > bestScore) { bestScore = w * (1 + r / 30); bestIdx = hi; }
+          }));
+          hist.splice(bestIdx === 0 ? 1 : 0, 1);
+        }
         localStorage.setItem('hist_' + exId, JSON.stringify(hist));
       }
     });
@@ -3298,7 +3353,10 @@ async function saveDay() {
         limiters: sessionLogs._limiters || [],
         exercises: sessionExercises
       });
-      if (allSessions.length > 8) allSessions.shift();
+      if (allSessions.length > 8) {
+        const dropped = allSessions.shift();
+        rescueArchiveBaselines(dropped, histKey, allSessions);
+      }
       localStorage.setItem(histKey, JSON.stringify(allSessions));
     }
 
@@ -3789,6 +3847,65 @@ function sessionFingerprint(sess) {
   return `${sess.date}|${sets}`;
 }
 
+// Only ANCHOR lifts are programmed with different intents on heavy vs volume
+// weeks (flat-smith is 240x3 one week and 215x10 the other), so only anchors
+// should have their history split by week type. Accessories and abs are the
+// same exercise with the same goal every time they appear.
+//
+// Before v3.10.3 the split applied to EVERYTHING. Because a session's
+// heavy/volume flag comes from the WEEK, not the exercise, every accessory
+// logged on a volume week was invisible when suggesting for a heavy week —
+// and vice versa. That's why rope crunch showed 160x9 (7/27, heavy week)
+// and ignored 160x11 (9/21, volume week), and why this bug kept coming
+// back on a different exercise every time one was fixed.
+let _anchorIdCache = null;
+function isAnchorExercise(exId) {
+  if (!_anchorIdCache) {
+    _anchorIdCache = new Set();
+    try {
+      PROGRAM.forEach(day => ['weekA', 'weekB'].forEach(w => {
+        const v = day[w];
+        if (!v) return;
+        (v.sections || []).forEach(sec => {
+          if (sec.label !== 'Anchors') return;
+          sec.exercises.forEach(e => (e.superset ? e.exercises : [e]).forEach(x => _anchorIdCache.add(x.id)));
+        });
+      }));
+    } catch (e) {}
+  }
+  return _anchorIdCache.has(exId);
+}
+
+// When a session ages out of an archive, any exercise that exists NOWHERE
+// else gets its performance saved to hist_archive_baselines first. Matters
+// for picker-added exercises, which are only ever stored in the archive.
+function rescueArchiveBaselines(droppedSession, histKey, keptSessions) {
+  if (!droppedSession || !droppedSession.exercises) return;
+  try {
+    const norm = n => normalizeExerciseName(n || '');
+    const baselines = JSON.parse(localStorage.getItem('hist_archive_baselines') || '[]');
+    const keptNames = new Set();
+    (keptSessions || []).forEach(sess => (sess.exercises || []).forEach(e => keptNames.add(norm(e.name))));
+    const coveredByHist = name => Object.keys(localStorage).some(k => {
+      if (!k.startsWith('hist_') || k.startsWith('hist_session_') || k === 'hist_archive_baselines') return false;
+      const id = k.slice(5);
+      const n = localStorage.getItem('name_' + id) || getExerciseNameById(id) || id;
+      if (norm(n) !== norm(name)) return false;
+      try { return JSON.parse(localStorage.getItem(k) || '[]').length > 0; } catch (e) { return false; }
+    });
+    droppedSession.exercises.forEach(ex => {
+      if (!ex || !ex.name || !(ex.sets || []).some(x => x.weight || x.reps)) return;
+      const n = norm(ex.name);
+      if (keptNames.has(n) || coveredByHist(ex.name)) return;
+      const i = baselines.findIndex(b => norm(b.name) === n);
+      if (i >= 0 && baselines[i].date >= droppedSession.date) return;
+      if (i >= 0) baselines.splice(i, 1);
+      baselines.push({ name: ex.name, date: droppedSession.date, sets: ex.sets, fromArchive: histKey });
+    });
+    localStorage.setItem('hist_archive_baselines', JSON.stringify(baselines));
+  } catch (e) {}
+}
+
 function getAllHistory(exId, includeDeload) {
   let raw = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
   // Name-matched sessions used to be a FALLBACK — only consulted when the
@@ -3908,8 +4025,9 @@ function analyzeLiftTrend(exId, exName) {
 
   const results = [];
 
-  [true, false].forEach(isHeavySplit => {
-    let split = allWithEst.filter(s => s.heavy === isHeavySplit);
+  const splitByType = isAnchorExercise(exId);
+  (splitByType ? [true, false] : [null]).forEach(isHeavySplit => {
+    let split = isHeavySplit === null ? allWithEst.slice() : allWithEst.filter(s => s.heavy === isHeavySplit);
     if (split.length < 3) return; // not enough data for THIS day type specifically
 
     // Deload weeks are intentionally lighter by design — excluded entirely
@@ -3991,7 +4109,7 @@ function analyzeLiftTrend(exId, exName) {
     results.push({
       exName: currentDisplayName,
       exId,
-      dayType: isHeavySplit ? 'Heavy' : 'Volume',
+      dayType: isHeavySplit === null ? 'All sessions' : (isHeavySplit ? 'Heavy' : 'Volume'),
       sessionsAnalyzed: recent.length,
       mostRecent: Math.round(mostRecent),
       priorBest: Math.round(priorBest),
@@ -4735,7 +4853,7 @@ function getDeloadExtras(variantId) {
     ],
     'sat-upper': [
       { id:'dl-hammer-extra', name:'Hammer Curl', note:'Deload extra — brachialis and forearm. Slow 4-sec eccentric.', target:'3 × 15 / arm', defaultSets:3, relatedId:'hammer-curl-wed' },
-      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'4 × 20', defaultSets:4, relatedId:'face-pull-wed' },
+      { id:'dl-face-pull-extra', name:'Face Pull', note:'Deload extra — rear delt and shoulder health. High reps, light weight.', target:'3 × 20', defaultSets:3, relatedId:'face-pull-wed' },
     ],
   };
   return extras[base] || [];
@@ -5083,6 +5201,7 @@ const ACCESSORY_POOLS = {
   // whether that week is Row Focused or Chest Focused (the fixed anchors
   // already carry the primary emphasis for the week).
   upper: [
+    { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats' },
     { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Basically a fly machine. Full stretch.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Dumbbells, elbows at 90.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
@@ -5137,6 +5256,7 @@ const ACCESSORY_POOLS = {
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
   ],
   pull: [
+    { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats' },
     // Lats / Back — tagged with a `pattern` in addition to `muscle`, so the
     // randomizer can guarantee a real mix (a row AND a lat-isolation
     // movement) instead of picking 2 from an undifferentiated bucket where
