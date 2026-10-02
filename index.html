@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.11.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.12.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1954,6 +1954,57 @@ function saveDailyLogField(dateStr, field, value) {
   const current = getDailyLog(dateStr);
   current[field] = value;
   localStorage.setItem('daily_log_' + dateStr, JSON.stringify(current));
+  if (field === 'bodyweight') refreshBodyweightTrend(dateStr);
+}
+
+// Day-to-day bodyweight swings 1-3 lbs from water, salt and food alone, so a
+// single morning says almost nothing. The 7-day average is the real number,
+// and comparing it to the previous 7 days is the real rate.
+function bodyweightTrend(dateStr) {
+  const toDate = d => new Date(d + 'T12:00:00');
+  const end = toDate(dateStr);
+  const entries = Object.keys(localStorage)
+    .filter(k => k.startsWith('daily_log_'))
+    .map(k => {
+      let bw = null;
+      try { bw = parseFloat(JSON.parse(localStorage.getItem(k)).bodyweight); } catch (e) {}
+      return { d: k.slice('daily_log_'.length), bw };
+    })
+    .filter(e => e.bw > 0);
+  const windowed = (from, to) => entries
+    .filter(e => { const ago = Math.round((end - toDate(e.d)) / 86400000); return ago >= from && ago < to; })
+    .map(e => e.bw);
+  const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const cur = windowed(0, 7), prev = windowed(7, 14);
+  return { avg: cur.length ? avg(cur) : null, n: cur.length, prevAvg: prev.length ? avg(prev) : null, prevN: prev.length };
+}
+
+function bodyweightTrendText(dateStr) {
+  const t = bodyweightTrend(dateStr);
+  if (t.n < 3) return `7-day average shows after 3 mornings this week (${t.n} logged so far).`;
+  let txt = `7-day avg: <strong>${t.avg.toFixed(1)} lbs</strong> (${t.n} mornings)`;
+  if (t.prevN >= 3) {
+    const diff = t.avg - t.prevAvg;
+    const arrow = diff < -0.05 ? '↓' : diff > 0.05 ? '↑' : '→';
+    txt += ` · ${arrow} ${Math.abs(diff).toFixed(1)} vs last week`;
+  }
+  return txt;
+}
+
+function refreshBodyweightTrend(dateStr) {
+  const el = document.getElementById('bwTrend');
+  if (el) el.innerHTML = bodyweightTrendText(dateStr);
+}
+
+// One bodyweight row, used on training days AND rest days — weighing in
+// every morning only works if the box is there every morning.
+function bodyweightRowHtml(dateStr) {
+  const log = getDailyLog(dateStr);
+  return `<div class="session-row" style="gap:8px;margin-top:4px;">
+    <input type="number" inputmode="decimal" class="session-date-input" id="dailyBodyweight" placeholder="Morning bodyweight (lbs)" style="flex:1;"
+      value="${log.bodyweight || ''}" onchange="saveDailyLogField('${dateStr}', 'bodyweight', this.value)">
+  </div>
+  <div id="bwTrend" style="font-size:10px;color:var(--muted);margin:3px 2px 8px;">${bodyweightTrendText(dateStr)}</div>`;
 }
 
 // Gets the MOST RECENT daily log at or before the given date — used to
@@ -1993,7 +2044,8 @@ function renderDay(index) {
   const main = document.getElementById('mainContent');
   const day = PROGRAM[index];
   if (day.rest) {
-    main.innerHTML = `<div class="rest-day"><div class="rest-icon">🔋</div><div class="rest-title">REST DAY</div><div class="rest-desc">Six hard days. Sleep, eat your protein, and let the adaptation happen. The work is already done.</div></div>`;
+    const restDate = new Date().toISOString().split('T')[0];
+    main.innerHTML = `<div style="margin-bottom:12px;">${bodyweightRowHtml(restDate)}</div><div class="rest-day"><div class="rest-icon">🔋</div><div class="rest-title">REST DAY</div><div class="rest-desc">Six hard days. Sleep, eat your protein, and let the adaptation happen. The work is already done.</div></div>`;
     return;
   }
   const variant = getCurrentVariant(index);
@@ -2012,22 +2064,13 @@ function renderDay(index) {
   const feelEmoji = getFeel(savedFeel);
   html += `<div class="session-row"><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>`;
 
-  // Daily log: bodyweight + Oura score. Both optional, logged once per day
-  // (not tied to a specific workout), pre-filled from today's entry if it
-  // exists. Never required to save — purely additive context for Coach.
-  const todayDailyLog = getDailyLog(savedDate);
-  html += `<div class="session-row" style="gap:8px;margin-top:4px;">
-    <input type="number" inputmode="decimal" class="session-date-input" id="dailyBodyweight" placeholder="Bodyweight (lbs)" style="flex:1;"
-      value="${todayDailyLog.bodyweight || ''}" onchange="saveDailyLogField('${savedDate}', 'bodyweight', this.value)">
-    <input type="number" inputmode="numeric" class="session-date-input" id="dailyOura" placeholder="Oura Score (0-100)" style="flex:1;"
-      value="${todayDailyLog.ouraScore || ''}" onchange="saveDailyLogField('${savedDate}', 'ouraScore', this.value)">
-  </div>
-  <div style="font-size:9px;color:var(--muted);margin:2px 2px 8px;">Optional — logged once per day, carries forward automatically if skipped.</div>`;
+  // Morning bodyweight + 7-day average. Oura removed in v3.12.0 — no longer used.
+  html += bodyweightRowHtml(savedDate);
   if (isDeloadWeek) {
     html += `<div class="deload-banner">
       <div class="deload-icon">🔋</div>
       <div class="deload-text">
-        <strong>Deload Week</strong> — 60–70% of working weight, 3–4 sets at 12–15 reps. No grinding. Focus on form and feel.<br>
+        <strong>Deload Week</strong> — 60–70% of working weight, same number of sets, 12–15 reps. No grinding. Focus on form and feel.<br>
         <button class="deload-toggle" onclick="toggleDeload()">↺ Switch to normal week</button>
       </div>
     </div>`;
@@ -2279,7 +2322,6 @@ function appendHistoryAndAddExercise(index, variant) {
 
       const contextChips = [];
       if (session.bodyweight) contextChips.push(`⚖️ ${session.bodyweight}lbs`);
-      if (session.ouraScore) contextChips.push(`😴 ${session.ouraScore}/100`);
       if (session.limiters && session.limiters.length) contextChips.push(`⚠️ ${session.limiters.join(', ')}`);
       const contextChipsHtml = contextChips.length
         ? `<div style="font-size:10px;color:var(--muted);margin-bottom:6px;display:flex;gap:10px;flex-wrap:wrap;">${contextChips.map(c => `<span>${c}</span>`).join('')}</div>`
@@ -3054,7 +3096,7 @@ function renderExercise(ex, isVol) {
         <div class="exercise-note">${ex.note}</div>
       </div>
     </div>
-    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:${isDeloadWeek && ex.anchor ? 'var(--orange)' : 'var(--muted)'}">${isDeloadWeek && ex.anchor ? (deloadSets) + ' sets × 12–15 — deload' : ex.target}</div>
+    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:${isDeloadWeek && ex.anchor ? 'var(--orange)' : 'var(--muted)'}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 — deload' : ex.target}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -3349,7 +3391,6 @@ async function saveDay() {
         feel: sessionLogs._feel || null,
         notes: sessionLogs._notes || '',
         bodyweight: attachedDailyLog.bodyweight || null,
-        ouraScore: attachedDailyLog.ouraScore || null,
         limiters: sessionLogs._limiters || [],
         exercises: sessionExercises
       });
@@ -4345,9 +4386,8 @@ function buildCoachDataSummary() {
         // with the session itself, not in a separate screen — per spec,
         // this context needs to be visible right alongside the lift data.
         const bwLabel = s.bodyweight ? ` [BODYWEIGHT: ${s.bodyweight}lbs]` : '';
-        const ouraLabel = s.ouraScore ? ` [OURA SLEEP SCORE: ${s.ouraScore}/100]` : '';
         const limiterLabel = (s.limiters && s.limiters.length) ? ` [EXTERNAL LIMITERS: ${s.limiters.join(', ')}]` : '';
-        lines.push(`\n- ${s.date} (${weekdayName}) ${dayTypeLabel}${feelLabel}${bwLabel}${ouraLabel}${limiterLabel}`);
+        lines.push(`\n- ${s.date} (${weekdayName}) ${dayTypeLabel}${feelLabel}${bwLabel}${limiterLabel}`);
 
         // Exercise order is meaningful: it reflects the actual sequence performed
         // that session, listed as EXERCISE_ORDER so the coach knows this isn't
@@ -4494,7 +4534,6 @@ HOW TO READ THE DATA BELOW — read this carefully before answering:
 - If the current week is a DELOAD week, all weights are intentionally reduced — never interpret a lighter deload-week weight as a strength decline.
 - Lines marked "PREVIOUS COACH ADVICE" are things Bryce logged after asking about that specific session in an earlier conversation. Use this for continuity — reference it if relevant, and don't repeat the exact same advice without acknowledging you already said it.
 - [BODYWEIGHT: Xlbs] shows Bryce's logged bodyweight for that day (auto-attached from his daily log, may carry forward from a recent entry if he skipped a day). Use it for relative strength context and to notice if bodyweight shifts correlate with performance changes over time.
-- [OURA SLEEP SCORE: X/100] is Bryce's sleep score for that day. Read it ALONGSIDE his feel rating, not instead of it — low Oura + low feel confirms a real recovery issue; low Oura + high feel means he overcame a bad night (also worth noting positively); high Oura + low feel points away from sleep and toward something else worth asking about (nutrition, environment, or a genuine issue). Over time, look for a pattern between recent sleep scores and anchor lift performance.
 - [EXTERNAL LIMITERS: ...] are factors Bryce tagged as affecting that specific session (poor air quality, poor nutrition, illness, unusual stress, equipment issues). When a session shows a limiter tag, use it to contextualize a rough day rather than treating a dip as a real capability decline — but if the SAME limiter keeps appearing across sessions, point that out as a pattern worth addressing, not just an excuse.
 - Injury or pain information only ever appears in Bryce's own free-text notes (BRYCE'S OWN NOTE / SESSION NOTE) — there is no structured field for this. Treat anything he says about pain or injury there as ground truth exactly as written.
 
