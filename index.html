@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.12.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.13.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1224,6 +1224,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   migrateCleanupV340();
   migrateSaturdayLayoutsV360();
   migrateStorageCleanupV3100();
+  migrateCondenseV3130();
   setWeekBadge();
   buildTabs();
   // Restore whichever day was actually active last, rather than always
@@ -3269,6 +3270,8 @@ async function saveDay() {
         // weights are deliberately lightened and should never be mistaken
         // for a real "last session" reference point.
         hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek, notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
+        { const condensed = condenseExerciseHistory(hist, condenseCutoffDate());
+          if (condensed && condensed.length) { hist.length = 0; hist.push(...condensed); } }
         if (hist.length > 12) {
           // Trim the oldest session EXCEPT the one holding the best-ever set,
           // so a baseline can never age out just because 12 newer sessions
@@ -3915,6 +3918,87 @@ function isAnchorExercise(exId) {
     } catch (e) {}
   }
   return _anchorIdCache.has(exId);
+}
+
+// ─── v3.13.0 CONDENSE ─────────────────────────────────────────────────
+// Bryce's rule: keep the recent window of workouts, and for any exercise not
+// done inside that window, keep its last session as the baseline. On top of
+// that, every exercise keeps the session holding its best-ever set, because
+// suggestions start from your best — trimming it would quietly lower them.
+//
+// 20 workouts ≈ 4 weeks ≈ every A and B day twice. A 10-workout window would
+// be ~2 weeks, so each day once and every lift down to a single session.
+const CONDENSE_WORKOUT_WINDOW = 20;
+const DAILY_LOG_DAYS_TO_KEEP = 60;
+
+// The date of the Nth most recent workout. Anything before it is "old".
+function condenseCutoffDate() {
+  const dates = new Set();
+  Object.keys(localStorage).forEach(k => {
+    if (!k.startsWith('hist_') || k === 'hist_archive_baselines') return;
+    try {
+      JSON.parse(localStorage.getItem(k) || '[]').forEach(x => { if (x && x.date) dates.add(x.date); });
+    } catch (e) {}
+  });
+  const sorted = [...dates].sort().reverse();
+  return sorted.length >= CONDENSE_WORKOUT_WINDOW ? sorted[CONDENSE_WORKOUT_WINDOW - 1] : null;
+}
+
+function condenseExerciseHistory(hist, cutoff) {
+  if (!cutoff || !Array.isArray(hist) || hist.length <= 1) return hist;
+  const sorted = [...hist].sort((a, b) => (a.date > b.date ? 1 : -1));
+  const keep = new Set();
+  sorted.forEach((h, i) => { if (h.date >= cutoff) keep.add(i); });
+  if (!keep.size) keep.add(sorted.length - 1);            // baseline: most recent
+  let bestIdx = -1, bestScore = -1;                        // best-ever set
+  // Only sessions suggestions can actually use — pre-cutoff bests are
+  // ignored by the suggestion engine, so keeping them saves nothing.
+  const prCutoff = (typeof PR_CUTOFF_DATE !== 'undefined') ? PR_CUTOFF_DATE : '';
+  sorted.forEach((h, i) => {
+    if (h.deload || h.date < prCutoff) return;
+    (h.sets || []).forEach(x => {
+      if (x.isBurnout) return;
+      const w = parseFloat(x.weight), r = parseInt(x.reps);
+      if (w > 0 && r > 0 && w * (1 + r / 30) > bestScore) { bestScore = w * (1 + r / 30); bestIdx = i; }
+    });
+  });
+  if (bestIdx >= 0) keep.add(bestIdx);
+  return sorted.filter((_, i) => keep.has(i));
+}
+
+function migrateCondenseV3130() {
+  if (localStorage.getItem('_migrated_v3_13_0')) return;
+  const cutoff = condenseCutoffDate();
+  if (cutoff) {
+    // Per-exercise history
+    Object.keys(localStorage).forEach(k => {
+      if (!k.startsWith('hist_') || k.startsWith('hist_session_') || k === 'hist_archive_baselines') return;
+      try {
+        const hist = JSON.parse(localStorage.getItem(k) || '[]');
+        const out = condenseExerciseHistory(hist, cutoff);
+        if (hist.length && out.length) localStorage.setItem(k, JSON.stringify(out));  // never empty a lift
+      } catch (e) {}
+    });
+    // Session archives: inside the window, never fewer than the 4 most recent.
+    // Anything aging out gets its baselines rescued first.
+    Object.keys(localStorage).forEach(k => {
+      if (!k.startsWith('hist_session_')) return;
+      try {
+        const sessions = JSON.parse(localStorage.getItem(k) || '[]').sort((a, b) => (a.date > b.date ? 1 : -1));
+        const minKeep = Math.max(0, sessions.length - 4);
+        const kept = sessions.filter((x, i) => x.date >= cutoff || i >= minKeep);
+        const dropped = sessions.filter(x => !kept.includes(x));
+        dropped.forEach(d => rescueArchiveBaselines(d, k, kept));
+        if (kept.length) localStorage.setItem(k, JSON.stringify(kept));
+      } catch (e) {}
+    });
+  }
+  // Daily bodyweight: 60 days is plenty for the 7-day trend
+  const oldest = new Date(Date.now() - DAILY_LOG_DAYS_TO_KEEP * 86400000).toISOString().split('T')[0];
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('daily_log_') && k.slice('daily_log_'.length) < oldest) localStorage.removeItem(k);
+  });
+  localStorage.setItem('_migrated_v3_13_0', 'true');
 }
 
 // When a session ages out of an archive, any exercise that exists NOWHERE
@@ -7373,6 +7457,71 @@ function showToast(msg) {
 }
 </script>
 <script>
+// ─── SELF-UPDATE (v3.13.0) ─────────────────────────────────────────────
+// The home-screen icon keeps running whatever copy it last cached. Deleting
+// and re-adding the icon "fixes" that, but a new icon starts with EMPTY
+// storage — which is why every update meant re-importing the export. Instead,
+// ask GitHub for the latest file on every open and reload in place: same
+// icon, same storage, nothing lost.
+const APP_VERSION = '3.13.0';
+
+function isNewerVersion(a, b) {
+  const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  return false;
+}
+
+function workoutInProgressToday() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('log_')) continue;
+      let log; try { log = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) { continue; }
+      if (!log || log._date !== today) continue;
+      const has = Object.keys(log).some(k => !k.startsWith('_') && log[k] && log[k].sets && log[k].sets.some(x => x && (x.weight || x.reps)))
+        || (log._custom || []).some(c => c && c.sets && c.sets.some(x => x && (x.weight || x.reps)));
+      if (has) return true;
+    }
+  } catch (e) { return true; }
+  return false;
+}
+
+function loadVersion(v) {
+  location.replace(location.pathname + '?v=' + v + '&t=' + Date.now());
+}
+
+function showUpdateBanner(v) {
+  if (document.getElementById('updateBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'updateBanner';
+  b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9999;background:#ff8a3d;color:#111;padding:12px 14px;border-radius:12px;font-weight:700;font-size:14px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.45);';
+  b.textContent = 'Update ready (v' + v + ') — tap to load. Your workout and data stay.';
+  b.onclick = () => loadVersion(v);
+  document.body.appendChild(b);
+}
+
+let _updateCheckRunning = false;
+async function checkForUpdate() {
+  if (_updateCheckRunning) return;
+  _updateCheckRunning = true;
+  try {
+    const res = await fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const m = (await res.text()).match(/const APP_VERSION = '(\d+\.\d+\.\d+)'/);
+    if (!m || !isNewerVersion(m[1], APP_VERSION)) return;
+    // Never yank the screen out from under a live workout — ask instead.
+    if (workoutInProgressToday()) showUpdateBanner(m[1]);
+    else loadVersion(m[1]);
+  } catch (e) {
+    // offline or GitHub hiccup — try again next open
+  } finally {
+    _updateCheckRunning = false;
+  }
+}
+window.addEventListener('load', () => setTimeout(checkForUpdate, 1200));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+
 // Force fresh load on every visit — no stale cache
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(registrations => {
