@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.13.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.13.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1083,17 +1083,24 @@ const PROGRAM = [
       id: 'sat-upper-a', title: 'UPPER', subtitle: 'Lat Focused — Back Primary', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          // Week A's Tuesday already leads with Barbell Row plus a rope row, so
-          // Saturday A is the lat day instead of a second row day. Chest-
-          // Supported Row now lives on Saturday B only — once every two weeks.
-          { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Leads today. 2-3 sec eccentric, drive elbows to hips.', target:'3 × 6–9', anchor:true, defaultSets:3 },
+          // Saturday A: lats and V-taper. Lat Pulldown has a fixed home here
+          // (weighted pull-ups own Wednesday B), so both leads progress cleanly
+          // instead of splitting exposures day to day. Same id as Tuesday's
+          // pulldown — anchors split history by week type, so Saturday reads
+          // the heavy sessions (190x7, 175x5) and Tuesday the volume ones.
+          { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'Leads today. Full stretch at the top, drive elbows down to the ribs.', target:'3 × 6–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-            { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Lat-biased row. Full stretch at top, drive elbows down.', target:'3 × 9–11', defaultSets:3 },
-            // Grinder. Comes after two lat movements on purpose — expect ~8 hard reps.
-            { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang at the bottom, slow 2-3 sec lower. Aim for 8.', target:'2 × 6–8', defaultSets:2 },
+            // Elbows tucked, driving to the hips → lats and mid-back. Bryce's favorite.
+            { id:'custom-close-grip-seated-row', name:'Close Grip Seated Row', note:'Row machine. Elbows tight to your sides, drive them back past your ribs, full stretch forward.', target:'3 × 8–10', defaultSets:3 },
             { id:'decline-smith', name:'Decline Smith Press', note:'Straight sets, full rest.', target:'3 × 6–8', defaultSets:3 },
-            { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3 },
+            // Upper back + chest: opposing muscles, so the fly costs the row
+            // nothing. Flared row → upper back, rhomboids, rear delts.
+            { superset:true, exercises:[
+              { id:'custom-seated-wide-grip-row', name:'Seated Wide Grip Row', note:'Upper back. Elbows out around 45-60°, pull to mid-chest, squeeze the shoulder blades. Superset with the fly.', target:'3 × 8–10', defaultSets:3 },
+              { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Full stretch, squeeze at the middle. Control the way back.', target:'3 × 8–10', defaultSets:3 },
+            ]},
+            { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'2 × 12–15', defaultSets:2 },
             { superset:true, exercises:[
               { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
               { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
@@ -5324,6 +5331,8 @@ const ACCESSORY_POOLS = {
   // whether that week is Row Focused or Chest Focused (the fixed anchors
   // already carry the primary emphasis for the week).
   upper: [
+    { id:'custom-close-grip-seated-row', name:'Close Grip Seated Row', note:'Elbows tight, drive to the hips.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
+    { id:'custom-seated-wide-grip-row', name:'Seated Wide Grip Row', note:'Elbows flared, pull to mid-chest.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats' },
     { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Basically a fly machine. Full stretch.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Dumbbells, elbows at 90.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
@@ -5379,6 +5388,8 @@ const ACCESSORY_POOLS = {
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
   ],
   pull: [
+    { id:'custom-close-grip-seated-row', name:'Close Grip Seated Row', note:'Elbows tight, drive to the hips.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
+    { id:'custom-seated-wide-grip-row', name:'Seated Wide Grip Row', note:'Elbows flared, pull to mid-chest.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats' },
     // Lats / Back — tagged with a `pattern` in addition to `muscle`, so the
     // randomizer can guarantee a real mix (a row AND a lat-isolation
@@ -7463,7 +7474,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.13.0';
+const APP_VERSION = '3.13.3';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
