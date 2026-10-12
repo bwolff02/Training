@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.13.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.14.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1962,7 +1962,10 @@ function saveDailyLogField(dateStr, field, value) {
   const current = getDailyLog(dateStr);
   current[field] = value;
   localStorage.setItem('daily_log_' + dateStr, JSON.stringify(current));
-  if (field === 'bodyweight') refreshBodyweightTrend(dateStr);
+  if (field === 'bodyweight') {
+    refreshBodyweightTrend(dateStr);
+    if (value) try { syncToSheet({ type: 'bodyweight', entries: [{ date: dateStr, bodyweight: value }] }); } catch (e) {}
+  }
 }
 
 // Day-to-day bodyweight swings 1-3 lbs from water, salt and food alone, so a
@@ -2399,6 +2402,7 @@ function appendHistoryAndAddExercise(index, variant) {
       <textarea class="import-textarea" id="import-text" placeholder="Paste your exported data here..."></textarea>
       <button class="import-btn" onclick="importData()">Restore Data</button>
     </div>
+    ${syncSectionHtml()}
   `;
   main.appendChild(exportSection);
 }
@@ -3404,11 +3408,17 @@ async function saveDay() {
         limiters: sessionLogs._limiters || [],
         exercises: sessionExercises
       });
+      const justSaved = allSessions[allSessions.length - 1];
       if (allSessions.length > 8) {
         const dropped = allSessions.shift();
         rescueArchiveBaselines(dropped, histKey, allSessions);
       }
       localStorage.setItem(histKey, JSON.stringify(allSessions));
+      // Fire-and-forget: never let sync slow down or break a save.
+      try {
+        syncToSheet({ type: 'session', session: sessionPayload(justSaved, histKey.slice('hist_session_'.length), variant.id) })
+          .then(() => syncToSheet({ type: 'backup', backup: buildBackupObject() }));
+      } catch (e) {}
     }
 
     const newPRs = checkForPRs(variant, sessionLogs);
@@ -6670,6 +6680,141 @@ function randomizeAccessories() {
 }
 
 // ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
+// ─── GOOGLE SHEET SYNC (v3.14.0) ───────────────────────────────────────
+// Every saved session and morning weigh-in is sent to Bryce's Google Sheet
+// ("Bryce Training Log — Sync"), plus a full backup file in Drive. That
+// lets Claude read current numbers without an export, and means a wiped
+// home-screen icon can always be restored from Drive.
+//
+// The link lives in this icon's storage only (never in the public repo).
+// Requests use no-cors + text/plain: Apps Script doesn't send CORS headers,
+// and text/plain avoids a preflight. The response is unreadable by design,
+// so success = "the request left the phone"; failures get queued and retried.
+function getSyncUrl() { return (localStorage.getItem('sheet_sync_url') || '').trim(); }
+
+function readSyncQueue() {
+  try { return JSON.parse(localStorage.getItem('sheet_sync_queue') || '[]'); } catch (e) { return []; }
+}
+function writeSyncQueue(q) {
+  try { localStorage.setItem('sheet_sync_queue', JSON.stringify(q.slice(-60))); } catch (e) {}
+}
+
+async function postToSheet(payload) {
+  const url = getSyncUrl();
+  if (!url) return false;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ app: 'bryce-training', ...payload }),
+    });
+    return true;
+  } catch (e) {
+    return false;   // offline, or the request never left
+  }
+}
+
+async function syncToSheet(payload) {
+  if (!getSyncUrl()) return;
+  const ok = await postToSheet(payload);
+  if (ok) localStorage.setItem('sheet_sync_last', new Date().toISOString());
+  else if (payload.type !== 'backup') {   // backups are rebuilt fresh, never queued
+    const q = readSyncQueue(); q.push(payload); writeSyncQueue(q);
+  }
+  updateSyncStatus();
+}
+
+async function flushSyncQueue() {
+  const q = readSyncQueue();
+  if (!q.length || !getSyncUrl()) return;
+  const left = [];
+  for (const p of q) if (!(await postToSheet(p))) left.push(p);
+  writeSyncQueue(left);
+  if (left.length < q.length) localStorage.setItem('sheet_sync_last', new Date().toISOString());
+  updateSyncStatus();
+}
+
+// Same shape as Export, minus the coach chat and the sync queue itself.
+function buildBackupObject() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || k === 'coach_chat_history' || k === 'sheet_sync_queue') continue;
+    data[k] = localStorage.getItem(k);
+  }
+  return { version: '1.0', exportDate: new Date().toISOString().split('T')[0], localStorage: data, persistKeys: [] };
+}
+
+function sessionPayload(sess, day, variantId) {
+  const week = String(sess.week || '');
+  return {
+    date: sess.date, day, variant: variantId || '', week,
+    feel: sess.feel == null ? null : sess.feel,
+    notes: sess.notes || '', bodyweight: sess.bodyweight || null,
+    heavy: /HEAVY/i.test(week), deload: /DELOAD/i.test(week),
+    exercises: (sess.exercises || []).map(ex => ({ name: ex.name, sets: ex.sets || [] })),
+  };
+}
+
+// One-time fill: every session still on this icon, every weigh-in, and a backup.
+async function syncEverythingNow() {
+  if (!getSyncUrl()) { showToast('Paste your sync link first'); return; }
+  showToast('Sending everything to your sheet…');
+  for (const k of Object.keys(localStorage)) {
+    if (!k.startsWith('hist_session_')) continue;
+    let sessions = [];
+    try { sessions = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) {}
+    const day = k.slice('hist_session_'.length);
+    if (sessions.length) await syncToSheet({ type: 'sessions', sessions: sessions.map(x => sessionPayload(x, day, '')) });
+  }
+  const entries = Object.keys(localStorage)
+    .filter(k => k.startsWith('daily_log_'))
+    .map(k => { let bw = null; try { bw = JSON.parse(localStorage.getItem(k)).bodyweight; } catch (e) {} return { date: k.slice('daily_log_'.length), bodyweight: bw }; })
+    .filter(e => e.bodyweight);
+  if (entries.length) await syncToSheet({ type: 'bodyweight', entries });
+  await syncToSheet({ type: 'backup', backup: buildBackupObject() });
+  showToast('Sent — check your sheet in a minute');
+}
+
+function saveSyncUrl(v) {
+  v = String(v || '').trim();
+  if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/.test(v)) {
+    showToast('That doesn’t look like the Web app link — it should end in /exec');
+    return;
+  }
+  if (v) localStorage.setItem('sheet_sync_url', v); else localStorage.removeItem('sheet_sync_url');
+  updateSyncStatus();
+  if (v) showToast('Sync link saved — tap Send everything once');
+}
+
+function syncStatusText() {
+  if (!getSyncUrl()) return 'Not connected. Paste your Web app link to turn on sync.';
+  const last = localStorage.getItem('sheet_sync_last');
+  const q = readSyncQueue().length;
+  let t = last ? 'Connected · last sent ' + new Date(last).toLocaleString([], { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Connected · nothing sent yet';
+  if (q) t += ' · ' + q + ' waiting to send';
+  return t;
+}
+function updateSyncStatus() {
+  const el = document.getElementById('syncStatus');
+  if (el) el.textContent = syncStatusText();
+}
+
+function syncSectionHtml() {
+  const url = getSyncUrl();
+  return `<div style="margin-top:14px;padding:12px;border:1px solid var(--border, #333);border-radius:10px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--accent, #c8f135);margin-bottom:6px;">GOOGLE SHEET SYNC</div>
+    <input type="url" class="session-date-input" id="syncUrlInput" placeholder="Paste Web app link (…/exec)" style="width:100%;box-sizing:border-box;"
+      value="${url.replace(/"/g, '&quot;')}" onchange="saveSyncUrl(this.value)">
+    <div id="syncStatus" style="font-size:10px;color:var(--muted);margin:6px 2px;">${syncStatusText()}</div>
+    <button class="export-btn" style="margin-top:2px;" onclick="syncEverythingNow()">☁️ Send everything now</button>
+  </div>`;
+}
+
+window.addEventListener('load', () => setTimeout(flushSyncQueue, 2500));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushSyncQueue(); });
+
 function exportData() {
   // Split into two separate exports: training data (used regularly, kept
   // small) and coach chat backup (only needed if you ever do a full home
@@ -7474,7 +7619,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.13.3';
+const APP_VERSION = '3.14.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
