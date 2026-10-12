@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.14.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.14.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -982,7 +982,10 @@ const PROGRAM = [
       sections: [
         { label: 'Anchors', exercises: [
           { id:'incline-smith', name:'Incline Smith Press', note:'RESET BLOCK: 195–205, all 3 sets clean, nothing to failure. +5 lb once every set hits 8. Retest 235 after the block.', target:'3 × 8', anchor:true, defaultSets:3 },
-          { id:'flat-smith', name:'Flat Smith Press', note:'Second heavy press of the day. Set 1: top set, leave 1 rep in the tank. Set 2: back-off, drop ~10% and chase reps.', target:'2 × 5–7', anchor:true, defaultSets:2 },
+          // v3.14.1: heavy flat Smith here kept failing after the incline (9/30: 240x2,
+          // 225x1, couldn't get set up). Dumbbells skip the setup problem and train
+          // the stretch. Same id/name he logged in Sept so 60x10,10,9 attaches.
+          { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Flat dumbbell press. Second press of the day, so it\u2019s about the stretch, not load: 3-sec lower, elbows ~45\u00b0 from your sides, let the dumbbells sink to chest level, press back up without clanking them together.', target:'3 × 8–10', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
@@ -7619,7 +7622,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.14.0';
+const APP_VERSION = '3.14.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
