@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.14.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -939,18 +939,21 @@ const PROGRAM = [
           { id:'lat-pulldown-vol-wed', name:'Lat Pulldown', note:'Secondary vertical pull. Full stretch at the top, drive elbows down to the ribs.', target:'3 × 8–10', anchor:true, defaultSets:3, anchorVol:true },
         ]},
         { label: 'Accessories', exercises: [
-          // Barbell Row + Weighted Pull Ups already cover rowing and vertical pulling,
-          // so the third row came out. Arms and rear delts pair at the end.
-          { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Upper back. Wide pull, squeeze the shoulder blades at the top.', target:'3 × 9–11', defaultSets:3 },
+          // v3.15.0: bodyweight pull-ups as a burnout after the pulldown (weighted
+          // pull-ups stay on Wed B only). Same id as his past bodyweight logs.
+          { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Burnout after the pulldown. Strict reps only: dead hang, shoulders down first, chin over the bar, 2-3 sec lower, knees bent. Stop when form slips.', target:'2 × AMRAP', defaultSets:2 },
+          // v3.15.0: a real second horizontal row replaces the rope low-to-high
+          // row (a flared high pull, same job as the barbell row and the rear
+          // delt work). Same id as his Diverging Seated Row history (175x9,10 on 9/05).
+          { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Second row of the day. Chest tall, pull to the lower ribs, squeeze, 2-sec lower.', target:'3 × 8–10', defaultSets:3 },
           { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Long stretch, slight bend at the elbow.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 9–11', defaultSets:3 },
             { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
           ]},
-          { superset:true, exercises:[
-            { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Long head stretch. Superset with reverse flys.', target:'3 × 10–12', defaultSets:3 },
-            { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 9–11', defaultSets:3 },
-          ]},
+          // v3.15.2 (Bryce's call): 6 bicep sets, 3 rear delt. Rear delts still get
+          // face pulls plus two flared-elbow rows; reverse flys stay on Wed B and Sat.
+          { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Second curl, lighter. Long head stretch: arm behind you, full stretch at the bottom, slow lower.', target:'3 × 10–12', defaultSets:3 },
         ]},
       ]
     },
@@ -2118,16 +2121,26 @@ function renderDay(index) {
   </div>`;
 
   let accessoriesSectionId = null;
-  let savedSnapshot = typeof getAccessoriesSnapshot === 'function' ? getAccessoriesSnapshot(variant.id) : null;
-  // Discard a snapshot from an unusually short session so one outlier day
-  // doesn't permanently reduce this day's volume.
-  if (savedSnapshot && snapshotIsVolumeOutlier(variant, savedSnapshot)) savedSnapshot = null;
-  // Restore any guaranteed muscle group the snapshot dropped (see below).
-  if (savedSnapshot) savedSnapshot = restoreRequiredMuscles(variant, savedSnapshot);
-  if (savedSnapshot) savedSnapshot = applyDayRules(variant.id, savedSnapshot);
-  // Same ordering and superset rules a fresh randomize gets, so a day you've
-  // already logged doesn't come back as a jumbled list with no pairings.
-  if (savedSnapshot) savedSnapshot = structureAccessories(savedSnapshot, variant.id);
+  // v3.15.0: the PROGRAM is the source of truth. Days used to render the last
+  // saved accessory layout instead, then top it up (forced shrugs, extra rear
+  // delt moves) and trim it back to the program's count, which cut the curls
+  // off the end of Wednesday B and dropped the rope row and Bayesian curl from
+  // Tuesday A. Randomize / Add Exercise still work for today's session, but
+  // the next session goes back to the program. Snapshots are still saved, only
+  // for name lookups.
+  //
+  // v3.15.1: changes made DURING today's session (move, delete, randomize) are
+  // kept in 'session_layout_<variant>' and rendered exactly as left, with no
+  // re-sorting, auto-supersets, forced add-ons or trimming. Without this, any
+  // re-render mid-session (switching days, Coach, adding an exercise) snapped
+  // back to the program and hid randomized lifts, whose sets then never made
+  // it into history on save. Saving the workout clears it.
+  let savedSnapshot = null;
+  try {
+    const sl = JSON.parse(localStorage.getItem('session_layout_' + variant.id) || 'null');
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (sl && sl.date === todayStr && Array.isArray(sl.items) && sl.items.length && justSavedDay !== index) savedSnapshot = sl.items;
+  } catch (e) { savedSnapshot = null; }
   variant.sections.forEach((section, sIdx) => {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
@@ -2197,7 +2210,11 @@ function renderDay(index) {
 
   // Deload extras - extra accessories only shown during deload week
   if (isDeloadWeek) {
-    const deloadExtras = getDeloadExtras(variant.id);
+    // v3.15.1: skip an extra that's already on today's program (Seated Cable
+    // Pullover was showing twice on deload pull days).
+    const onDay = new Set();
+    variant.sections.forEach(sec => sec.exercises.forEach(e => (e.superset ? e.exercises : [e]).forEach(x => { onDay.add(x.id); onDay.add((x.name || '').toLowerCase()); })));
+    const deloadExtras = getDeloadExtras(variant.id).filter(ex => !onDay.has(ex.relatedId) && !onDay.has((ex.name || '').toLowerCase()));
     if (deloadExtras.length > 0) {
       html += `<div class="section"><div class="section-label" style="color:var(--orange);">🔋 Deload Extras</div>`;
       deloadExtras.forEach(ex => {
@@ -3433,6 +3450,8 @@ async function saveDay() {
     // comes around, it defaults to what was actually logged instead of the
     // static program list — while Randomize Accessories still works on top.
     captureAccessoriesSnapshot(variant, savedDayIndex);
+    // v3.15.1: workout saved, so the next session starts from the program.
+    try { localStorage.removeItem('session_layout_' + variant.id); } catch (e) {}
   } catch (err) {
     console.error('saveDay error (data was still saved, continuing to clear):', err);
   }
@@ -5628,19 +5647,25 @@ function captureAccessoriesSnapshot(variant, dayIndex) {
       const exId = card.dataset.exid;
       // Find the exercise definition to capture its note/target/defaultSets
       let exDef = null;
-      ACCESSORY_POOLS && Object.values(ACCESSORY_POOLS).forEach(pool => {
-        pool.forEach(ex => { if (ex.id === exId) exDef = ex; });
+      // v3.15.1: today's program first, so a programmed exercise keeps its
+      // program name and note (the pools name some ids differently, e.g.
+      // 'incline-curl' is "Bayesian / Incline Curl" there, which renamed the
+      // card mid-session). Pools only for randomized picks.
+      variant.sections.forEach(section => {
+        section.exercises.forEach(ex => {
+          const list = ex.superset ? ex.exercises : [ex];
+          list.forEach(e => { if (e.id === exId) exDef = e; });
+        });
       });
-      // Also check the static program in case it's a normal (non-randomized) accessory
-      if (!exDef) {
-        variant.sections.forEach(section => {
-          section.exercises.forEach(ex => {
-            const list = ex.superset ? ex.exercises : [ex];
-            list.forEach(e => { if (e.id === exId) exDef = e; });
-          });
+      if (!exDef && typeof ACCESSORY_POOLS !== 'undefined' && ACCESSORY_POOLS) {
+        Object.values(ACCESSORY_POOLS).forEach(pool => {
+          pool.forEach(ex => { if (!exDef && ex.id === exId) exDef = ex; });
         });
       }
-      if (exDef) snapshot.push({ ...exDef, supersetGroup: groupId });
+      // v3.15.1: keep the name exactly as shown on the card.
+      const shownEl = card.querySelector('.exercise-name');
+      const shown = shownEl ? shownEl.textContent.trim() : '';
+      if (exDef) snapshot.push({ ...exDef, name: shown || exDef.name, supersetGroup: groupId });
     } else if (card.classList.contains('custom-exercise-card')) {
       const idx = card.id ? parseInt(card.id.replace('custom-ex-', '')) : null;
       const customEx = (idx !== null && sessionLogs._custom) ? sessionLogs._custom[idx] : null;
@@ -5665,6 +5690,8 @@ function captureAccessoriesSnapshot(variant, dayIndex) {
 
   if (snapshot.length) {
     localStorage.setItem('accessory_snapshot_' + variant.id, JSON.stringify(snapshot));
+    // v3.15.1: today's in-session layout (see renderDay).
+    try { localStorage.setItem('session_layout_' + variant.id, JSON.stringify({ date: new Date().toISOString().split('T')[0], items: snapshot })); } catch (e) {}
   }
 }
 
@@ -7581,6 +7608,8 @@ function deleteExerciseCard(btn) {
       supersetBlock.remove();
     }
   }
+  // v3.15.1: a delete sticks for the rest of today's session.
+  persistAccessoryOrder();
 }
 
 // Explicit "un-superset" action — breaks a superset block apart into its
@@ -7592,6 +7621,8 @@ function breakSuperset(btn) {
   const cards = Array.from(supersetBlock.querySelectorAll('.exercise-card'));
   cards.forEach(card => supersetBlock.parentNode.insertBefore(card, supersetBlock));
   supersetBlock.remove();
+  // v3.15.1: keep the un-pairing for the rest of today's session.
+  persistAccessoryOrder();
 }
 
 
@@ -7622,7 +7653,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.14.1';
+const APP_VERSION = '3.15.2';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
