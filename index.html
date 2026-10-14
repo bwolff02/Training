@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.4</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -998,6 +998,9 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
           { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'3 sets, 10-12 reps.', target:'3 × 10–12', defaultSets:3 },
+          // v3.15.4 (Bryce's call, 10/14: "here to stay"). Same id/name as the custom
+          // exercise he logged that day (50x6,8,7) so the history attaches.
+          { id:'custom-underhand-cable-low-to-high-fly', name:'Underhand Cable Low to High Fly', note:'Upper chest. Palms up, pulleys set two notches lower than you first had them. Sweep up and in to upper-chest height, squeeze, slow on the way down.', target:'3 × 8–10', defaultSets:3 },
           { superset:true, exercises:[
             { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Superset with lateral raises.', target:'3 × 8–10', defaultSets:3 },
             { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Lean away slightly, full range.', target:'3 × 12–15', defaultSets:3 },
@@ -1005,8 +1008,11 @@ const PROGRAM = [
           { id:'custom-smith-overhead-tricep-extension', name:'Smith Overhead Tricep Extension', note:'Long head stretch. Your best tricep pump.', target:'3 × 8–10', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
+          // v3.15.4: Hanging Side Crunch replaces Cable Rotation here. It goes first:
+          // it's the hard, grip-limited one and gets sloppy (swinging, hip flexors
+          // taking over) if the obliques are already tired. Pallof holds up fine after.
+          { id:'custom-hanging-side-crunch', name:'Hanging Side Crunch', note:'Obliques. Dead hang, curl the knees up and toward one side, pause, lower slow. No swinging. Alternate sides each rep.', target:'3 × 6–10 / side', defaultSets:3 },
           { id:'pallof-press', name:'Pallof Press', note:'Anti-rotation. Resist the pull, press straight out, hips square.', target:'3 × 10–12 / side', defaultSets:3 },
-          { id:'cable-rot', name:'Cable Rotation (Obliques)', note:'Rotate from the torso, hips square. Slow return.', target:'3 × 10–12', defaultSets:3 },
         ]},
       ]
     },
@@ -7665,7 +7671,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.15.3';
+const APP_VERSION = '3.15.4';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
