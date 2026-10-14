@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -972,7 +972,12 @@ const PROGRAM = [
             { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delts. Controlled, no swing. Superset with tricep extensions.', target:'3 × 10–12', defaultSets:3 },
             { id:'tri-lth-b', name:'Cable Rope Low to High Tricep Extension', note:'Long head. Full overhead stretch.', target:'3 × 13–15', defaultSets:3 },
           ]},
-          { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled.', target:'3 × 9–11', defaultSets:3 },
+          // v3.15.3: DB lateral raises back on Tuesday B (cut in Sept when this
+          // became the front delt day, which left Week B with one side delt move).
+          { superset:true, exercises:[
+            { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled. Superset with lateral raises.', target:'3 × 9–11', defaultSets:3 },
+            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', target:'3 × 12–15', defaultSets:3 },
+          ]},
         ]},
       ]
     }
@@ -1107,8 +1112,10 @@ const PROGRAM = [
               { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Full stretch, squeeze at the middle. Control the way back.', target:'3 × 8–10', defaultSets:3 },
             ]},
             { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'2 × 12–15', defaultSets:2 },
+            // v3.15.3: DB lateral raise here, cable on Wed A / Sat B, so each week
+            // gets one cable and one dumbbell side delt move (2 and 2 overall).
             { superset:true, exercises:[
-              { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
+              { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Side delts. Lead with the elbow, no swinging. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
               { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
             ]},
             { superset:true, exercises:[
@@ -6089,7 +6096,8 @@ function applyDayRules(variantId, list) {
   // would never pick up the change.
   const has = pred => out.some(i => i && pred(i));
   // Shoulder split by push day (Bryce's call): Wednesday A = two SIDE delt
-  // moves (upright row + one lateral raise), Tuesday B = two FRONT delt moves.
+  // moves (upright row + one lateral raise), Tuesday B = one FRONT delt move +
+  // one DB lateral raise (v3.15.3).
   // Side delts stay at a maintenance-plus dose without doubling up every week.
   const isRearDelt = i => /rear/i.test(i.name || '') || i.id === 'cable-lat-sat';
   const isSide  = i => !!i && !isRearDelt(i) && (/lateral raise|upright row/i.test(i.name || '') || /lat-raise|upright/.test(i.id));
@@ -6120,6 +6128,10 @@ function applyDayRules(variantId, list) {
     });
     out = rebuilt;
     while (frontCount < FRONT_RAISES_TUE_B) { const f = nextFront(); if (!f) break; placeAfterTri({ ...f, supersetGroup: null }); frontCount++; }
+    // v3.15.3: Tuesday B keeps one side delt move — the DB lateral raise.
+    // The loop above used to turn every side move into a front raise, which
+    // is how lateral raises silently vanished from this day.
+    placeAfterTri({ ...DB_LAT_RAISE_DEF, note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', supersetGroup: null });
     // Never more than the program asks for — an old layout with two front
     // raises gets trimmed back to one instead of crowding out the triceps.
     let seenFront = 0;
@@ -7653,7 +7665,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.15.2';
+const APP_VERSION = '3.15.3';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
