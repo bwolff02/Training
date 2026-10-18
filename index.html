@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.15.5</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -970,16 +970,17 @@ const PROGRAM = [
           // v3.15.5: Cable Dip back — no dip station, so this is the lower-chest press.
           // Same id as the pool entry he logged through September.
           { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest, your dip replacement. Lean forward, press down and slightly in like the bottom of a dip, full lockout, slow up.', target:'3 × 8–10', defaultSets:3 },
-          // Front delts + triceps: different muscles, so neither loses reps.
+          // v3.16.0 (Bryce's call, 10/16): front raise out. Flat Smith and Smith
+          // shoulder press already cover front delts (adding raises on top of
+          // pressing showed no extra front delt growth, Brandão 2020); side delts
+          // were the lowest-volume upper muscle at 6 sets/week. Now 9 in Week B.
           { superset:true, exercises:[
-            { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delts. Controlled, no swing. Superset with tricep extensions.', target:'3 × 10–12', defaultSets:3 },
+            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging. Superset with tricep extensions.', target:'3 × 12–15', defaultSets:3 },
             { id:'tri-lth-b', name:'Cable Rope Low to High Tricep Extension', note:'Long head. Full overhead stretch.', target:'3 × 13–15', defaultSets:3 },
           ]},
-          // v3.15.3: DB lateral raises back on Tuesday B (cut in Sept when this
-          // became the front delt day, which left Week B with one side delt move).
           { superset:true, exercises:[
-            { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled. Superset with lateral raises.', target:'3 × 9–11', defaultSets:3 },
-            { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', target:'3 × 12–15', defaultSets:3 },
+            { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled. Superset with cable lateral raises.', target:'3 × 9–11', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Second side delt move. Lean away slightly, full range, no swinging.', target:'3 × 12–15', defaultSets:3 },
           ]},
         ]},
       ]
@@ -1128,10 +1129,14 @@ const PROGRAM = [
               { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Side delts. Lead with the elbow, no swinging. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
               { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
             ]},
+            // v3.16.0 (Bryce's call, 10/16): cross-body hammer out (cable hammer
+            // on Tuesday A covers that pattern). Straight bar curl for palms-up
+            // biceps work, plus an extra bicep move on the back-focused upper day.
             { superset:true, exercises:[
-              { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body. Superset with triceps.', target:'3 × 9–11', defaultSets:3 },
+              { id:'straight-bar-curl', name:'Straight Bar Curl', note:'Palms up, elbows pinned at your sides. Full stretch at the bottom, no swinging. Superset with triceps.', target:'3 × 8–10', defaultSets:3 },
               { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
             ]},
+            { id:'reverse-curl', name:'Reverse Curl', note:'Extra arm move. Overhand grip, elbows pinned, slow lower. Brachialis and forearms.', target:'2 × 10–12', defaultSets:2 },
           ]},
       ]
     },
@@ -1150,10 +1155,14 @@ const PROGRAM = [
             { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
             { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
           ]},
+          // v3.16.0 (Bryce's call, 10/16): cross-body hammer out, reverse curl in,
+          // plus an extra tricep move on the chest-focused upper day. Pushdown
+          // hits the outer heads; the single-arm extension already covers the long head.
           { superset:true, exercises:[
-            { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body. Superset with triceps.', target:'3 × 9–11', defaultSets:3 },
+            { id:'reverse-curl', name:'Reverse Curl', note:'Overhand grip, elbows pinned, slow lower. Superset with triceps.', target:'3 × 10–12', defaultSets:3 },
             { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
           ]},
+          { id:'rope-pushdown', name:'Rope Pushdown', note:'Extra arm move. Elbows pinned, spread the rope at the bottom, squeeze.', target:'3 × 12–15', defaultSets:3 },
         ]},
       ]
     }
@@ -6105,9 +6114,8 @@ function applyDayRules(variantId, list) {
   // so these are enforced here too — otherwise days you've already logged
   // would never pick up the change.
   const has = pred => out.some(i => i && pred(i));
-  // Shoulder split by push day (Bryce's call): Wednesday A = two SIDE delt
-  // moves (upright row + one lateral raise), Tuesday B = one FRONT delt move +
-  // one DB lateral raise (v3.15.3).
+  // Shoulder split by push day (Bryce's call): Wednesday A = one cable lateral
+  // raise, Tuesday B = DB + cable lateral raise, no front raise (v3.16.0).
   // Side delts stay at a maintenance-plus dose without doubling up every week.
   const isRearDelt = i => /rear/i.test(i.name || '') || i.id === 'cable-lat-sat';
   const isSide  = i => !!i && !isRearDelt(i) && (/lateral raise|upright row/i.test(i.name || '') || /lat-raise|upright/.test(i.id));
@@ -6125,27 +6133,13 @@ function applyDayRules(variantId, list) {
     if (!keptLat) placeAfterTri({ ...CABLE_LAT_DEF, supersetGroup: null });
   }
   if (variantId === 'tue-push-b') {
-    // v3.10.1 cut Tuesday B to one front raise; this rule used to force two.
-    const FRONT_RAISES_TUE_B = 1;
-    const fronts = [FRONT_RAISE_DEF, CABLE_FRONT_RAISE_DEF];
-    let frontCount = out.filter(isFront).length;
-    const used = new Set(out.filter(isFront).map(i => i.id));
-    const nextFront = () => { const f = fronts.find(d => !used.has(d.id)); if (f) used.add(f.id); return f; };
-    const rebuilt = [];
-    out.forEach(i => {
-      if (!isSide(i)) { rebuilt.push(i); return; }
-      if (frontCount < FRONT_RAISES_TUE_B) { const f = nextFront(); if (f) { rebuilt.push({ ...f, supersetGroup: i.supersetGroup || null }); frontCount++; } }
-    });
-    out = rebuilt;
-    while (frontCount < FRONT_RAISES_TUE_B) { const f = nextFront(); if (!f) break; placeAfterTri({ ...f, supersetGroup: null }); frontCount++; }
-    // v3.15.3: Tuesday B keeps one side delt move — the DB lateral raise.
-    // The loop above used to turn every side move into a front raise, which
-    // is how lateral raises silently vanished from this day.
-    placeAfterTri({ ...DB_LAT_RAISE_DEF, note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', supersetGroup: null });
-    // Never more than the program asks for — an old layout with two front
-    // raises gets trimmed back to one instead of crowding out the triceps.
-    let seenFront = 0;
-    out = out.filter(i => !isFront(i) || ++seenFront <= FRONT_RAISES_TUE_B);
+    // v3.16.0 (Bryce's call, 10/16): no front raise on Tuesday B — the pressing
+    // covers front delts. Two side delt moves instead: DB + cable lateral raise.
+    out = out.filter(i => !isFront(i));
+    let sideCount = 0;
+    out = out.filter(i => !isSide(i) || ++sideCount <= 2);
+    if (!has(i => i.id === 'db-lat-raise')) placeAfterTri({ ...DB_LAT_RAISE_DEF, note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', supersetGroup: null });
+    if (out.filter(isSide).length < 2 && !has(i => i.id === CABLE_LAT_DEF.id)) placeAfterTri({ ...CABLE_LAT_DEF, note:'Second side delt move. Lean away slightly, full range, no swinging.', supersetGroup: null });
   }
   if (variantId === 'wed-pull-b') {
     // Week B's back day had only one rear delt move; both pull days now get two.
@@ -7675,7 +7669,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.15.5';
+const APP_VERSION = '3.16.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
