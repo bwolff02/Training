@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -3059,9 +3059,36 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId, target) {
   const topSetOnly = isAnchor && !isVolumeDay && tgt.sets <= 2;
 
   // Missed: the latest attempt at or above the working weight failed.
+  // v3.16.2 (Bryce, 10/19): 260×4 after 255×6 got told to drop to 245. Too
+  // dramatic. Now:
+  //   • One rep short, first time at that weight → hold and try again.
+  //   • Two+ reps short, or a second miss in a row at that weight → reset,
+  //     but only back to the heaviest weight he's actually hit the range with
+  //     (if that's within 5%), instead of always 5% below the attempt.
   if (isAnchor && latest && latest.sets[0].w >= lastWeight && latest.sets[0].r < tgt.lo) {
-    const resetW = round5(latest.sets[0].w * 0.95);
-    return { ...base, note: 'Missed last time (' + latest.sets[0].w + '×' + latest.sets[0].r + ') — reset to', arrow: '↓', recWeight: resetW };
+    const missW = latest.sets[0].w;
+    const short = tgt.lo - latest.sets[0].r;
+    let prevMiss = false;
+    let bestHit = 0;
+    pool.forEach(sess => {
+      if (!sess || sess.date === latest.date) return;
+      const ws = workingSetsOf(sess);
+      if (!ws.length) return;
+      if (ws[0].r >= tgt.lo && ws[0].w < missW) bestHit = Math.max(bestHit, ws[0].w);
+    });
+    for (let k = pool.length - 1; k >= 0; k--) {
+      if (!pool[k] || pool[k].date === latest.date) continue;
+      const ws = workingSetsOf(pool[k]);
+      if (!ws.length) continue;
+      prevMiss = ws[0].w >= missW && ws[0].r < tgt.lo;
+      break;
+    }
+    if (short === 1 && !prevMiss) {
+      return { ...base, note: 'One rep short (' + missW + '×' + latest.sets[0].r + ') — hold and go again at', arrow: '→', recWeight: missW };
+    }
+    const floorW = round5(missW * 0.95);
+    const resetW = bestHit >= floorW ? bestHit : floorW;
+    return { ...base, note: 'Missed last time (' + missW + '×' + latest.sets[0].r + ') — reset to', arrow: '↓', recWeight: resetW };
   }
 
   const judge = atBest || latest;
@@ -7677,7 +7704,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.16.1';
+const APP_VERSION = '3.16.2';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
