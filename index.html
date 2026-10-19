@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.2</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.3</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -2179,6 +2179,12 @@ function renderDay(index) {
     // Target the actual "Accessories" section by label, not just whichever
     // section happens to be last (legs days have an Abs section after it).
     const isAccessoriesSection = section.label === 'Accessories';
+    // v3.16.3 (Bryce, 10/19): Wednesday keeps its own ab pair each week, but
+    // which one leads flips every time that Wednesday comes around. Each
+    // Wednesday variant only shows up every other week, so this flips on a
+    // 2-week cycle (Mon/Fri flip by week letter in the program itself).
+    const flipWedAbs = section.label === 'Abs' && (variant.id === 'tue-push-a' || variant.id === 'wed-pull-b') && Math.floor((isoWeek - 1) / 2) % 2 === 0;
+    const sectionExercises = flipWedAbs ? section.exercises.slice().reverse() : section.exercises;
     const sectionId = isAccessoriesSection ? `section-accessories-${index}` : '';
     if (isAccessoriesSection) accessoriesSectionId = sectionId;
     html += `<div class="section"${sectionId ? ` id="${sectionId}"` : ''}><div class="section-label">${section.label}</div>`;
@@ -2220,7 +2226,7 @@ function renderDay(index) {
         rendered.add(ex.id);
       });
     } else {
-      section.exercises.forEach(ex => {
+      sectionExercises.forEach(ex => {
         if (ex.superset) {
           html += `<div class="superset-block"><div class="superset-header">⚡ Superset — back to back<button onclick="breakSuperset(this)" title="Remove superset pairing" style="float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></div>`;
           ex.exercises.forEach((sex, si) => {
@@ -7704,7 +7710,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.16.2';
+const APP_VERSION = '3.16.3';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
