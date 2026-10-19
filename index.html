@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -871,9 +871,12 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
-          // and goblet squat build the quads, adduction + calves close it out.
+          // and the Smith close squat build the quads, adduction + calves close it out.
           { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
-          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'Paused reps. Heels elevated, full depth.', target:'3 × 10–12', defaultSets:3 },
+          // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
+          // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
+          // 9/07 and 9/21 logs so that history attaches.
+          { id:'custom-elevated-close-squat-smith-', name:'Elevated Close Squat (Smith)', note:'Heels elevated, feet close, sit straight down to full depth. Last quad move of the day, so take sets close to failure.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
             { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
@@ -894,17 +897,21 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
-          // and goblet squat build the quads, adduction + calves close it out.
+          // and the Smith close squat build the quads, adduction + calves close it out.
           { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
-          { id:'goblet-squat', name:'Heel Elevated Goblet Squat', note:'Paused reps. Heels elevated, full depth.', target:'3 × 10–12', defaultSets:3 },
+          // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
+          // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
+          // 9/07 and 9/21 logs so that history attaches.
+          { id:'custom-elevated-close-squat-smith-', name:'Elevated Close Squat (Smith)', note:'Heels elevated, feet close, sit straight down to full depth. Last quad move of the day, so take sets close to failure.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
             { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
           ]},
         ]},
         { label: 'Abs', exercises: [
-          { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
+          // v3.16.1: abs lead flips by week (Week A leads with the other one).
           { id:'hang-crunch', name:'Hanging Weighted Ab Crunch', note:'2 sets, 8-10 reps.', target:'2 × 8–10', defaultSets:2 },
+          { id:'rope-crunch', name:'Cable Rope Crunch', note:'3 sets, 8-10 reps.', target:'3 × 8–10', defaultSets:3 },
         ]},
       ]
     }
@@ -1092,8 +1099,9 @@ const PROGRAM = [
           ]},
         ]},
         { label: 'Abs', exercises: [
-          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
+          // v3.16.1: abs lead flips by week (Week A leads with the other one).
           { id:'hang-leg-raise', name:'Hanging Leg Raise', note:'Curl the pelvis at the top, slow eccentric.', target:'3 × 8–10', defaultSets:3 },
+          { id:'decline-leg-raise', name:'Decline Weighted Leg Raise', note:'3 sets, 6-8 reps.', target:'3 × 6–8', defaultSets:3 },
         ]},
       ]
     }
@@ -7669,7 +7677,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.16.0';
+const APP_VERSION = '3.16.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
