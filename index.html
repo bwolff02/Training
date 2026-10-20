@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.16.3</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.17.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -961,6 +961,14 @@ const PROGRAM = [
           // v3.15.2 (Bryce's call): 6 bicep sets, 3 rear delt. Rear delts still get
           // face pulls plus two flared-elbow rows; reverse flys stay on Wed B and Sat.
           { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Second curl, lighter. Long head stretch: arm behind you, full stretch at the bottom, slow lower.', target:'3 × 10–12', defaultSets:3 },
+          // v3.17.0 (Bryce, 10/19): direct forearm work, last move on pull days so grip
+          // fatigue never costs the back work. Flexors + extensors are opposing
+          // muscles, so they superset cleanly. 15-25 reps, add weight only after
+          // every set hits 25 (small muscle, a 5 lb jump is a big % jump).
+          { superset:true, exercises:[
+            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'3 × 15–25', defaultSets:3, muscle:'forearms' },
+            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
+          ]},
         ]},
       ]
     },
@@ -1044,6 +1052,13 @@ const PROGRAM = [
           { superset:true, exercises:[
             { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Long head stretch. Superset with reverse flys.', target:'3 × 9–11', defaultSets:3 },
             { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
+          ]},
+          // v3.17.0: forearm finisher, same pair as Tuesday A (2 wrist curl sets
+          // here vs 3 there to keep this day near its set cap). Thursday rest sits
+          // between this and Friday's heavy RDL.
+          { superset:true, exercises:[
+            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
+            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
           ]},
         ]},
         { label: 'Abs', exercises: [
@@ -5510,7 +5525,8 @@ const ACCESSORY_POOLS = {
     { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body, brachialis and forearm emphasis.', target:'3 × 8–10', defaultSets:3, muscle:'biceps' },
     { id:'twenty-one-curl', name:'Dumbbell 21 Curls (Straight, Hammer, Cross Body)', note:'7 bottom half + 7 top half + 7 full range. Burnout finisher.', target:'2 × 21', defaultSets:2, muscle:'biceps' },
     // Forearms (new category)
-    { id:'forearm-curl-ez', name:'Cable Forearm Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'forearms' },
+    { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 15–25', defaultSets:3, muscle:'forearms' },
+    { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Wrist extension, palms down, light and slow.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
     { id:'wrist-curl-db', name:'Dumbbell Wrist Curl', note:'Seated, forearms on thighs, full range wrist flexion.', target:'3 × 15–20', defaultSets:3, muscle:'forearms' },
     // Traps
     { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
@@ -5946,6 +5962,7 @@ function inferMuscle(item) {
   if (/crunch|leg raise|pallof|oblique|rotation/.test(t)) return 'abs';
   if (/calf|calve/.test(t)) return 'calves';
   if (/leg curl/.test(t)) return 'hamstrings';
+  if (/wrist|forearm/.test(t)) return 'forearms'; // v3.17.0: before /curl/, or wrist curls read as biceps
   if (/curl/.test(t)) return 'biceps';
   if (/tricep|jm press|skull|pushdown|dip/.test(t)) return 'triceps';
   if (/adduction|adductor/.test(t)) return 'adductors';
@@ -7710,7 +7727,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.16.3';
+const APP_VERSION = '3.17.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
