@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.17.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.18.0</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1008,11 +1008,15 @@ const PROGRAM = [
       id: 'tue-push-a', title: 'PUSH', subtitle: 'Heavy — Incline/Flat', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith', name:'Incline Smith Press', note:'RESET BLOCK: 195–205, all 3 sets clean, nothing to failure. +5 lb once every set hits 8. Retest 235 after the block.', target:'3 × 8', anchor:true, defaultSets:3 },
+          // v3.18.0 (Bryce, 10/21): reset block done (215×8, 7). Heavy incline is
+          // two top sets + a back-off, judged on the top set only. Saturday B
+          // carries the 6–8 incline under its own id so the two don't mix.
+          { id:'incline-smith', name:'Incline Smith Press', note:'Heavy day. Sets 1–2: top sets at the same weight, leave 1 rep in the tank on set 1. Set 3: back-off around 185 for 8–12 slow reps. +5 lb when set 1 hits 6.', target:'2 × 4–6', anchor:true, defaultSets:3 },
           // v3.14.1: heavy flat Smith here kept failing after the incline (9/30: 240x2,
           // 225x1, couldn't get set up). Dumbbells skip the setup problem and train
           // the stretch. Same id/name he logged in Sept so 60x10,10,9 attaches.
-          { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Flat dumbbell press. Second press of the day, so it\u2019s about the stretch, not load: 3-sec lower, elbows ~45\u00b0 from your sides, let the dumbbells sink to chest level, press back up without clanking them together.', target:'3 × 8–10', anchor:true, defaultSets:3 },
+          // v3.18.0: renamed from "Flat DB 90 Degree Bench" (same id, history attaches).
+          { id:'custom-flat-db-90-degree-bench', name:'Flat DB Press (45\u00b0)', note:'Dumbbells turned ~45\u00b0, elbows ~45\u00b0 from your sides (not flared to 90). 3-sec lower, let them sink to chest level, press back up without clanking.', target:'3 × 8–10', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3 },
@@ -1021,11 +1025,15 @@ const PROGRAM = [
           // an underhand grip, aimed at lower chest as the dip stand-in. The id keeps
           // the slug from the 10/14 custom log (50x6,8,7) so that history attaches.
           { id:'custom-underhand-cable-low-to-high-fly', name:'Underhand Cable High to Low Fly', note:'Lower chest burnout. Palms up, pulleys set two notches lower than you first had them. Sweep down and in, squeeze at the bottom, slow on the way back.', target:'3 × 8–10', defaultSets:3 },
+          // v3.18.0 (Bryce, 10/21): Smith Overhead Tricep Extension out (too
+          // unstable). The high-pulley overhead rope extension leads triceps,
+          // paired with laterals; JM press follows on its own. Id is the slug of
+          // the custom name he logs, so 10/21 (100×8, 11) attaches.
           { superset:true, exercises:[
-            { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Superset with lateral raises.', target:'3 × 8–10', defaultSets:3 },
+            { id:'custom-cable-rope-tricep-extension-high', name:'Cable Rope Tricep Extension - High', note:'Overhead, long head. Face away from a high pulley, lean forward slightly, elbows up by your head. Deep stretch behind the head, extend forward and down. Superset with lateral raises.', target:'3 × 10–12', defaultSets:3 },
             { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Lean away slightly, full range.', target:'3 × 12–15', defaultSets:3 },
           ]},
-          { id:'custom-smith-overhead-tricep-extension', name:'Smith Overhead Tricep Extension', note:'Long head stretch. Your best tricep pump.', target:'3 × 8–10', defaultSets:3 },
+          { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled.', target:'3 × 8–10', defaultSets:3 },
         ]},
         { label: 'Abs', exercises: [
           // v3.15.4: Hanging Side Crunch replaces Cable Rotation here. It goes first:
@@ -1167,7 +1175,9 @@ const PROGRAM = [
       id: 'sat-upper-b', title: 'UPPER', subtitle: 'Chest Focused — Chest Primary', tag: 'heavy',
       sections: [
         { label: 'Anchors', exercises: [
-          { id:'incline-smith', name:'Incline Smith Press', note:'RESET BLOCK: 195–205, all 3 sets clean, nothing to failure. +5 lb once every set hits 8. Retest 235 after the block.', target:'3 × 8', anchor:true, defaultSets:3 },
+          // v3.18.0: 6–8 incline lives here under its own id and name so its
+          // history never mixes with Wednesday's 225 top sets.
+          { id:'incline-smith-vol', name:'Incline Smith Press (6\u20138)', note:'Pump day for incline. 3 straight sets at one weight. +5 lb when the average hits 8.', target:'3 × 6–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
           { id:'decline-smith', name:'Decline Smith Press', note:'Second heavy chest press. Straight sets.', target:'3 × 6–8', defaultSets:3 },
@@ -2833,9 +2843,26 @@ function removeCustomExercise(idx) {
 // with frequent failures; the plan is 3 x 8 at 195-205, all clean, +5 lb once
 // every set hits 8, then retest 235 after the block. Without this override
 // the heavy-day formula (85% of estimated max) would keep suggesting ~220.
-const RESET_BLOCKS = {
-  'incline-smith': { start: '2026-09-21', end: '2026-11-02', startWeight: 195, reps: 8, sets: 3, step: 5 },
+// v3.18.0: incline reset block ended early on 10/21 (215×8 beat the old 235×4).
+const RESET_BLOCKS = {};
+
+// One-time starting weights for a new rep scheme. Used only until the first
+// non-deload session on or after `from` is logged; normal progression after.
+const START_WEIGHTS = {
+  'incline-smith':     { from: '2026-10-22', weight: 225, note: 'New block — two top sets start at', last: { w: 215, r: 8, date: '2026-10-21' } },
+  'incline-smith-vol': { from: '2026-10-22', weight: 215, note: 'New 6–8 block — start at', last: { w: 215, r: 8, date: '2026-10-21' } },
 };
+
+function getStartWeightSuggestion(exId, target) {
+  const sw = START_WEIGHTS[exId];
+  if (!sw) return null;
+  if (typeof isDeloadWeek !== 'undefined' && isDeloadWeek) return null;
+  let hist = [];
+  try { hist = getAllHistory(exId); } catch (e) { hist = []; }
+  if (hist.some(sess => sess && sess.date >= sw.from && !sess.deload)) return null;
+  const tgt = parseRepTarget(target);
+  return { note: sw.note, arrow: '→', recWeight: sw.weight, lastWeight: sw.last.w, maxReps: sw.last.r, lastDate: sw.last.date, repTarget: tgt.label, isVolume: false };
+}
 
 function getResetBlockSuggestion(exId) {
   const rb = RESET_BLOCKS[exId];
@@ -2876,6 +2903,8 @@ function parseRepTarget(target) {
 function getSuggestion(exId, isVolumeDay, isAnchor, relatedId, target) {
   const resetSugg = getResetBlockSuggestion(exId);
   if (resetSugg) return resetSugg;
+  const startSugg = getStartWeightSuggestion(exId, target);
+  if (startSugg) return startSugg;
   // Burn finisher: 60-70% of the related exercise's best weight, high reps.
   // Checked before the deload branch since a burn finisher can appear on a
   // normal volume day too, not just during deload weeks.
@@ -3883,6 +3912,7 @@ const ANCHOR_LIFTS = [
   { id: 'rdl', name: 'Romanian Deadlift (Volume)' },
   { id: 'rdl-thu-heavy', name: 'Romanian Deadlift (Heavy)' },
   { id: 'incline-smith', name: 'Incline Smith Press' },
+  { id: 'incline-smith-vol', name: 'Incline Smith Press (6–8)' }, // v3.18.0: Saturday B
   { id: 'flat-smith', name: 'Flat Smith Press' },
   { id: 'smith-shoulder-press-vol', name: 'Smith Machine Shoulder Press' },
   { id: 'wtd-pullup', name: 'Weighted Pull Ups (Heavy)' },
@@ -3928,6 +3958,7 @@ const RETIRED_EXERCISE_NAMES = {
   'hang-crunch-thu': 'Hanging Weighted Ab Crunch', 'rope-crunch-thu': 'Cable Rope Crunch',
   'cable-rot-thu': 'Cable Rotation (Obliques)', 'barbell-row-sat': 'Barbell Row',
   'diverg-row-sat-acc': 'Barbell Row Light',
+  'custom-smith-overhead-tricep-extension': 'Smith Overhead Tricep Extension', // v3.18.0
 };
 
 function getExerciseNameById(exId) {
@@ -3970,15 +4001,21 @@ function getExerciseNameById(exId) {
 // as a custom card). Without this, promoting a custom exercise to a program
 // exercise — e.g. Cable Kickbacks — showed no suggestion even though it had
 // been logged several times.
+// v3.18.0: names an exercise was logged under before a rename, so
+// name-matched history keeps attaching.
+const FORMER_EXERCISE_NAMES = {
+  'custom-flat-db-90-degree-bench': ['Flat DB 90 Degree Bench'],
+};
+
 function getNameMatchedHistory(exId) {
   const name = getExerciseNameById(exId);
   if (!name) return [];
-  const target = normalizeExerciseName(name);
+  const targets = new Set([name, ...(FORMER_EXERCISE_NAMES[exId] || [])].map(normalizeExerciseName));
   const out = [];
   // Baselines rescued from trimmed session archives (v3.10.0) count too.
   try {
     JSON.parse(localStorage.getItem('hist_archive_baselines') || '[]').forEach(b => {
-      if (!b || !b.name || normalizeExerciseName(b.name) !== target || !b.sets || !b.sets.length) return;
+      if (!b || !b.name || !targets.has(normalizeExerciseName(b.name)) || !b.sets || !b.sets.length) return;
       out.push({ date: b.date, sets: b.sets, heavy: /-heavy$/.test(b.fromArchive || ''), deload: false, notes: [] });
     });
   } catch (e) {}
@@ -3989,7 +4026,7 @@ function getNameMatchedHistory(exId) {
     sessions.forEach(sess => {
       if (!sess || !sess.date) return;
       (sess.exercises || []).forEach(ex => {
-        if (!ex.name || normalizeExerciseName(ex.name) !== target || !ex.sets || !ex.sets.length) return;
+        if (!ex.name || !targets.has(normalizeExerciseName(ex.name)) || !ex.sets || !ex.sets.length) return;
         const week = String(sess.week || '');
         out.push({
           date: sess.date,
@@ -5449,7 +5486,7 @@ const ACCESSORY_POOLS = {
     { id:'custom-seated-wide-grip-row', name:'Seated Wide Grip Row', note:'Elbows flared, pull to mid-chest.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats' },
     { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Basically a fly machine. Full stretch.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
-    { id:'custom-flat-db-90-degree-bench', name:'Flat DB 90 Degree Bench', note:'Dumbbells, elbows at 90.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
+    { id:'custom-flat-db-90-degree-bench', name:'Flat DB Press (45\u00b0)', note:'Dumbbells, elbows ~45\u00b0.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
@@ -5478,7 +5515,7 @@ const ACCESSORY_POOLS = {
   push: [
     { id:'custom-seated-cable-low-to-high-flys', name:'Seated Cable Low to High Flys', note:'Upper chest. Control the eccentric.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
-    { id:'custom-smith-overhead-tricep-extension', name:'Smith Overhead Tricep Extension', note:'Long head stretch.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
+    { id:'custom-cable-rope-tricep-extension-high', name:'Cable Rope Tricep Extension - High', note:'Overhead from a high pulley. Long head stretch.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
     { id:'custom-single-arm-cable-low-to-high-upper-chest-isolation', name:'Single Arm Cable Low to High Upper Chest Isolation', note:'Upper chest, one side at a time.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     // Chest
     { id:'cable-fly-htl', name:'Cable Fly (High to Low)', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
@@ -7727,7 +7764,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.17.0';
+const APP_VERSION = '3.18.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
