@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.18.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.18.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -1163,11 +1163,13 @@ const PROGRAM = [
             // v3.16.0 (Bryce's call, 10/16): cross-body hammer out (cable hammer
             // on Tuesday A covers that pattern). Straight bar curl for palms-up
             // biceps work, plus an extra bicep move on the back-focused upper day.
+            // v3.18.1 (Bryce, 10/23): gym only has an EZ bar, so this is the same
+            // 'db-curl' / "EZ Bar Curl" as Wednesday B and its history attaches.
             { superset:true, exercises:[
-              { id:'straight-bar-curl', name:'Straight Bar Curl', note:'Palms up, elbows pinned at your sides. Full stretch at the bottom, no swinging. Superset with triceps.', target:'3 × 8–10', defaultSets:3 },
+              { id:'db-curl', name:'EZ Bar Curl', note:'Palms up, elbows pinned at your sides. Full stretch at the bottom, no swinging. Superset with triceps.', target:'3 × 8–10', defaultSets:3 },
               { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
             ]},
-            { id:'reverse-curl', name:'Reverse Curl', note:'Extra arm move. Overhand grip, elbows pinned, slow lower. Brachialis and forearms.', target:'2 × 10–12', defaultSets:2 },
+            { id:'reverse-curl', name:'Cable Reverse Curl', note:'Extra arm move. Cable, overhand grip, elbows pinned, slow lower. Brachialis and forearms.', target:'2 × 10–12', defaultSets:2 },
           ]},
       ]
     },
@@ -1192,7 +1194,7 @@ const PROGRAM = [
           // plus an extra tricep move on the chest-focused upper day. Pushdown
           // hits the outer heads; the single-arm extension already covers the long head.
           { superset:true, exercises:[
-            { id:'reverse-curl', name:'Reverse Curl', note:'Overhand grip, elbows pinned, slow lower. Superset with triceps.', target:'3 × 10–12', defaultSets:3 },
+            { id:'reverse-curl', name:'Cable Reverse Curl', note:'Cable, overhand grip, elbows pinned, slow lower. Superset with triceps.', target:'3 × 10–12', defaultSets:3 },
             { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
           ]},
           { id:'rope-pushdown', name:'Rope Pushdown', note:'Extra arm move. Elbows pinned, spread the rope at the bottom, squeeze.', target:'3 × 12–15', defaultSets:3 },
@@ -3959,6 +3961,7 @@ const RETIRED_EXERCISE_NAMES = {
   'cable-rot-thu': 'Cable Rotation (Obliques)', 'barbell-row-sat': 'Barbell Row',
   'diverg-row-sat-acc': 'Barbell Row Light',
   'custom-smith-overhead-tricep-extension': 'Smith Overhead Tricep Extension', // v3.18.0
+  'straight-bar-curl': 'Straight Bar Curl', // v3.18.1: folded into EZ Bar Curl
 };
 
 function getExerciseNameById(exId) {
@@ -4005,6 +4008,10 @@ function getExerciseNameById(exId) {
 // name-matched history keeps attaching.
 const FORMER_EXERCISE_NAMES = {
   'custom-flat-db-90-degree-bench': ['Flat DB 90 Degree Bench'],
+  // v3.18.1 (Bryce, 10/23): only an EZ bar at the gym; "Straight Bar Curl" was the same lift.
+  'db-curl': ['Straight Bar Curl'],
+  // v3.18.1: plain "Reverse Curl" was always the cable version ("EZ Bar Reverse Curl" is its own tag).
+  'reverse-curl': ['Reverse Curl'],
 };
 
 function getNameMatchedHistory(exId) {
@@ -5252,6 +5259,9 @@ function getAllLoggedExerciseNames() {
     if (actuallyLoggedKeys.has(key)) return; // real logged exercise — keep it
     delete byNormalized[key];
   });
+  // v3.18.1: retired former names (e.g. "Straight Bar Curl", "Reverse Curl")
+  // are history aliases, not separate exercises — keep them out of the picker.
+  try { Object.values(FORMER_EXERCISE_NAMES).flat().forEach(n => delete byNormalized[normalizeExerciseName(n)]); } catch (e) {}
 
   return Object.values(byNormalized).sort((a, b) => a.localeCompare(b));
 }
@@ -5300,6 +5310,14 @@ function buildExerciseNameToIdMap() {
       if (bf && bf.name && bf.id) map[normalizeExerciseName(bf.name)] = bf.id;
     });
   }
+
+  // 4b. v3.18.1: former names point at the id they were folded into.
+  try {
+    Object.entries(FORMER_EXERCISE_NAMES).forEach(([id, names]) => names.forEach(n => {
+      const k = normalizeExerciseName(n);
+      if (!map[k]) map[k] = id;
+    }));
+  } catch (e) {}
 
   // 5. Custom name overrides (renamed presets) — map the CURRENT display name
   // back to the underlying preset id it was renamed from.
@@ -5558,7 +5576,7 @@ const ACCESSORY_POOLS = {
     { id:'db-curl', name:'Dumbbell Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'hammer-curl-sat', name:'Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'incline-curl', name:'Bayesian / Incline Curl', note:'Stretch position. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
-    { id:'reverse-curl', name:'Reverse Curl', note:'Forearm and brachialis. Keep elbows pinned.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
+    { id:'reverse-curl', name:'Cable Reverse Curl', note:'Forearm and brachialis. Keep elbows pinned.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body, brachialis and forearm emphasis.', target:'3 × 8–10', defaultSets:3, muscle:'biceps' },
     { id:'twenty-one-curl', name:'Dumbbell 21 Curls (Straight, Hammer, Cross Body)', note:'7 bottom half + 7 top half + 7 full range. Burnout finisher.', target:'2 × 21', defaultSets:2, muscle:'biceps' },
     // Forearms (new category)
@@ -7764,7 +7782,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.18.0';
+const APP_VERSION = '3.18.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
