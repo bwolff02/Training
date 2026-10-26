@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.18.1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.18.2</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -5124,7 +5124,6 @@ function getDeloadExtras(variantId) {
   const base = variantId.replace(/-[ab]$/, '');
   const extras = {
     'mon-legs': [
-      { id:'dl-adductor', name:'Machine Hip Adduction', note:'Deload extra — inner thigh isolation. Light and controlled, full range.', target:'3 × 15–20', defaultSets:3, relatedId:'hip-abd-mon' },
       { id:'dl-leg-ext-extra', name:'Leg Extension (Slow)', note:'Deload extra — slow 4-sec eccentric. Focus on quad contraction, not load.', target:'3 × 15', defaultSets:3, relatedId:'leg-ext-mon' },
     ],
     'tue-push': [
@@ -7782,7 +7781,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.18.1';
+const APP_VERSION = '3.18.2';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
