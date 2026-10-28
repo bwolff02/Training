@@ -1091,8 +1091,10 @@ function enhanceSetRow(row) {
     const last = deloadCut ? null : lastSetsFor(exId);
     const ls = last && last[idx];
     if (ls) {
-      if (parseFloat(ls.weight) > 0) { ins[0].placeholder = String(parseFloat(ls.weight)); row.dataset.lastW = parseFloat(ls.weight); }
-      if (ls.reps) { ins[1].placeholder = String(ls.reps); row.dataset.lastR = parseFloat(ls.reps); }
+      // Boxes stay blank (Bryce, 10/28): the Last line and suggestion pill
+      // already show the baseline. Last time's numbers are kept only for the +N.
+      if (parseFloat(ls.weight) > 0) row.dataset.lastW = parseFloat(ls.weight);
+      if (ls.reps) row.dataset.lastR = parseFloat(ls.reps);
     }
   }
   const plus = document.createElement('span');
