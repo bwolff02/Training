@@ -813,32 +813,427 @@
 
   .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:var(--black);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:10px 20px;border-radius:20px;z-index:999;transition:transform .3s ease;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* ─── v4.0 UI (Bryce, 10/28) ──────────────────────────────────────
+     One action color (lime), orange only for deload, blue only for
+     supersets. Monospace for numbers and small labels; Inter for names
+     and buttons. 44px+ tap targets. Program logic is untouched: this
+     layer restyles the same elements and hides the old per-card buttons,
+     which the new ⋯ menus still call. */
+  :root{--black:#0e0e0e;--dark:#0e0e0e;--card:#181818;--card2:#181818;--border:#262626;--input-bg:#222;--muted:#8c8c8c;--sub:#a3a3a3;--accent:#c8f03a;--blue:#6fb4f7;--orange:#f2994a;}
+  body{padding-bottom:170px;}
+  header.ui-header{background:var(--black);padding:env(safe-area-inset-top) 0 0;}
+  .ui-bar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid #222;}
+  .ui-title{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .ui-bar-right{display:flex;align-items:center;gap:2px;}
+  .ui-chip-btn{height:44px;padding:0 4px;background:none;border:none;display:flex;align-items:center;cursor:pointer;}
+  .week-badge{height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0;background:none!important;}
+  .week-badge.week-a,.week-badge.week-b{color:var(--accent);border:1px solid var(--accent);}
+  .week-badge.deload{color:var(--orange);border:1px solid var(--orange);}
+  .ui-icon-btn{width:44px;height:44px;background:none;border:none;color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .day-tabs{margin:0;padding:0 4px;border-bottom:1px solid #222;}
+  .tab{min-width:62px;height:52px;padding:0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-transform:none;letter-spacing:0;color:var(--muted);}
+  .tab .tab-day{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;}
+  .tab .tab-name{font-family:'Inter',sans-serif;font-size:13px;}
+  .tab.active{color:var(--white);border-bottom-color:var(--accent);}
+  .tab.active .tab-day{color:var(--accent);}
+  .tab.active .tab-name{font-weight:600;}
+  .tab-dot{position:absolute;margin:0;transform:translate(22px,-14px);}
+  .tab{position:relative;}
+  main{padding:20px 16px;}
+  .ui-day-head{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+  .ui-day-title{font-family:'Inter',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.1;text-transform:capitalize;}
+  .ui-day-sub{font-size:14px;color:var(--sub);}
+  #dailyBodyweight{height:40px;border-radius:20px;background:#1c1c1c;border:1px solid #2c2c2c;font-family:'Inter',sans-serif;font-size:14px;padding:0 16px;max-width:220px;}
+  #bwTrend{font-family:'JetBrains Mono',monospace;font-size:12px!important;color:var(--sub)!important;margin:6px 4px 18px!important;}
+  .section{margin-bottom:22px;}
+  .section-label{font-size:11px;letter-spacing:.08em;color:var(--muted);border-bottom:none;padding-bottom:0;margin-bottom:10px;}
+  .exercise-card,.custom-exercise-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;}
+  .exercise-card.anchor,.exercise-card.anchor-vol{border-left:1px solid var(--border);}
+  .exercise-card > .move-btn,.exercise-card > .promote-btn,.exercise-card > .delete-exercise-btn,
+  .custom-exercise-card > .move-btn,.custom-exercise-card > .promote-btn,.custom-exercise-card > .delete-exercise-btn{display:none!important;}
+  .exercise-header{padding:14px 52px 4px 14px;}
+  .exercise-name{font-size:17px;font-weight:600;line-height:1.3;border-bottom:none!important;}
+  .exercise-name[contenteditable="true"]{border-bottom:1px dashed var(--accent)!important;}
+  .exercise-note{font-size:14px;color:#b8b8b8;font-weight:400;line-height:1.45;margin-top:6px;}
+  .ui-target{padding:2px 14px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sub);}
+  .ui-target.deload{color:var(--orange);}
+  .custom-exercise-header{padding:12px 52px 8px 14px!important;}
+  .custom-exercise-input{height:44px;font-size:16px;border-radius:10px;}
+  .log-area{background:transparent;border-top:none;padding:2px 14px 14px;}
+  .suggestion-box{background:none;border:none;padding:0;margin:0 0 12px;}
+  .suggestion-box .sugg-title{display:none;}
+  .suggestion-box .sugg-val{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;border-radius:15px;background:rgba(200,240,58,.15);color:var(--accent);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;}
+  .suggestion-box .sugg-val span{color:var(--accent)!important;font-size:13px!important;}
+  .suggestion-box .sugg-last{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.4;}
+  .set-entry{min-height:48px;gap:8px;margin-bottom:6px;border-radius:12px;}
+  .set-entry.done{background:rgba(200,240,58,.10);margin-left:-6px;margin-right:-6px;padding:0 6px;}
+  .set-num{width:18px;font-size:13px;}
+  .set-entry .log-input{height:44px;font-size:20px;font-weight:500;border-radius:10px;border:1px solid #2e2e2e;background:#222;padding:0 10px;}
+  .set-entry .log-input:nth-of-type(1){width:112px!important;}
+  .set-entry .log-input:nth-of-type(2){width:84px!important;}
+  .set-entry .log-input::placeholder{color:#8c8c8c;}
+  .set-entry.done .log-input{background:transparent;border-color:transparent;color:#fff;}
+  .set-entry > span[style*="font-size:12px"]{display:none;}
+  .set-entry .drop-set-link,.set-entry .set-notes-toggle{display:none!important;}
+  .set-entry input[type=number]::-webkit-inner-spin-button,.set-entry input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+  .set-entry input[type=number]{-moz-appearance:textfield;}
+  .ui-plus{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);min-width:24px;}
+  .ui-row-more{width:32px;height:44px;margin-left:auto;flex-shrink:0;background:none;border:none;border-radius:8px;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+  .ui-row-more.has-note::after{content:'';position:absolute;top:10px;right:5px;width:6px;height:6px;border-radius:3px;background:var(--blue);}
+  .ui-card-more{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:none;color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;}
+  .add-set-btn{height:44px;border-radius:10px;border:1px dashed #3a3a3a;color:var(--sub);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;letter-spacing:0;margin-top:6px;}
+  .log-area > div > .add-set-btn:nth-child(2){display:none;}
+  .superset-block{border:1px solid var(--border);background:transparent;border-radius:16px;padding:8px;margin-bottom:10px;}
+  .superset-header{font-size:11px;letter-spacing:.08em;color:var(--blue);padding:4px 6px 8px;}
+  .superset-divider{font-size:11px;color:var(--blue);padding:2px 0 8px;}
+  .superset-block .exercise-card{margin-bottom:8px;border-radius:12px;}
+  .randomize-btn{height:48px;border-radius:12px;font-family:'Inter',sans-serif!important;font-size:15px!important;font-weight:600;letter-spacing:0!important;text-transform:none!important;}
+  .add-exercise-btn{height:48px;border-radius:12px;border:1px dashed #3a3a3a;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);margin-top:8px;}
+  .add-superset-btn{height:44px;font-family:'Inter',sans-serif!important;font-size:14px!important;letter-spacing:0!important;text-transform:none!important;color:var(--sub)!important;border-color:#2e2e2e!important;}
+  .history-section-label,.history-toggle-btn{font-size:11px;letter-spacing:.08em;}
+  .history-toggle-btn{min-height:44px;padding:0 4px;}
+  /* footer */
+  .ui-footer{position:fixed;left:0;right:0;bottom:0;z-index:200;padding:10px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(14,14,14,0),#0e0e0e 26%);display:flex;flex-direction:column;gap:8px;}
+  .ui-footer[hidden]{display:none;}
+  .ui-progress{height:4px;border-radius:2px;background:#262626;overflow:hidden;}
+  .ui-progress > div{height:100%;width:0;background:var(--accent);transition:width .25s;}
+  .ui-footer-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);}
+  #uiRest{color:var(--accent);}
+  .ui-primary{height:56px;border-radius:14px;background:var(--accent);border:none;color:#0e0e0e;font-family:'Inter',sans-serif;font-size:17px;font-weight:700;cursor:pointer;width:100%;}
+  .ui-primary:disabled{opacity:.6;}
+  /* finish sheet */
+  .ui-sheet-wrap{position:fixed;inset:0;z-index:400;display:none;}
+  .ui-sheet-wrap.open{display:block;}
+  .ui-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);}
+  .ui-sheet{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow-y:auto;background:#181818;border-top:1px solid #2c2c2c;border-radius:22px 22px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:16px;max-width:640px;margin:0 auto;}
+  .ui-grabber{align-self:center;width:40px;height:5px;border-radius:3px;background:#3a3a3a;}
+  .ui-sheet h2{font-size:22px;font-weight:700;margin:0;}
+  .ui-sheet-sub{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--sub);margin-top:4px;}
+  .ui-field-label{font-size:15px;font-weight:600;}
+  .ui-field-hint{font-size:13px;color:var(--sub);}
+  .ui-feel{display:flex;align-items:center;justify-content:space-between;}
+  .ui-stepper{display:flex;align-items:center;gap:8px;}
+  .ui-step-btn{width:44px;height:44px;border-radius:12px;background:#222;border:1px solid #2e2e2e;color:var(--white);font-size:22px;cursor:pointer;}
+  .ui-sheet #feelValue{width:36px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:600;color:var(--accent);}
+  .ui-sheet .feel-slider,.ui-sheet #feelEmoji{display:none;}
+  .ui-sheet .session-notes-input{height:84px;background:#222;border:1px solid #2e2e2e;border-radius:12px;padding:12px;font-size:15px;margin:0;}
+  .ui-sheet .limiter-chips-row{gap:8px;}
+  .ui-sheet .limiter-chip{height:40px;padding:0 14px;border-radius:20px;font-family:'Inter',sans-serif;font-size:14px;letter-spacing:0;}
+  .ui-date-row{min-height:48px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #262626;border-bottom:1px solid #262626;}
+  .ui-sheet #sessionDate{flex:0 0 auto;width:auto;height:40px;background:#222;font-size:14px;}
+  .ui-sheet-links{display:flex;justify-content:space-between;}
+  .ui-text-btn{min-height:44px;padding:0;background:none;border:none;color:var(--sub);font-family:'Inter',sans-serif;font-size:15px;cursor:pointer;}
+  .ui-text-btn.warn{color:var(--orange);}
+  /* settings */
+  .ui-panel{position:fixed;inset:0;z-index:450;background:var(--black);overflow-y:auto;padding-top:env(safe-area-inset-top);}
+  .ui-panel[hidden]{display:none;}
+  .ui-panel-head{height:52px;display:flex;align-items:center;gap:4px;padding:0 16px 0 4px;border-bottom:1px solid #222;position:sticky;top:0;background:var(--black);z-index:2;}
+  .ui-panel-head .ui-title{font-size:17px;}
+  .ui-panel-body{padding:20px 16px 48px;display:flex;flex-direction:column;gap:22px;max-width:640px;margin:0 auto;}
+  .ui-group-label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+  .ui-group{background:var(--card);border:1px solid var(--border);border-radius:14px;}
+  .ui-row{min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;}
+  .ui-row + .ui-row{border-top:1px solid var(--border);}
+  .ui-row-text{display:flex;flex-direction:column;gap:2px;}
+  .ui-row-text span:first-child{font-size:15px;}
+  .ui-row-text span + span{font-size:13px;color:var(--sub);}
+  .ui-seg{display:flex;background:#222;border-radius:10px;padding:3px;}
+  .ui-seg button{width:52px;height:38px;border-radius:8px;background:none;border:none;color:var(--sub);font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;}
+  .ui-seg button[aria-pressed="true"]{background:#3a3a3a;color:var(--white);font-weight:600;}
+  .ui-switch{width:52px;height:32px;border-radius:16px;background:#3a3a3a;border:none;padding:3px;display:flex;cursor:pointer;flex-shrink:0;}
+  .ui-switch span{width:26px;height:26px;border-radius:13px;background:var(--white);transition:transform .2s;}
+  .ui-switch[aria-checked="true"]{background:var(--orange);}
+  .ui-switch[aria-checked="true"] span{transform:translateX(20px);}
+  .ui-note{font-size:13px;color:var(--sub);padding:8px 4px 0;line-height:1.45;}
+  .ui-version{text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
+  #settingsData .export-btn{min-height:48px;font-family:'Inter',sans-serif;font-size:15px;letter-spacing:0;text-transform:none;}
+  /* menus */
+  .ui-menu-veil{position:fixed;inset:0;z-index:500;}
+  .ui-menu{position:fixed;z-index:501;min-width:200px;background:#262626;border:1px solid #383838;border-radius:12px;padding:6px;display:flex;flex-direction:column;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+  .ui-menu-item{min-height:44px;padding:0 12px;background:none;border:none;border-radius:8px;color:var(--white);font-family:'Inter',sans-serif;font-size:15px;text-align:left;cursor:pointer;}
+  .ui-menu-item:active{background:#323232;}
+  .ui-menu-item.warn{color:var(--orange);}
 </style>
 </head>
 <body>
 <div class="toast" id="toast">Workout saved!</div>
-<header>
-  <div class="header-top">
-    <div>
-      <div class="program-label">Bryce — Training Log</div>
-      <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.19.0</div>
+<header class="ui-header">
+  <div class="ui-bar">
+    <div class="ui-title">Training Log</div>
+    <div class="ui-bar-right">
+      <button class="ui-chip-btn" onclick="openSettings()" aria-label="Week and deload settings"><span class="week-badge" id="weekBadge"></span></button>
+      <button class="ui-icon-btn" onclick="openSettings()" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg></button>
     </div>
-  </div>
-  <div class="week-indicator">
-    <span class="week-badge" id="weekBadge" onclick="toggleWeek()" style="cursor:pointer;user-select:none;"></span>
-    <span class="week-label" id="weekLabel"></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px;cursor:pointer;" onclick="toggleWeek()">↺ tap to flip</span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,159,67,0.6);margin-left:8px;cursor:pointer;" onclick="toggleDeload()">🔋 deload</span>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
 </header>
 <main id="mainContent"></main>
-<div class="save-bar">
-  <button class="btn btn-ghost" onclick="clearDay()">Clear</button>
-  <button class="btn btn-accent" id="saveWorkoutBtn" onclick="saveDay()">Save Workout</button>
+<div class="ui-footer" id="uiFooter" hidden>
+  <div class="ui-progress"><div id="uiProgressBar"></div></div>
+  <div class="ui-footer-row"><span id="uiSetCount">0 of 0 sets</span><span id="uiRest"></span></div>
+  <button class="ui-primary" onclick="openFinishSheet()">Finish workout</button>
+</div>
+<div class="ui-panel" id="settingsPanel" hidden>
+  <div class="ui-panel-head">
+    <button class="ui-icon-btn" onclick="closeSettings()" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <div class="ui-title">Settings</div>
+  </div>
+  <div class="ui-panel-body">
+    <div>
+      <div class="ui-group-label">THIS WEEK</div>
+      <div class="ui-group">
+        <div class="ui-row">
+          <div class="ui-row-text"><span>Week</span><span>Set automatically by date</span></div>
+          <div class="ui-seg" role="group" aria-label="Week">
+            <button id="weekABtn" onclick="setWeekType(true)">A</button>
+            <button id="weekBBtn" onclick="setWeekType(false)">B</button>
+          </div>
+        </div>
+        <div class="ui-row">
+          <div class="ui-row-text"><span>Deload week</span><span>Lighter weight, 12–15 reps. Every 4th week, set automatically. Forearms, obliques, traps and calves stay normal.</span></div>
+          <button class="ui-switch" id="deloadSwitch" role="switch" aria-checked="false" aria-label="Deload week" onclick="toggleDeload(); refreshSettings();"><span></span></button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="ui-group-label">YOUR DATA</div>
+      <div id="settingsData"></div>
+      <div class="ui-note">Don't delete the home-screen icon. A new icon starts empty unless you restore a backup.</div>
+    </div>
+    <div class="ui-version" id="uiVersion"></div>
+  </div>
 </div>
 <script>
+
+
+// ─── v4.0 UI BEHAVIOUR ──────────────────────────────────────────
+// Last logged sets for an exercise (real sessions only), for the
+// "Last:" line and the faint placeholders in each set row.
+function lastSetsFor(exId) {
+  try {
+    const h = getAllHistory(exId);
+    const last = h && h.length ? h[h.length - 1] : null;
+    return last && last.sets ? last.sets.filter(x => x && (x.weight !== '' && x.weight != null || x.reps)) : null;
+  } catch (e) { return null; }
+}
+function lastSetsText(exId) {
+  const sets = lastSetsFor(exId);
+  if (!sets || !sets.length) return '';
+  const w = sets.map(x => (parseFloat(x.weight) > 0 ? String(parseFloat(x.weight)) : 'BW'));
+  if (w.every(v => v === w[0])) return w[0] + '×' + sets.map(x => x.reps || '–').join(', ');
+  return sets.map((x, i) => w[i] + '×' + (x.reps || '–')).join(', ');
+}
+
+const UI_DOTS_H = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>';
+const UI_DOTS_V = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>';
+
+function closeMenu() {
+  document.querySelectorAll('.ui-menu, .ui-menu-veil').forEach(el => el.remove());
+}
+function openMenu(anchor, items) {
+  closeMenu();
+  const veil = document.createElement('div');
+  veil.className = 'ui-menu-veil';
+  veil.onclick = closeMenu;
+  const menu = document.createElement('div');
+  menu.className = 'ui-menu';
+  menu.setAttribute('role', 'menu');
+  items.filter(Boolean).forEach(it => {
+    const b = document.createElement('button');
+    b.className = 'ui-menu-item' + (it.warn ? ' warn' : '');
+    b.setAttribute('role', 'menuitem');
+    b.textContent = it.label;
+    b.onclick = (e) => { e.stopPropagation(); closeMenu(); try { it.run(); } catch (err) { console.error(err); } };
+    menu.appendChild(b);
+  });
+  document.body.appendChild(veil);
+  document.body.appendChild(menu);
+  const r = anchor.getBoundingClientRect();
+  const mh = menu.offsetHeight;
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 12) top = Math.max(12, r.top - mh - 4);
+  menu.style.top = top + 'px';
+  menu.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
+}
+
+let uiLastDoneAt = null;
+function uiRowState(row) {
+  const ins = row.querySelectorAll('input.log-input');
+  if (ins.length < 2) return;
+  const w = ins[0].value.trim(), r = ins[1].value.trim();
+  const done = w !== '' && r !== '';
+  const was = row.classList.contains('done');
+  row.classList.toggle('done', done);
+  if (done && !was && row.dataset.enh === '1' && row.dataset.ready === '1') uiLastDoneAt = Date.now();
+  const plus = row.querySelector('.ui-plus');
+  if (plus) {
+    plus.textContent = '';
+    const lw = parseFloat(row.dataset.lastW), lr = parseFloat(row.dataset.lastR);
+    const cw = parseFloat(w), cr = parseFloat(r);
+    if (done && !isNaN(lr) && !isNaN(cr)) {
+      const wOk = isNaN(lw) || isNaN(cw) ? true : cw >= lw;
+      if (wOk && cr > lr) plus.textContent = '+' + (cr - lr);
+      else if (!isNaN(lw) && !isNaN(cw) && cw > lw && cr >= lr) plus.textContent = '+' + (cw - lw) + 'lb';
+    }
+  }
+}
+
+function enhanceSetRow(row) {
+  if (row.dataset.enh === '1') return;
+  row.dataset.enh = '1';
+  const ins = row.querySelectorAll('input.log-input');
+  const card = row.closest('.exercise-card');
+  const exId = card ? card.dataset.exid : null;
+  if (exId && ins.length >= 2) {
+    const idx = [...card.querySelectorAll('.set-entry')].indexOf(row);
+    const deloadCut = isDeloadWeek && !isDeloadExempt(exId);
+    const last = deloadCut ? null : lastSetsFor(exId);
+    const ls = last && last[idx];
+    if (ls) {
+      if (parseFloat(ls.weight) > 0) { ins[0].placeholder = String(parseFloat(ls.weight)); row.dataset.lastW = parseFloat(ls.weight); }
+      if (ls.reps) { ins[1].placeholder = String(ls.reps); row.dataset.lastR = parseFloat(ls.reps); }
+    }
+  }
+  const plus = document.createElement('span');
+  plus.className = 'ui-plus';
+  if (ins[1]) ins[1].insertAdjacentElement('afterend', plus);
+  const more = document.createElement('button');
+  more.className = 'ui-row-more';
+  more.setAttribute('aria-label', 'Set options');
+  more.innerHTML = UI_DOTS_V;
+  const noteBtn = row.querySelector('.set-notes-toggle');
+  if (noteBtn && noteBtn.classList.contains('has-note')) more.classList.add('has-note');
+  more.onclick = (e) => {
+    e.stopPropagation();
+    const dropBtn = row.querySelector('.drop-set-link');
+    const nb = row.querySelector('.set-notes-toggle');
+    openMenu(more, [
+      dropBtn && { label: 'Add drop set', run: () => dropBtn.click() },
+      nb && { label: nb.classList.contains('has-note') ? 'Edit note on this set' : 'Note on this set', run: () => { nb.click(); more.classList.add('has-note'); } },
+    ]);
+  };
+  row.appendChild(more);
+  ins.forEach(inp => inp.addEventListener('input', () => { uiRowState(row); uiUpdateProgress(); }));
+  uiRowState(row);
+  row.dataset.ready = '1';
+}
+
+function enhanceCard(card) {
+  if (card.dataset.enh === '1') return;
+  card.dataset.enh = '1';
+  const btn = document.createElement('button');
+  btn.className = 'ui-card-more';
+  btn.setAttribute('aria-label', 'Exercise options');
+  btn.innerHTML = UI_DOTS_H;
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const up = card.querySelector(':scope > .move-btn-up');
+    const down = card.querySelector(':scope > .move-btn-down');
+    const lead = card.querySelector(':scope > .promote-btn');
+    const del = card.querySelector(':scope > .delete-exercise-btn');
+    const nameEl = card.querySelector('.exercise-name');
+    const exId = card.dataset.exid;
+    const isLead = card.dataset.anchor === '1';
+    openMenu(btn, [
+      nameEl && { label: 'Rename', run: () => { nameEl.setAttribute('contenteditable', 'true'); nameEl.focus(); try { document.execCommand('selectAll', false, null); } catch (err) {} } },
+      up && { label: 'Move up', run: () => up.click() },
+      down && { label: 'Move down', run: () => down.click() },
+      lead && { label: isLead ? 'Remove as lead lift' : 'Make lead lift', run: () => lead.click() },
+      exId && typeof addBurnoutSet === 'function' && { label: 'Add burnout set', run: () => addBurnoutSet(exId) },
+      del && { label: 'Remove exercise', warn: true, run: () => del.click() },
+    ]);
+  };
+  card.appendChild(btn);
+}
+
+let uiEnhanceQueued = false;
+function uiEnhanceAll() {
+  uiEnhanceQueued = false;
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+  main.querySelectorAll('.exercise-card, .custom-exercise-card').forEach(enhanceCard);
+  main.querySelectorAll('.set-entry').forEach(enhanceSetRow);
+  uiUpdateProgress();
+}
+function uiQueueEnhance() {
+  if (uiEnhanceQueued) return;
+  uiEnhanceQueued = true;
+  requestAnimationFrame(uiEnhanceAll);
+}
+
+function uiUpdateProgress() {
+  const footer = document.getElementById('uiFooter');
+  const main = document.getElementById('mainContent');
+  if (!footer || !main) return;
+  const rows = main.querySelectorAll('.set-entry');
+  const sheet = document.getElementById('finishSheet');
+  footer.hidden = rows.length === 0 || !sheet;
+  const done = main.querySelectorAll('.set-entry.done').length;
+  const countEl = document.getElementById('uiSetCount');
+  if (countEl) countEl.textContent = done + ' of ' + rows.length + ' sets';
+  const bar = document.getElementById('uiProgressBar');
+  if (bar) bar.style.width = (rows.length ? Math.round(done / rows.length * 100) : 0) + '%';
+}
+
+function uiTickRest() {
+  const el = document.getElementById('uiRest');
+  if (!el) return;
+  if (!uiLastDoneAt) { el.textContent = ''; return; }
+  const sec = Math.floor((Date.now() - uiLastDoneAt) / 1000);
+  if (sec > 15 * 60) { el.textContent = ''; return; }
+  el.textContent = 'Rest ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+function openFinishSheet() {
+  const wrap = document.getElementById('finishSheet');
+  if (!wrap) return;
+  const main = document.getElementById('mainContent');
+  const total = main ? main.querySelectorAll('.set-entry').length : 0;
+  const done = main ? main.querySelectorAll('.set-entry.done').length : 0;
+  const day = PROGRAM[currentDay];
+  const v = getCurrentVariant(currentDay);
+  const sum = document.getElementById('finishSummary');
+  if (sum && day && v) sum.textContent = day.label.split('·')[0].trim().charAt(0) + day.label.split('·')[0].trim().slice(1).toLowerCase() + ' · ' + v.title.charAt(0) + v.title.slice(1).toLowerCase() + ' · ' + done + ' of ' + total + ' sets logged';
+  wrap.classList.add('open');
+}
+function closeFinishSheet() {
+  const wrap = document.getElementById('finishSheet');
+  if (wrap) wrap.classList.remove('open');
+}
+function feelStep(d) {
+  const sl = document.getElementById('feelSlider');
+  if (!sl) return;
+  const v = Math.min(10, Math.max(1, (parseInt(sl.value) || 7) + d));
+  sl.value = v;
+  updateFeel(v);
+}
+
+function refreshSettings() {
+  const a = document.getElementById('weekABtn'), b = document.getElementById('weekBBtn');
+  if (a) a.setAttribute('aria-pressed', String(!!isWeekA));
+  if (b) b.setAttribute('aria-pressed', String(!isWeekA));
+  const sw = document.getElementById('deloadSwitch');
+  if (sw) sw.setAttribute('aria-checked', String(!!isDeloadWeek));
+  const ver = document.getElementById('uiVersion');
+  if (ver && typeof APP_VERSION !== 'undefined') ver.textContent = 'Training Log v' + APP_VERSION;
+}
+function openSettings() { refreshSettings(); const p = document.getElementById('settingsPanel'); if (p) p.hidden = false; }
+function closeSettings() { const p = document.getElementById('settingsPanel'); if (p) p.hidden = true; }
+function setWeekType(a) {
+  if (isWeekA !== a) { isWeekA = a; setWeekBadge(); loadDay(currentDay); }
+  refreshSettings();
+}
+
+(function uiInit() {
+  const start = () => {
+    const main = document.getElementById('mainContent');
+    if (main && 'MutationObserver' in window) new MutationObserver(uiQueueEnhance).observe(main, { childList: true, subtree: true });
+    uiQueueEnhance();
+    setInterval(uiTickRest, 1000);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
 
 // ─── WEEK DETECTION ───────────────────────────────────────────
 // Week A = odd ISO week number (heavy Mon/Fri, volume Thu/Sat)
@@ -1902,21 +2297,32 @@ function migrateAccessoryIdUnification() {
 }
 
 function setWeekBadge() {
+  // v4.0: one status chip. Week letter always; Deload in orange on deload
+  // weeks, otherwise the current day's heavy/volume tag.
   const badge = document.getElementById('weekBadge');
-  const label = document.getElementById('weekLabel');
-  if (isDeloadWeek) {
-    badge.textContent = 'DELOAD';
-    badge.className = 'week-badge deload';
-    label.textContent = 'Recovery week — 60-70% weight, higher reps';
-  } else if (isWeekA) {
-    badge.textContent = 'WEEK A';
-    badge.className = 'week-badge week-a';
-    label.textContent = 'Heavy Mon/Tue/Sat · Volume Wed/Thu/Fri';
-  } else {
-    badge.textContent = 'WEEK B';
-    badge.className = 'week-badge week-b';
-    label.textContent = 'Volume Mon/Tue/Sat · Heavy Wed/Thu/Fri';
+  const wk = 'Week ' + (isWeekA ? 'A' : 'B');
+  let txt = wk;
+  if (isDeloadWeek) txt = wk + ' · Deload';
+  else {
+    try { const d = PROGRAM[currentDay]; const v = d && !d.rest ? getCurrentVariant(currentDay) : null; if (v && v.tag) txt = wk + ' · ' + v.tag.charAt(0).toUpperCase() + v.tag.slice(1); } catch (e) {}
   }
+  if (badge) { badge.textContent = txt; badge.className = 'week-badge ' + (isDeloadWeek ? 'deload' : (isWeekA ? 'week-a' : 'week-b')); }
+  updateTabLabels();
+  refreshSettings();
+}
+
+function tabDayName(day) {
+  if (!day || day.rest) return 'Rest';
+  const v = isWeekA ? day.weekA : day.weekB;
+  const t = (v && v.title) || '';
+  return t.charAt(0) + t.slice(1).toLowerCase();
+}
+
+function updateTabLabels() {
+  PROGRAM.forEach((day, i) => {
+    const el = document.getElementById('tab-name-' + i);
+    if (el) el.textContent = tabDayName(day);
+  });
 }
 
 function getCurrentVariant(dayIndex) {
@@ -1930,14 +2336,14 @@ function buildTabs() {
   PROGRAM.forEach((day, i) => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (i === 0 ? ' active' : '');
-    btn.innerHTML = `${day.label}<span class="tab-dot" id="dot-${i}"></span>`;
+    btn.innerHTML = `<span class="tab-day">${day.label.split('·')[0].trim()}</span><span class="tab-name" id="tab-name-${i}">${tabDayName(day)}</span><span class="tab-dot" id="dot-${i}"></span>`;
     btn.onclick = () => switchDay(i);
     tabsEl.appendChild(btn);
   });
   const coachBtn = document.createElement('button');
   coachBtn.className = 'tab';
   coachBtn.id = 'coach-tab-btn';
-  coachBtn.textContent = '🧠 Coach';
+  coachBtn.innerHTML = '<span class="tab-day">AI</span><span class="tab-name">Coach</span>';
   coachBtn.onclick = () => showCoachTab();
   tabsEl.appendChild(coachBtn);
 }
@@ -2008,6 +2414,7 @@ async function switchDay(index) {
   // already protects that); this fixes the disorienting jump itself.
   try { localStorage.setItem('lastActiveDay', String(index)); } catch (e) { /* ignore storage errors */ }
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+  try { const at = document.querySelectorAll('.tab')[index]; if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {}
   const ctab = document.getElementById('coach-tab-btn');
   if (ctab) ctab.classList.remove('active');
 
@@ -2138,28 +2545,21 @@ function renderDay(index) {
   const savedDate = sessionLogs._date || today;
   const isVol = variant.tag === 'volume';
 
-  let html = `<div class="day-header"><div>
-    <div class="day-number">Day ${index + 1} · ${day.label.split('·')[0].trim()} · ${isWeekA ? 'Week A' : 'Week B'} · ${variant.tag.toUpperCase()}</div>
-    <div class="day-title">${variant.title}</div>
-    <div class="day-subtitle">${variant.subtitle}</div>
-  </div><span class="tag tag-${variant.tag}">${variant.tag}</span></div>`;
+  let exCount = 0;
+  variant.sections.forEach(sec => sec.exercises.forEach(e => { exCount += e.superset ? e.exercises.length : 1; }));
+  let html = `<div class="ui-day-head">
+    <h1 class="ui-day-title">${variant.title.toLowerCase()}</h1>
+    <div class="ui-day-sub">${variant.subtitle.replace(/\s+—\s+/, ' · ')} · ${exCount} exercises${isDeloadWeek ? ' · Deload' : ''}</div>
+  </div>`;
 
   const savedFeel = sessionLogs._feel || 7;
   const savedNotes = sessionLogs._notes || '';
   const feelEmoji = getFeel(savedFeel);
-  html += `<div class="session-row"><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>`;
+  // v4.0: date, feel, notes and factors live in the Finish sheet (same ids, so saveDay is unchanged).
 
   // Morning bodyweight + 7-day average. Oura removed in v3.12.0 — no longer used.
   html += bodyweightRowHtml(savedDate);
-  if (isDeloadWeek) {
-    html += `<div class="deload-banner">
-      <div class="deload-icon">🔋</div>
-      <div class="deload-text">
-        <strong>Deload Week</strong> — 60–70% of working weight, same number of sets, 12–15 reps. No grinding. Focus on form and feel.<br>
-        <button class="deload-toggle" onclick="toggleDeload()">↺ Switch to normal week</button>
-      </div>
-    </div>`;
-  }
+  // v4.0: deload shows in the orange status chip; the switch lives in Settings.
   // External limiter tags: optional, fast multi-select for things outside
   // Bryce's control that affected the session (air quality, nutrition,
   // illness, stress, equipment). Stored as a structured array, not buried
@@ -2173,19 +2573,29 @@ function renderDay(index) {
     return `<button type="button" class="limiter-chip${isActive ? ' active' : ''}" onclick="toggleLimiterTag(this, '${opt}')">${opt}</button>`;
   }).join('');
 
-  html += `<div class="session-meta">
-    <div class="session-meta-label">Session Check-In</div>
-    <div class="feel-row">
-      <span class="feel-label">Feel</span>
-      <input type="range" class="feel-slider" id="feelSlider" min="1" max="10" value="${savedFeel}"
-        oninput="updateFeel(this.value)"/>
-      <span class="feel-value" id="feelValue">${savedFeel}</span>
-      <span class="feel-emoji" id="feelEmoji">${feelEmoji}</span>
-    </div>
-    <textarea class="session-notes-input" id="sessionNotes" placeholder="How did you feel? Anything to note about today's session..."
-      oninput="sessionLogs._notes = this.value">${savedNotes}</textarea>
-    <div style="font-size:10px;color:var(--muted);margin:8px 0 4px;">External factors today? (optional)</div>
-    <div class="limiter-chips-row">${limiterChipsHtml}</div>
+  const finishSheetHtml = `<div class="ui-sheet-wrap" id="finishSheet">
+    <div class="ui-sheet-backdrop" onclick="closeFinishSheet()"></div>
+    <section class="ui-sheet" role="dialog" aria-label="Finish workout">
+      <div class="ui-grabber"></div>
+      <div><h2>Finish workout</h2><div class="ui-sheet-sub" id="finishSummary"></div></div>
+      <div class="ui-feel">
+        <div class="ui-row-text"><span class="ui-field-label">How did you feel?</span><span class="ui-field-hint">1 = rough · 10 = best day</span></div>
+        <div class="ui-stepper">
+          <button class="ui-step-btn" onclick="feelStep(-1)" aria-label="Lower">−</button>
+          <span class="feel-value" id="feelValue">${savedFeel}</span>
+          <button class="ui-step-btn" onclick="feelStep(1)" aria-label="Higher">+</button>
+        </div>
+        <input type="range" class="feel-slider" id="feelSlider" min="1" max="10" value="${savedFeel}" oninput="updateFeel(this.value)"/>
+        <span class="feel-emoji" id="feelEmoji">${feelEmoji}</span>
+      </div>
+      <label style="display:flex;flex-direction:column;gap:8px;"><span class="ui-field-label">Notes</span>
+        <textarea class="session-notes-input" id="sessionNotes" placeholder="Anything worth remembering about today?" oninput="sessionLogs._notes = this.value">${savedNotes}</textarea></label>
+      <div style="display:flex;flex-direction:column;gap:8px;"><span class="ui-field-label">Anything off today? <span style="font-weight:400;color:var(--sub);">Optional</span></span>
+        <div class="limiter-chips-row">${limiterChipsHtml}</div></div>
+      <div class="ui-date-row"><span style="font-size:15px;">Date</span><input type="date" class="session-date-input" id="sessionDate" value="${savedDate}"></div>
+      <button class="ui-primary" id="saveWorkoutBtn" onclick="saveDay()">Save workout</button>
+      <div class="ui-sheet-links"><button class="ui-text-btn" onclick="closeFinishSheet()">Keep training</button><button class="ui-text-btn warn" onclick="closeFinishSheet(); clearDay();">Discard workout…</button></div>
+    </section>
   </div>`;
 
   let accessoriesSectionId = null;
@@ -2308,7 +2718,9 @@ function renderDay(index) {
       html += `</div>`;
     }
   }
+  html += finishSheetHtml;
   main.innerHTML = html;
+  setWeekBadge();
 
   // Seed any custom-snapshot exercises (typed-in exercises from a prior
   // session, auto-restored so today defaults to what was actually done
@@ -2377,10 +2789,10 @@ function appendHistoryAndAddExercise(index, variant) {
   const addSection = document.createElement('div');
   addSection.className = 'add-exercise-section';
   addSection.innerHTML = `
-    <button class="randomize-btn" onclick="randomizeAccessories()">🔀 Randomize Accessories</button>
-    <button class="add-exercise-btn" onclick="openExercisePicker('${accessoriesId}', ${index})">+ Add Exercise</button>
-    <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">⚡ Add Superset</button>
-    <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">🔗 Pair Existing Exercises</button>
+    <button class="randomize-btn" onclick="randomizeAccessories()">Shuffle accessories</button>
+    <button class="add-exercise-btn" onclick="openExercisePicker('${accessoriesId}', ${index})">+ Add exercise</button>
+    <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">Add a superset</button>
+    <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">Pair two exercises</button>
     <div id="superset-mode-banner-${index}"></div>
   `;
   main.appendChild(addSection);
@@ -2498,7 +2910,10 @@ function appendHistoryAndAddExercise(index, variant) {
     </div>
     ${syncSectionHtml()}
   `;
-  main.appendChild(exportSection);
+  // v4.0: backup, restore and Sheet sync live in Settings › Your data.
+  const dataHost = document.getElementById('settingsData');
+  if (dataHost) { dataHost.innerHTML = ''; exportSection.style.marginTop = '0'; dataHost.appendChild(exportSection); }
+  else main.appendChild(exportSection);
 }
 
 function toggleHistory(btn) {
@@ -3253,14 +3668,13 @@ function renderExercise(ex, isVol) {
     <button class="delete-exercise-btn" onclick="deleteExerciseCard(this)" title="Remove">✕</button>
     <div class="exercise-header">
       <div>
-        <div class="exercise-name" contenteditable="true" spellcheck="false"
-          style="outline:none;border-bottom:1px dashed var(--border);min-width:60px;"
-          onblur="renameExercise('${ex.id}', this.textContent.trim())"
-          title="Tap to rename">${displayName}</div>
+        <div class="exercise-name" contenteditable="false" spellcheck="false"
+          style="outline:none;min-width:60px;"
+          onblur="this.setAttribute('contenteditable','false'); renameExercise('${ex.id}', this.textContent.trim())">${displayName}</div>
         <div class="exercise-note">${ex.note}</div>
       </div>
     </div>
-    <div style="padding:2px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:${isDeloadWeek && ex.anchor ? 'var(--orange)' : 'var(--muted)'}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 — deload' : ex.target}</div>
+    <div class="ui-target${isDeloadWeek && ex.anchor ? ' deload' : ''}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 · deload' : ex.target}${lastSetsText(ex.id) ? ' · Last: ' + lastSetsText(ex.id) : ''}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -3434,7 +3848,10 @@ async function saveDay() {
         // for a real "last session" reference point.
         hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek && !isDeloadExempt(exId), notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
         { const condensed = condenseExerciseHistory(hist, condenseCutoffDate());
-          if (condensed && condensed.length) { hist.length = 0; hist.push(...condensed); } }
+          // v3.19.1: condense returns the SAME array when there's nothing to
+          // condense (first log of a new exercise, or a short history), and
+          // emptying it then wiped the session just pushed. Only swap in a new array.
+          if (condensed && condensed.length && condensed !== hist) { hist.length = 0; hist.push(...condensed); } }
         if (hist.length > 12) {
           // Trim the oldest session EXCEPT the one holding the best-ever set,
           // so a baseline can never age out just because 12 newer sessions
@@ -3599,7 +4016,7 @@ async function saveDay() {
   // Save Workout lives in the static footer outside #mainContent, so
   // renderDay() does NOT rebuild it — restore its normal appearance here.
   const saveBtnAfter = document.getElementById('saveWorkoutBtn');
-  if (saveBtnAfter) { saveBtnAfter.textContent = 'Save Workout'; saveBtnAfter.disabled = false; saveBtnAfter.style.opacity = ''; }
+  if (saveBtnAfter) { saveBtnAfter.textContent = 'Save workout'; saveBtnAfter.disabled = false; saveBtnAfter.style.opacity = ''; }
 }
 
 function showSaveSuccess(prMsg) {
@@ -7910,7 +8327,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.19.0';
+const APP_VERSION = '4.0.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
