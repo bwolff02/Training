@@ -822,7 +822,7 @@
     <div>
       <div class="program-label">Bryce — Training Log</div>
       <h1>MY <span>PROGRAM</span></h1>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.19.0</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1em;">v3.19.1</div>
     </div>
   </div>
   <div class="week-indicator">
@@ -3434,7 +3434,10 @@ async function saveDay() {
         // for a real "last session" reference point.
         hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek && !isDeloadExempt(exId), notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
         { const condensed = condenseExerciseHistory(hist, condenseCutoffDate());
-          if (condensed && condensed.length) { hist.length = 0; hist.push(...condensed); } }
+          // v3.19.1: condense returns the SAME array when there's nothing to
+          // condense (first log of a new exercise, or a short history), and
+          // emptying it then wiped the session just pushed. Only swap in a new array.
+          if (condensed && condensed.length && condensed !== hist) { hist.length = 0; hist.push(...condensed); } }
         if (hist.length > 12) {
           // Trim the oldest session EXCEPT the one holding the best-ever set,
           // so a baseline can never age out just because 12 newer sessions
@@ -7910,7 +7913,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '3.19.0';
+const APP_VERSION = '3.19.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
