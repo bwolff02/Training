@@ -899,7 +899,8 @@
   .ui-progress{height:4px;border-radius:2px;background:#262626;overflow:hidden;}
   .ui-progress > div{height:100%;width:0;background:var(--accent);transition:width .25s;}
   .ui-footer-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);}
-  #uiRest{color:var(--accent);}
+  #uiRest{color:var(--accent);background:none;border:none;font:inherit;padding:0 0 0 12px;min-height:28px;cursor:pointer;}
+  #uiRest:empty{display:none;}
   .ui-primary{height:56px;border-radius:14px;background:var(--accent);border:none;color:#0e0e0e;font-family:'Inter',sans-serif;font-size:17px;font-weight:700;cursor:pointer;width:100%;}
   .ui-primary:disabled{opacity:.6;}
   /* finish sheet */
@@ -971,7 +972,7 @@
 <main id="mainContent"></main>
 <div class="ui-footer" id="uiFooter" hidden>
   <div class="ui-progress"><div id="uiProgressBar"></div></div>
-  <div class="ui-footer-row"><span id="uiSetCount">0 of 0 sets</span><span id="uiRest"></span></div>
+  <div class="ui-footer-row"><span id="uiSetCount">0 of 0 sets</span><button type="button" id="uiRest" onclick="stopRestTimer()" aria-label="Rest timer, tap to stop"></button></div>
   <button class="ui-primary" onclick="openFinishSheet()">Finish workout</button>
 </div>
 <div class="ui-panel" id="settingsPanel" hidden>
@@ -1185,6 +1186,13 @@ function uiTickRest() {
   const sec = Math.floor((Date.now() - uiLastDoneAt) / 1000);
   if (sec > 15 * 60) { el.textContent = ''; return; }
   el.textContent = 'Rest ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+// v4.0.1: tap the timer to stop it; saving or discarding the workout stops it too.
+function stopRestTimer() {
+  uiLastDoneAt = null;
+  const el = document.getElementById('uiRest');
+  if (el) el.textContent = '';
 }
 
 function openFinishSheet() {
@@ -4022,6 +4030,7 @@ async function saveDay() {
 }
 
 function showSaveSuccess(prMsg) {
+  stopRestTimer();
   const existing = document.getElementById('save-success-overlay');
   if (existing) existing.remove();
 
@@ -4055,6 +4064,7 @@ function showSaveSuccess(prMsg) {
 
 function clearDay() {
   if (!confirm('Clear this day\'s log?')) return;
+  stopRestTimer();
   sessionLogs = {};
   renderDay(currentDay);
 }
@@ -8329,7 +8339,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.0.0';
+const APP_VERSION = '4.0.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
