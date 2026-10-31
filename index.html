@@ -1565,7 +1565,10 @@ const PROGRAM = [
               { id:'custom-seated-wide-grip-row', name:'Seated Wide Grip Row', note:'Upper back. Elbows out around 45-60°, pull to mid-chest, squeeze the shoulder blades. Superset with the fly.', target:'3 × 8–10', defaultSets:3 },
               { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Full stretch, squeeze at the middle. Control the way back.', target:'3 × 8–10', defaultSets:3 },
             ]},
-            { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'2 × 12–15', defaultSets:2 },
+            // v4.1.3 (Bryce, 10/31): shrugs moved to an EZ bar on the cable (logged
+            // as "Cable EZ Bar Shrug": 160x14 on 10/16, 160x15 on 10/24). Own id,
+            // the slug of that custom name, so Smith shrug history stays separate.
+            { id:'custom-cable-ez-bar-shrug', name:'Cable EZ Bar Shrug', note:'EZ bar on a low cable. Full range, pause at the top, no rolling the shoulders.', target:'2 × 12–15', defaultSets:2, muscle:'traps' },
             // v3.15.3: DB lateral raise here, cable on Wed A / Sat B, so each week
             // gets one cable and one dumbbell side delt move (2 and 2 overall).
             { superset:true, exercises:[
@@ -8395,7 +8398,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.1.2';
+const APP_VERSION = '4.1.3';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
