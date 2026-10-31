@@ -4460,7 +4460,10 @@ function getExerciseNameById(exId) {
       if (day.rest) continue;
       for (const wk of ['weekA', 'weekB']) {
         const v = day[wk]; if (!v || !v.sections) continue;
-        for (const sec of v.sections) for (const ex of (sec.exercises || [])) if (ex.id === exId) return ex.name;
+        // v4.1.2: look inside supersets too. Superset-only lifts (Tue B's rope
+        // low-to-high extension, Fri's hip abduction) resolved to null or a pool
+        // name, so none of their name-matched history ever reached the card.
+        for (const sec of v.sections) for (const ex of (sec.exercises || [])) for (const x of (ex.superset ? ex.exercises : [ex])) if (x.id === exId) return x.name;
       }
     }
     for (const k of Object.keys(ACCESSORY_POOLS)) for (const ex of ACCESSORY_POOLS[k]) if (ex.id === exId) return ex.name;
@@ -4500,6 +4503,19 @@ const FORMER_EXERCISE_NAMES = {
   'db-curl': ['Straight Bar Curl'],
   // v3.18.1: plain "Reverse Curl" was always the cable version ("EZ Bar Reverse Curl" is its own tag).
   'reverse-curl': ['Reverse Curl'],
+  // v4.1.2 (Bryce, 10/31 QA): same lifts logged under other names, so their
+  // best sets never reached the card. Rope Pushdown showed 60 (7/03) as best
+  // while "Rope Tricep Pushdown" had 100x11 (9/26).
+  'rope-pushdown': ['Rope Tricep Pushdown'],
+  // Hyphenated spelling doesn't normalize to the program name (90x15 on 10/10).
+  'tri-lth-b': ['Cable Rope Low-to-High Tricep Extension'],
+  // Same seated pullover with the rope (110x11 on 10/07 vs 80x15 under the bare name).
+  'cable-pullover': ['Seated Cable Pullover w Rope'],
+  // Barbell military press logged without the "(Barbell)" suffix (7/25, 9/19).
+  'military-press': ['Military Press'],
+  // His 10/14 log, before the name was corrected to High to Low.
+  'custom-underhand-cable-low-to-high-fly': ['Underhand Cable Low to High Fly'],
+  'hang-leg-raise': ['Hanging Leg Raises'],
 };
 
 function getNameMatchedHistory(exId) {
@@ -8379,7 +8395,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.1.1';
+const APP_VERSION = '4.1.2';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
