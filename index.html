@@ -1612,13 +1612,21 @@ const PROGRAM = [
           { id:'incline-smith-vol', name:'Incline Smith Press (6\u20138)', note:'Pump day for incline. 3 straight sets at one weight. +5 lb when the average hits 8.', target:'3 × 6–8', anchor:true, defaultSets:3 },
         ]},
         { label: 'Accessories', exercises: [
-          { id:'decline-smith', name:'Decline Smith Press', note:'Second heavy chest press. Straight sets.', target:'3 × 6–8', defaultSets:3 },
-          { id:'cable-fly-htl', name:'Cable Fly High to Low', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
-          { id:'chest-supported-row', name:'Chest-Supported Row', note:'Chest on the pad, no lower back involvement.', target:'3 × 10–12', defaultSets:3 },
+          // v4.1.0 (Bryce, 10/31): Sat B was chest, chest, chest, back, back.
+          // Decline right after incline ran 195x7,7,6 (10/10) vs 195-200x9-10
+          // on Sat A, where it comes after rows with no chest before it. A row
+          // now sits between the two presses (~8-10 min for the pecs), then
+          // decline pairs with the lat row. Ids unchanged, history attaches.
+          // 3 supersets on the day (his cap). Sat A unchanged on purpose.
+          { id:'chest-supported-row', name:'Chest-Supported Row', note:'Between your two presses on purpose: gives your chest ~8–10 min before decline. Chest on the pad, no lower back. Straight sets.', target:'3 × 10–12', defaultSets:3 },
           // v3.19.0 (Bryce, 10/28): Sat B had only 6 back sets; the pullover
           // (still on Tuesday A) swaps for a real lat row. Same id as his
           // randomizer history (120x9,9,7 on 9/23) so it attaches.
-          { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Lats. Full stretch at the top, drive the elbows down and back to your hips, chest tall.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
+          { superset:true, exercises:[
+            { id:'decline-smith', name:'Decline Smith Press', note:'Second heavy chest press. Alternate with the row: decline set, rest 60–90 sec, row set, rest 60–90 sec, repeat. Time the rests. If someone needs the Smith, run straight sets instead.', target:'3 × 6–8', defaultSets:3 },
+            { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Lats. Full stretch at the top, drive the elbows down and back to your hips, chest tall. Alternates with decline.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
+          ]},
+          { id:'cable-fly-htl', name:'Cable Fly High to Low', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
             { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
