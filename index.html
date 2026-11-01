@@ -845,6 +845,8 @@
   .ui-day-title{font-family:'Inter',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.1;text-transform:capitalize;}
   .ui-day-sub{font-size:14px;color:var(--sub);}
   #dailyBodyweight{height:40px;border-radius:20px;background:#1c1c1c;border:1px solid #2c2c2c;font-family:'Inter',sans-serif;font-size:14px;padding:0 16px;max-width:220px;}
+  .bw-save-btn{height:40px;padding:0 18px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#0d0d0d;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;}
+  .bw-save-btn.saved{background:transparent;color:var(--accent);}
   #bwTrend{font-family:'JetBrains Mono',monospace;font-size:12px!important;color:var(--sub)!important;margin:6px 4px 18px!important;}
   .section{margin-bottom:22px;}
   .section-label{font-size:11px;letter-spacing:.08em;color:var(--muted);border-bottom:none;padding-bottom:0;margin-bottom:10px;}
@@ -2519,13 +2521,42 @@ function refreshBodyweightTrend(dateStr) {
 
 // One bodyweight row, used on training days AND rest days — weighing in
 // every morning only works if the box is there every morning.
+// v4.1.0: explicit Save button. The box used to save only when the field lost
+// focus, with no confirmation, so on a rest day (nothing else to tap) it was
+// easy to type a weight, close the app, and lose it.
 function bodyweightRowHtml(dateStr) {
   const log = getDailyLog(dateStr);
+  const has = !!log.bodyweight;
   return `<div class="session-row" style="gap:8px;margin-top:4px;">
     <input type="number" inputmode="decimal" class="session-date-input" id="dailyBodyweight" placeholder="Morning bodyweight (lbs)" style="flex:1;"
-      value="${log.bodyweight || ''}" onchange="saveDailyLogField('${dateStr}', 'bodyweight', this.value)">
+      value="${log.bodyweight || ''}" oninput="bwMarkDirty()" onkeydown="if(event.key==='Enter'){this.blur();}" onchange="saveBodyweightNow('${dateStr}')">
+    <button type="button" id="bwSaveBtn" class="bw-save-btn${has ? ' saved' : ''}" onclick="saveBodyweightNow('${dateStr}')">${has ? 'Saved ✓' : 'Save'}</button>
   </div>
   <div id="bwTrend" style="font-size:10px;color:var(--muted);margin:3px 2px 8px;">${bodyweightTrendText(dateStr)}</div>`;
+}
+
+function bwMarkDirty() {
+  const btn = document.getElementById('bwSaveBtn');
+  if (btn) { btn.textContent = 'Save'; btn.classList.remove('saved'); }
+}
+
+// Shared by the Save button, Enter, and tapping away. Saving the same value
+// twice (blur fires, then the button click) is a no-op, so no duplicate rows
+// go to the Google Sheet.
+function saveBodyweightNow(dateStr) {
+  const input = document.getElementById('dailyBodyweight');
+  const btn = document.getElementById('bwSaveBtn');
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  const num = parseFloat(raw);
+  if (!raw || !(num >= 50 && num <= 600)) {
+    if (btn) { btn.textContent = raw ? 'Check #' : 'Save'; btn.classList.remove('saved'); }
+    return;
+  }
+  const val = String(num);
+  if (getDailyLog(dateStr).bodyweight !== val) saveDailyLogField(dateStr, 'bodyweight', val);
+  input.value = val;
+  if (btn) { btn.textContent = 'Saved ✓'; btn.classList.add('saved'); }
 }
 
 // Gets the MOST RECENT daily log at or before the given date — used to
@@ -2565,7 +2596,9 @@ function renderDay(index) {
   const main = document.getElementById('mainContent');
   const day = PROGRAM[index];
   if (day.rest) {
-    const restDate = new Date().toISOString().split('T')[0];
+    // Local date, not UTC — toISOString() rolls to tomorrow after 7–8pm in Detroit.
+    const _n = new Date();
+    const restDate = `${_n.getFullYear()}-${String(_n.getMonth() + 1).padStart(2, '0')}-${String(_n.getDate()).padStart(2, '0')}`;
     main.innerHTML = `<div style="margin-bottom:12px;">${bodyweightRowHtml(restDate)}</div><div class="rest-day"><div class="rest-icon">🔋</div><div class="rest-title">REST DAY</div><div class="rest-desc">Six hard days. Sleep, eat your protein, and let the adaptation happen. The work is already done.</div></div>`;
     return;
   }
@@ -8358,7 +8391,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.0.2';
+const APP_VERSION = '4.1.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
