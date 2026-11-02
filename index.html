@@ -1084,6 +1084,14 @@ function uiRowState(row) {
   const done = w !== '' && r !== '';
   const was = row.classList.contains('done');
   row.classList.toggle('done', done);
+  // v4.3.0 (Bryce, 11/02): workout length = first set logged to last set logged.
+  // Both ends carry the same "I log a bit late" lag, so it mostly cancels out,
+  // and saving the workout later at home doesn't stretch it.
+  if (done && !was && row.dataset.enh === '1' && row.dataset.ready === '1') {
+    const t = Date.now();
+    if (!sessionLogs._startedAt) sessionLogs._startedAt = t;
+    sessionLogs._lastSetAt = t;
+  }
   const plus = row.querySelector('.ui-plus');
   if (plus) {
     plus.textContent = '';
@@ -1199,6 +1207,15 @@ function uiUpdateProgress() {
 // v4.1.1 (Bryce, 10/31): rest timer removed. He doesn't log right after each
 // set, so the time since the last entry wasn't real rest.
 
+// Minutes from the first logged set to the last. Null when there's nothing
+// sensible to report (one set, or a day logged across more than 4 hours).
+function workoutMinutes(logs) {
+  const a = +(logs && logs._startedAt), b = +(logs && logs._lastSetAt);
+  if (!a || !b || b <= a) return null;
+  const m = Math.round((b - a) / 60000);
+  return m >= 1 && m <= 240 ? m : null;
+}
+
 function openFinishSheet() {
   const wrap = document.getElementById('finishSheet');
   if (!wrap) return;
@@ -1208,7 +1225,7 @@ function openFinishSheet() {
   const day = PROGRAM[currentDay];
   const v = getCurrentVariant(currentDay);
   const sum = document.getElementById('finishSummary');
-  if (sum && day && v) sum.textContent = day.label.split('·')[0].trim().charAt(0) + day.label.split('·')[0].trim().slice(1).toLowerCase() + ' · ' + v.title.charAt(0) + v.title.slice(1).toLowerCase() + ' · ' + done + ' of ' + total + ' sets logged';
+  if (sum && day && v) sum.textContent = day.label.split('·')[0].trim().charAt(0) + day.label.split('·')[0].trim().slice(1).toLowerCase() + ' · ' + v.title.charAt(0) + v.title.slice(1).toLowerCase() + ' · ' + done + ' of ' + total + ' sets logged' + (workoutMinutes(sessionLogs) ? ' · ' + workoutMinutes(sessionLogs) + ' min' : '');
   wrap.classList.add('open');
 }
 function closeFinishSheet() {
@@ -4031,6 +4048,7 @@ async function saveDay() {
         date: sessionLogs._date,
         week: isDeloadWeek ? '🔋 DELOAD' : ((variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B')),
         feel: sessionLogs._feel || null,
+        duration: workoutMinutes(sessionLogs),
         notes: sessionLogs._notes || '',
         bodyweight: attachedDailyLog.bodyweight || null,
         limiters: sessionLogs._limiters || [],
@@ -7530,6 +7548,7 @@ function sessionPayload(sess, day, variantId) {
   return {
     date: sess.date, day, variant: variantId || '', week,
     feel: sess.feel == null ? null : sess.feel,
+    duration: sess.duration || null,
     notes: sess.notes || '', bodyweight: sess.bodyweight || null,
     heavy: /HEAVY/i.test(week), deload: /DELOAD/i.test(week),
     exercises: (sess.exercises || []).map(ex => ({ name: ex.name, sets: ex.sets || [] })),
@@ -8402,7 +8421,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.2.0';
+const APP_VERSION = '4.3.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
