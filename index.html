@@ -1280,7 +1280,11 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
           // and the Smith close squat build the quads, adduction + calves close it out.
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
+          // v4.2.0 (Bryce, 11/02): stack is maxed both-legs (245x11,12,11 on 10/19),
+          // so Week A goes single leg to keep adding load. Own id (slug of the
+          // custom name he logs) so it never mixes with the 245 two-leg history.
+          // Deload weeks are always Week B, so this never gets a deload version.
+          { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Recline the seat back. Weaker leg first and match its reps on the other leg. Short rest between legs, the other leg rests while one works. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
           // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
           // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
           // 9/07 and 9/21 logs so that history attaches.
@@ -1306,7 +1310,7 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
           // and the Smith close squat build the quads, adduction + calves close it out.
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Stack is maxed, so progress with a 3-sec eccentric and a 1-sec squeeze, or run single leg.', target:'3 × 10–12', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Both legs (single leg is Week A). Recline the seat back. Stack is maxed, so progress with a 3-sec lower and a 1-sec squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
           // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
           // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
           // 9/07 and 9/21 logs so that history attaches.
@@ -8398,7 +8402,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.1.3';
+const APP_VERSION = '4.2.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
