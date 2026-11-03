@@ -880,7 +880,7 @@
   .set-entry .drop-set-link,.set-entry .set-notes-toggle{display:none!important;}
   .set-entry input[type=number]::-webkit-inner-spin-button,.set-entry input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
   .set-entry input[type=number]{-moz-appearance:textfield;}
-  .ui-plus{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);min-width:24px;}
+  .ui-plus{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);min-width:24px;line-height:1.25;text-align:right;white-space:pre;}
   .ui-row-more{width:32px;height:44px;margin-left:auto;flex-shrink:0;background:none;border:none;border-radius:8px;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
   .ui-row-more.has-note::after{content:'';position:absolute;top:10px;right:5px;width:6px;height:6px;border-radius:3px;background:var(--blue);}
   .ui-card-more{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:none;color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;}
@@ -1097,10 +1097,16 @@ function uiRowState(row) {
     plus.textContent = '';
     const lw = parseFloat(row.dataset.lastW), lr = parseFloat(row.dataset.lastR);
     const cw = parseFloat(w), cr = parseFloat(r);
+    // v4.3.1 (Bryce, 11/03): compared to the same set number last time. It used
+    // to show only "+2" when both went up (100x13 vs 90x11), hiding the +10 lb
+    // and reading like an unexplained number. Now it names what improved.
     if (done && !isNaN(lr) && !isNaN(cr)) {
-      const wOk = isNaN(lw) || isNaN(cw) ? true : cw >= lw;
-      if (wOk && cr > lr) plus.textContent = '+' + (cr - lr);
-      else if (!isNaN(lw) && !isNaN(cw) && cw > lw && cr >= lr) plus.textContent = '+' + (cw - lw) + 'lb';
+      const hasW = !isNaN(lw) && !isNaN(cw);
+      const dw = hasW ? cw - lw : 0, dr = cr - lr;
+      const lbs = '+' + dw + ' lb', reps = '+' + dr + (dr === 1 ? ' rep' : ' reps');
+      if (dw > 0 && dr > 0) plus.textContent = lbs + '\n' + reps;
+      else if (dw > 0 && dr === 0) plus.textContent = lbs;
+      else if (dw >= 0 && dr > 0) plus.textContent = reps;
     }
   }
 }
@@ -8421,7 +8427,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.3.0';
+const APP_VERSION = '4.3.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
