@@ -1259,6 +1259,7 @@ function openSettings() { refreshSettings(); const p = document.getElementById('
 function closeSettings() { const p = document.getElementById('settingsPanel'); if (p) p.hidden = true; }
 function setWeekType(a) {
   if (isWeekA !== a) { isWeekA = a; setWeekBadge(); loadDay(currentDay); }
+  saveWeekChoice();
   refreshSettings();
 }
 
@@ -1284,7 +1285,44 @@ function getISOWeek(date) {
 
 const today = new Date();
 const isoWeek = getISOWeek(today);
-let isWeekA = isoWeek % 2 === 1; // odd weeks = Week A (tappable to override)
+let isWeekA = isoWeek % 2 === 1; // fallback only — detectWeekType() below decides
+// v4.5.0 (Bryce, 11/04): the week letter follows what he actually trains, not
+// the calendar. Priority: (1) A/B picked by hand this week (saved, survives
+// reloads); (2) the letter of the first workout logged this Mon–Sun week;
+// (3) the opposite of the last A/B week he logged (deload weeks skipped);
+// (4) odd/even ISO week as a last resort.
+function weekMondayStr(d) {
+  const m = new Date(d); m.setHours(12, 0, 0, 0); m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+  return m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-' + String(m.getDate()).padStart(2, '0');
+}
+function saveWeekChoice() {
+  try { localStorage.setItem('week_choice', JSON.stringify({ monday: weekMondayStr(new Date()), weekA: !!isWeekA })); } catch (e) {}
+}
+function detectWeekType() {
+  const thisMon = weekMondayStr(new Date());
+  try {
+    const c = JSON.parse(localStorage.getItem('week_choice') || 'null');
+    if (c && c.monday === thisMon) return !!c.weekA;
+  } catch (e) {}
+  const logged = [];
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('hist_session_')).forEach(k => {
+      let arr = [];
+      try { arr = JSON.parse(localStorage.getItem(k)) || []; } catch (e) {}
+      (Array.isArray(arr) ? arr : []).forEach(s => {
+        const m = s && s.date && typeof s.week === 'string' && s.week.match(/Week ([AB])/);
+        if (m) logged.push({ date: s.date, a: m[1] === 'A' });
+      });
+    });
+  } catch (e) {}
+  logged.sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0);
+  const thisWeek = logged.filter(s => s.date >= thisMon);
+  if (thisWeek.length) return thisWeek[0].a;
+  const before = logged.filter(s => s.date < thisMon);
+  if (before.length) return !before[before.length - 1].a;
+  return isoWeek % 2 === 1;
+}
+isWeekA = detectWeekType();
 let isDeloadWeek = isoWeek % 4 === 0; // every 4th week = deload
 
 // ─── PROGRAM DATA ─────────────────────────────────────────────
@@ -2517,18 +2555,22 @@ function bodyweightTrend(dateStr) {
       return { d: k.slice('daily_log_'.length), bw };
     })
     .filter(e => e.bw > 0);
-  const windowed = (from, to) => entries
-    .filter(e => { const ago = Math.round((end - toDate(e.d)) / 86400000); return ago >= from && ago < to; })
+  // v4.5.0 (Bryce, 11/04): weeks run Monday–Sunday and reset every Monday,
+  // instead of a rolling 7 days. "This week" = Monday up to the selected day;
+  // "last week" = the full previous Monday–Sunday.
+  const monday = new Date(end); monday.setDate(end.getDate() - ((end.getDay() + 6) % 7));
+  const windowed = (fromDays, toDays) => entries
+    .filter(e => { const off = Math.round((toDate(e.d) - monday) / 86400000); return off >= fromDays && off < toDays && toDate(e.d) <= end; })
     .map(e => e.bw);
   const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
-  const cur = windowed(0, 7), prev = windowed(7, 14);
+  const cur = windowed(0, 7), prev = windowed(-7, 0);
   return { avg: cur.length ? avg(cur) : null, n: cur.length, prevAvg: prev.length ? avg(prev) : null, prevN: prev.length };
 }
 
 function bodyweightTrendText(dateStr) {
   const t = bodyweightTrend(dateStr);
-  if (t.n < 3) return `7-day average shows after 3 mornings this week (${t.n} logged so far).`;
-  let txt = `7-day avg: <strong>${t.avg.toFixed(1)} lbs</strong> (${t.n} mornings)`;
+  if (t.n < 3) return `Week average (Mon–Sun) shows after 3 mornings this week (${t.n} logged so far).`;
+  let txt = `This week's avg: <strong>${t.avg.toFixed(1)} lbs</strong> (${t.n} mornings)`;
   if (t.prevN >= 3) {
     const diff = t.avg - t.prevAvg;
     const arrow = diff < -0.05 ? '↓' : diff > 0.05 ? '↑' : '→';
@@ -4158,6 +4200,7 @@ function toggleWeek() {
     isDeloadWeek = false;
   } else {
     isWeekA = !isWeekA;
+    saveWeekChoice();
   }
   setWeekBadge();
   loadDay(currentDay);
@@ -8430,7 +8473,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.4.0';
+const APP_VERSION = '4.5.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
