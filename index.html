@@ -1011,9 +1011,17 @@
 // ─── v4.0 UI BEHAVIOUR ──────────────────────────────────────────
 // Last logged sets for an exercise (real sessions only), for the
 // "Last:" line and the faint placeholders in each set row.
-function lastSessionFor(exId) {
+function lastSessionFor(exId, isVol) {
   try {
-    const h = getAllHistory(exId);
+    let h = getAllHistory(exId);
+    // v4.5.1: anchors share one id across heavy and volume days (RDL leads
+    // Fri heavy AND Fri volume). "Last:" showed the volume day's 255x12 on a
+    // heavy day while the pill said 285x8. Match the day type the same way
+    // getSuggestion does; fall back to everything if there's no match yet.
+    if (isVol !== undefined && h && h.length && isAnchorExercise(exId)) {
+      const same = h.filter(sess => !!sess.heavy === !isVol);
+      if (same.length) h = same;
+    }
     const last = h && h.length ? h[h.length - 1] : null;
     if (!last) return null;
     // v4.0.2: a lift starting a new block (START_WEIGHTS) has no real "last"
@@ -1024,17 +1032,17 @@ function lastSessionFor(exId) {
     return last;
   } catch (e) { return null; }
 }
-function lastSetsFor(exId) {
-  const last = lastSessionFor(exId);
+function lastSetsFor(exId, isVol) {
+  const last = lastSessionFor(exId, isVol);
   return last && last.sets ? last.sets.filter(x => x && (x.weight !== '' && x.weight != null || x.reps)) : null;
 }
-function lastSetsText(exId) {
-  const sets = lastSetsFor(exId);
+function lastSetsText(exId, isVol) {
+  const sets = lastSetsFor(exId, isVol);
   if (!sets || !sets.length) return '';
   const w = sets.map(x => (parseFloat(x.weight) > 0 ? String(parseFloat(x.weight)) : 'BW'));
   let txt = w.every(v => v === w[0]) ? w[0] + '×' + sets.map(x => x.reps || '–').join(', ') : sets.map((x, i) => w[i] + '×' + (x.reps || '–')).join(', ');
   // Older than 3 weeks: show the date so it's clear where the numbers come from.
-  const last = lastSessionFor(exId);
+  const last = lastSessionFor(exId, isVol);
   if (last && last.date) {
     const days = (Date.now() - new Date(last.date + 'T12:00:00').getTime()) / 86400000;
     if (days > 21) {
@@ -1120,7 +1128,7 @@ function enhanceSetRow(row) {
   if (exId && ins.length >= 2) {
     const idx = [...card.querySelectorAll('.set-entry')].indexOf(row);
     const deloadCut = isDeloadWeek && !isDeloadExempt(exId);
-    const last = deloadCut ? null : lastSetsFor(exId);
+    const last = deloadCut ? null : lastSetsFor(exId, card.dataset.vol === undefined ? undefined : card.dataset.vol === '1');
     const ls = last && last[idx];
     if (ls) {
       // Boxes stay blank (Bryce, 10/28): the Last line and suggestion pill
@@ -3788,7 +3796,7 @@ function renderExercise(ex, isVol) {
   });
 
   const isAnchorCard = ex.anchor || ex.anchorVol;
-  return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}" data-anchor="${isAnchorCard ? '1' : '0'}">
+  return `<div class="exercise-card${anchorClass}" data-exid="${ex.id}" data-anchor="${isAnchorCard ? '1' : '0'}" data-vol="${isVol ? '1' : '0'}">
     <button class="move-btn move-btn-up" onclick="moveCard(this, -1)" title="Move up">▲</button>
     <button class="promote-btn" onclick="toggleAnchor(this)" title="${isAnchorCard ? 'Remove anchor' : 'Promote to anchor'}" style="position:absolute;top:8px;right:84px;width:22px;height:22px;background:${isAnchorCard ? 'var(--accent-dim)' : 'var(--card2)'};border:1px solid ${isAnchorCard ? 'rgba(200,241,53,.4)' : 'var(--border)'};border-radius:4px;color:${isAnchorCard ? 'var(--accent)' : 'var(--muted)'};font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;">★</button>
     <button class="move-btn move-btn-down" onclick="moveCard(this, 1)" title="Move down">▼</button>
@@ -3801,7 +3809,7 @@ function renderExercise(ex, isVol) {
         <div class="exercise-note">${ex.note}</div>
       </div>
     </div>
-    <div class="ui-target${isDeloadWeek && ex.anchor ? ' deload' : ''}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 · deload' : ex.target}${lastSetsText(ex.id) ? ' · Last: ' + lastSetsText(ex.id) : ''}</div>
+    <div class="ui-target${isDeloadWeek && ex.anchor ? ' deload' : ''}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 · deload' : ex.target}${lastSetsText(ex.id, isVol) ? ' · Last: ' + lastSetsText(ex.id, isVol) : ''}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -8473,7 +8481,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.0';
+const APP_VERSION = '4.5.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
