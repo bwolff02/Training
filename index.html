@@ -1695,8 +1695,12 @@ const PROGRAM = [
           // v3.16.0 (Bryce's call, 10/16): cross-body hammer out, reverse curl in,
           // plus an extra tricep move on the chest-focused upper day. Pushdown
           // hits the outer heads; the single-arm extension already covers the long head.
+          // v4.5.2 (Bryce, 11/07): reverse curl out, incline dumbbell curl in — he
+          // feels it hits the biceps better. Own id (slug of the name) so it never
+          // mixes with the Bayesian curl's 'incline-curl' history; any past
+          // "Incline Dumbbell Curl" logs attach by name. Reverse curl stays on Sat A.
           { superset:true, exercises:[
-            { id:'reverse-curl', name:'Cable Reverse Curl', note:'Cable, overhand grip, elbows pinned, slow lower. Superset with triceps.', target:'3 × 10–12', defaultSets:3 },
+            { id:'custom-incline-dumbbell-curl', name:'Incline Dumbbell Curl', note:'Bench at 45–60°, arms hanging straight down behind your torso. Full stretch at the bottom, elbows stay back, slow lower. Superset with triceps.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
             { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–14', defaultSets:3 },
           ]},
           { id:'rope-pushdown', name:'Rope Pushdown', note:'Extra arm move. Elbows pinned, spread the rope at the bottom, squeeze.', target:'3 × 12–15', defaultSets:3 },
@@ -6268,7 +6272,7 @@ const EXERCISE_FOCUS = {
   'military-press':'delts_compound', 'cable-lat-raise-tue':'side_delt', 'db-lat-raise':'side_delt',
   'db-front-raise':'front_delt', 'cable-front-raise':'front_delt',
   'face-pull-wed':'rear_delt', 'face-pull-sat':'rear_delt', 'db-rev-fly':'rear_delt', 'cable-lat-sat':'rear_delt',
-  'db-curl':'biceps', 'incline-curl':'biceps', 'twenty-one-curl':'biceps',
+  'db-curl':'biceps', 'incline-curl':'biceps', 'twenty-one-curl':'biceps', 'custom-incline-dumbbell-curl':'biceps',
   'hammer-curl-wed':'brachialis', 'hammer-curl-sat':'brachialis', 'cross-body-hammer':'brachialis', 'reverse-curl':'brachialis',
   'custom-cable-rope-tricep-extension-high':'triceps_long', 'tri-overhead':'triceps_long', 'tri-lth':'triceps_long', 'skull-crusher':'triceps_long',
   'rope-pushdown':'triceps_short', 'smith-jm-press':'triceps_short', 'custom-cable-dip':'triceps_short',
@@ -8481,7 +8485,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.1';
+const APP_VERSION = '4.5.2';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
