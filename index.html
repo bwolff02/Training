@@ -1354,10 +1354,11 @@ const PROGRAM = [
           // custom name he logs) so it never mixes with the 245 two-leg history.
           // Deload weeks are always Week B, so this never gets a deload version.
           { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Recline the seat back. Weaker leg first and match its reps on the other leg. Short rest between legs, the other leg rests while one works. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
-          // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
-          // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
-          // 9/07 and 9/21 logs so that history attaches.
-          { id:'custom-elevated-close-squat-smith-', name:'Elevated Close Squat (Smith)', note:'Heels elevated, feet close, sit straight down to full depth. Last quad move of the day, so take sets close to failure.', target:'3 × 10–12', defaultSets:3 },
+          // v4.5.3 (Bryce, 11/09): close squat out, seated curl in, so hamstrings get
+          // trained twice a week (squats barely grow them, Kubo 2019). Same
+          // 'seated-curl' id as before; it now lives only on Monday, so its Friday
+          // history (185x12,11,10 on 11/06) attaches.
+          { id:'seated-curl', name:'Seated Leg Curl', note:'Hamstrings, second hit of the week. Seated keeps them stretched (hips flexed). Full effort, 3-sec lower.', target:'3 × 8–10', defaultSets:3, muscle:'hamstrings' },
           { superset:true, exercises:[
             { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
             { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
@@ -1380,10 +1381,11 @@ const PROGRAM = [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
           // and the Smith close squat build the quads, adduction + calves close it out.
           { id:'leg-ext-mon', name:'Leg Extension', note:'Both legs (single leg is Week A). Recline the seat back. Stack is maxed, so progress with a 3-sec lower and a 1-sec squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
-          // v3.16.1 (Bryce's call, 10/19): Smith close squat replaces the goblet squat.
-          // Dumbbells cap at 75 and the goblet setup was a pain. Name matches his
-          // 9/07 and 9/21 logs so that history attaches.
-          { id:'custom-elevated-close-squat-smith-', name:'Elevated Close Squat (Smith)', note:'Heels elevated, feet close, sit straight down to full depth. Last quad move of the day, so take sets close to failure.', target:'3 × 10–12', defaultSets:3 },
+          // v4.5.3 (Bryce, 11/09): close squat out, seated curl in, so hamstrings get
+          // trained twice a week (squats barely grow them, Kubo 2019). Same
+          // 'seated-curl' id as before; it now lives only on Monday, so its Friday
+          // history (185x12,11,10 on 11/06) attaches.
+          { id:'seated-curl', name:'Seated Leg Curl', note:'Hamstrings, second hit of the week. Seated keeps them stretched (hips flexed). Full effort, 3-sec lower.', target:'3 × 10–12', defaultSets:3, muscle:'hamstrings' },
           { superset:true, exercises:[
             { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled, no swinging the leg.', target:'3 × 12–15 / side', defaultSets:3 },
             { id:'calf-vertical', name:'Vertical Calf Raise (Smith) with Ramp', note:'Full stretch at the bottom, pause at the top. Superset with adduction.', target:'3 × 12–15', defaultSets:3 },
@@ -1577,9 +1579,12 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
-          { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 10–12', defaultSets:3 },
-          { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 8–10', defaultSets:3 },
+          // v4.5.3 (Bryce, 11/09): seated curl moved to Monday. Prone is now the
+          // only curl here (fresh, not second), and leg press takes the open slot
+          // as Friday's quad move: no bar on the back after RDLs.
+          { id:'prone-curl', name:'Prone Leg Curl', note:'Only curl today, so go hard. Hips down flat, no arching to move the weight.', target:'3 × 10–12', defaultSets:3 },
           { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
+          { id:'leg-press-fri', name:'Leg Press', note:'Quads, second hit of the week. Near failure, but no grinding out the last rep: Monday squats are 3 days out. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
           // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
           { superset:true, exercises:[
             { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 12–15 / side', defaultSets:2 },
@@ -1600,9 +1605,12 @@ const PROGRAM = [
         ]},
         { label: 'Accessories', exercises: [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
-          { id:'seated-curl', name:'Seated Leg Curl', note:'First curl of the day — seated, hips flexed, hamstrings at long length.', target:'3 × 8–10', defaultSets:3 },
-          { id:'prone-curl', name:'Prone Leg Curl', note:'Second curl. Hips down flat, no arching to move the weight.', target:'3 × 7–9', defaultSets:3 },
+          // v4.5.3 (Bryce, 11/09): seated curl moved to Monday. Prone is now the
+          // only curl here (fresh, not second), and leg press takes the open slot
+          // as Friday's quad move: no bar on the back after RDLs.
+          { id:'prone-curl', name:'Prone Leg Curl', note:'Only curl today, so go hard. Hips down flat, no arching to move the weight.', target:'3 × 8–10', defaultSets:3 },
           { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
+          { id:'leg-press-fri', name:'Leg Press', note:'Quads, second hit of the week. Near failure, but no grinding out the last rep: Monday squats are 3 days out. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
           // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
           { superset:true, exercises:[
             { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 10 / side', defaultSets:2 },
@@ -8485,7 +8493,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.2';
+const APP_VERSION = '4.5.3';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
