@@ -7599,9 +7599,10 @@ const syncInFlight = new Set();   // queue ids being sent right now (this page o
 // "Send everything" were stuck in the queue; everything they carried is
 // already in the sheet, and retrying them would re-scramble it.
 try {
-  if (!localStorage.getItem('sync_queue_reset_455')) {
+  if (!localStorage.getItem('sync_queue_reset_456')) {   // v4.5.6: same, for the 11/12 7:21 resend leftovers
     localStorage.removeItem('sheet_sync_queue');
     localStorage.setItem('sync_queue_reset_455', '1');
+    localStorage.setItem('sync_queue_reset_456', '1');
   }
 } catch (e) {}
 
@@ -7640,7 +7641,11 @@ async function flushSyncQueue() {
     let sent = 0;
     for (const p of readSyncQueue()) {
       if (p && p._qid && syncInFlight.has(p._qid)) continue;   // a live send owns it
-      if (await postToSheet(p)) {
+      if (p && p._qid) syncInFlight.add(p._qid);
+      updateSyncStatus();
+      let ok = false;
+      try { ok = await postToSheet(p); } finally { if (p && p._qid) syncInFlight.delete(p._qid); }
+      if (ok) {
         if (p && p._qid) removeFromSyncQueue(p._qid);
         else writeSyncQueue(readSyncQueue().filter(x => JSON.stringify(x) !== JSON.stringify(p)));   // pre-4.5.4 items
         sent++;
@@ -7710,9 +7715,14 @@ function saveSyncUrl(v) {
 function syncStatusText() {
   if (!getSyncUrl()) return 'Not connected. Paste your Web app link to turn on sync.';
   const last = localStorage.getItem('sheet_sync_last');
-  const q = readSyncQueue().length;
+  // v4.5.6: "sending" = a request is out right now; "waiting" = it didn't
+  // go through (app closed / offline) and will retry automatically.
+  const q = readSyncQueue();
+  const sending = q.filter(p => p && p._qid && syncInFlight.has(p._qid)).length;
+  const waiting = q.length - sending;
   let t = last ? 'Connected · last sent ' + new Date(last).toLocaleString([], { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Connected · nothing sent yet';
-  if (q) t += ' · ' + q + ' waiting to send';
+  if (sending) t += ' · sending ' + sending + '…';
+  if (waiting) t += ' · ' + waiting + ' waiting, retrying automatically';
   return t;
 }
 function updateSyncStatus() {
@@ -7728,10 +7738,12 @@ function syncSectionHtml() {
       value="${url.replace(/"/g, '&quot;')}" onchange="saveSyncUrl(this.value)">
     <div id="syncStatus" style="font-size:10px;color:var(--muted);margin:6px 2px;">${syncStatusText()}</div>
     <button class="export-btn" style="margin-top:2px;" onclick="syncEverythingNow()">☁️ Send everything now</button>
+    <div style="font-size:10px;color:var(--muted);margin:6px 2px 0;">Only needed if the sheet is missing workouts. Workouts send on their own when you save. If you use this, keep the app open until nothing is sending.</div>
   </div>`;
 }
 
 window.addEventListener('load', () => setTimeout(flushSyncQueue, 2500));
+setInterval(() => { if (document.visibilityState === 'visible') flushSyncQueue(); }, 60000);   // v4.5.6: keep retrying while open
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushSyncQueue(); });
 
 function exportData() {
@@ -8542,7 +8554,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.5';
+const APP_VERSION = '4.5.6';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
