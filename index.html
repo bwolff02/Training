@@ -4117,6 +4117,7 @@ async function saveDay() {
 
       allSessions.push({
         date: sessionLogs._date,
+        variant: variant.id,   // v4.5.4: kept so "Send everything" can resend it
         week: isDeloadWeek ? '🔋 DELOAD' : ((variant.tag === 'heavy' ? 'HEAVY' : 'VOLUME') + ' · ' + (isWeekA ? 'Week A' : 'Week B')),
         feel: sessionLogs._feel || null,
         duration: workoutMinutes(sessionLogs),
@@ -7571,12 +7572,13 @@ function writeSyncQueue(q) {
 async function postToSheet(payload) {
   const url = getSyncUrl();
   if (!url) return false;
+  const { _qid, ...body } = payload || {};   // queue id stays on the phone
   try {
     await fetch(url, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ app: 'bryce-training', ...payload }),
+      body: JSON.stringify({ app: 'bryce-training', ...body }),
     });
     return true;
   } catch (e) {
@@ -7584,24 +7586,61 @@ async function postToSheet(payload) {
   }
 }
 
-async function syncToSheet(payload) {
-  if (!getSyncUrl()) return;
-  const ok = await postToSheet(payload);
-  if (ok) localStorage.setItem('sheet_sync_last', new Date().toISOString());
-  else if (payload.type !== 'backup') {   // backups are rebuilt fresh, never queued
-    const q = readSyncQueue(); q.push(payload); writeSyncQueue(q);
-  }
-  updateSyncStatus();
+// v4.5.4 (Bryce, 11/12): outbox. The 11/11 workout saved on the phone but
+// never reached the sheet and was never queued: the upload was cut off
+// (app closed / phone locked right after Save), so neither the success nor
+// the failure branch ever ran. Now every session/weigh-in is written to the
+// queue BEFORE it's sent and only removed once the send goes through, so a
+// killed upload is retried the next time the app opens. Backups still
+// aren't queued (they're rebuilt fresh on every save).
+const syncInFlight = new Set();   // queue ids being sent right now (this page only)
+
+function removeFromSyncQueue(qid) {
+  writeSyncQueue(readSyncQueue().filter(p => !(p && p._qid === qid)));
 }
 
-async function flushSyncQueue() {
-  const q = readSyncQueue();
-  if (!q.length || !getSyncUrl()) return;
-  const left = [];
-  for (const p of q) if (!(await postToSheet(p))) left.push(p);
-  writeSyncQueue(left);
-  if (left.length < q.length) localStorage.setItem('sheet_sync_last', new Date().toISOString());
+async function syncToSheet(payload) {
+  if (!getSyncUrl()) return;
+  if (payload.type === 'backup') {
+    if (await postToSheet(payload)) localStorage.setItem('sheet_sync_last', new Date().toISOString());
+    updateSyncStatus();
+    return;
+  }
+  const qid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const item = { ...payload, _qid: qid };
+  const q = readSyncQueue(); q.push(item); writeSyncQueue(q);
+  syncInFlight.add(qid);
   updateSyncStatus();
+  try {
+    if (await postToSheet(item)) {
+      removeFromSyncQueue(qid);
+      localStorage.setItem('sheet_sync_last', new Date().toISOString());
+    }
+  } finally {
+    syncInFlight.delete(qid);
+    updateSyncStatus();
+  }
+}
+
+let syncFlushing = false;
+async function flushSyncQueue() {
+  if (syncFlushing || !getSyncUrl()) return;
+  syncFlushing = true;
+  try {
+    let sent = 0;
+    for (const p of readSyncQueue()) {
+      if (p && p._qid && syncInFlight.has(p._qid)) continue;   // a live send owns it
+      if (await postToSheet(p)) {
+        if (p && p._qid) removeFromSyncQueue(p._qid);
+        else writeSyncQueue(readSyncQueue().filter(x => JSON.stringify(x) !== JSON.stringify(p)));   // pre-4.5.4 items
+        sent++;
+      }
+    }
+    if (sent) localStorage.setItem('sheet_sync_last', new Date().toISOString());
+  } finally {
+    syncFlushing = false;
+    updateSyncStatus();
+  }
 }
 
 // Same shape as Export, minus the coach chat and the sync queue itself.
@@ -7636,7 +7675,7 @@ async function syncEverythingNow() {
     let sessions = [];
     try { sessions = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) {}
     const day = k.slice('hist_session_'.length);
-    if (sessions.length) await syncToSheet({ type: 'sessions', sessions: sessions.map(x => sessionPayload(x, day, '')) });
+    if (sessions.length) await syncToSheet({ type: 'sessions', sessions: sessions.map(x => sessionPayload(x, day, x.variant || '')) });
   }
   const entries = Object.keys(localStorage)
     .filter(k => k.startsWith('daily_log_'))
@@ -8493,7 +8532,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.3';
+const APP_VERSION = '4.5.4';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
