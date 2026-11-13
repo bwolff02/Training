@@ -1008,12 +1008,74 @@
 <script>
 
 
+// ─── v4.6.0 AB SLOTS (Bryce, 11/13) ──────────────────────────────
+// The two ab moves on Mon/Wed/Fri hit the same muscle, so whichever goes
+// second always fades. The order flips by week, so a lift done 2nd was being
+// judged against days it led (fresh), which made normal fatigue look like
+// regression. Ab history is now split by slot: 1 = led the abs, 2 = came
+// after another ab move. Same exercise tag either way, so nothing splits.
+//   • AB_SLOT: today's slot per ab id, set while the Abs section renders.
+//   • New saves stamp abSlot on the history entry from the actual on-screen
+//     order of the ab moves that got logged (so a reordered day is right).
+//   • Older entries: the slot is read from that day's saved session order.
+//   • No history in today's slot yet → falls back to all history.
+let AB_SLOT = {};
+let _abSlotCache = null;
+function isAbExercise(exId, name) {
+  try { return inferMuscle({ id: exId, name: name || getExerciseNameById(exId) || '' }) === 'abs'; } catch (e) { return false; }
+}
+function abSlotIndex() {
+  if (_abSlotCache) return _abSlotCache;
+  const map = {};
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (!k.startsWith('hist_session_')) return;
+      let sessions = [];
+      try { sessions = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { return; }
+      (sessions || []).forEach(s => {
+        if (!s || !s.date || !Array.isArray(s.exercises)) return;
+        let n = 0;
+        s.exercises.forEach(ex => {
+          if (!ex || !ex.name || inferMuscle({ name: ex.name }) !== 'abs') return;
+          if (!(ex.sets || []).some(x => x && (x.weight || x.reps))) return;
+          n++;
+          const key = s.date + '|' + normalizeExerciseName(ex.name);
+          if (!(key in map)) map[key] = Math.min(n, 2);
+        });
+      });
+    });
+  } catch (e) {}
+  _abSlotCache = map;
+  return map;
+}
+function abSlotOfEntry(exId, entry) {
+  if (!entry) return null;
+  if (entry.abSlot) return entry.abSlot;
+  const names = [localStorage.getItem('name_' + exId), getExerciseNameById(exId)].filter(Boolean);
+  const idx = abSlotIndex();
+  for (const nm of names) {
+    const v = idx[entry.date + '|' + normalizeExerciseName(nm)];
+    if (v) return v;
+  }
+  return null;
+}
+// Returns { list, slot } — list narrowed to today's slot when there's any
+// history in it, slot set only when that narrowing actually happened.
+function abSlotFilter(exId, sessions) {
+  const slot = AB_SLOT[exId];
+  if (!slot || !Array.isArray(sessions) || !sessions.length) return { list: sessions, slot: null };
+  const same = sessions.filter(s => abSlotOfEntry(exId, s) === slot);
+  return same.length ? { list: same, slot } : { list: sessions, slot: null };
+}
+function abSlotLabel(slot) { return slot === 1 ? '1st' : slot === 2 ? '2nd' : ''; }
+
 // ─── v4.0 UI BEHAVIOUR ──────────────────────────────────────────
 // Last logged sets for an exercise (real sessions only), for the
 // "Last:" line and the faint placeholders in each set row.
 function lastSessionFor(exId, isVol) {
   try {
     let h = getAllHistory(exId);
+    h = abSlotFilter(exId, h).list;
     // v4.5.1: anchors share one id across heavy and volume days (RDL leads
     // Fri heavy AND Fri volume). "Last:" showed the volume day's 255x12 on a
     // heavy day while the pill said 285x8. Match the day type the same way
@@ -1349,11 +1411,9 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
           // and the Smith close squat build the quads, adduction + calves close it out.
-          // v4.2.0 (Bryce, 11/02): stack is maxed both-legs (245x11,12,11 on 10/19),
-          // so Week A goes single leg to keep adding load. Own id (slug of the
-          // custom name he logs) so it never mixes with the 245 two-leg history.
-          // Deload weeks are always Week B, so this never gets a deload version.
-          { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Recline the seat back. Weaker leg first and match its reps on the other leg. Short rest between legs, the other leg rests while one works. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
+          // v4.6.0 (Bryce, 11/13): Monday is two-leg extension both weeks again.
+          // Single leg moved to Friday, where it replaces the leg press.
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Both legs (single leg is on Friday). Recline the seat back. Stack is maxed, so progress with a 3-sec lower and a 1-sec squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
           // v4.5.3 (Bryce, 11/09): close squat out, seated curl in, so hamstrings get
           // trained twice a week (squats barely grow them, Kubo 2019). Same
           // 'seated-curl' id as before; it now lives only on Monday, so its Friday
@@ -1380,7 +1440,7 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           // Bryce's layout: quad day. Squat and lunges/Bulgarians anchor, leg extension
           // and the Smith close squat build the quads, adduction + calves close it out.
-          { id:'leg-ext-mon', name:'Leg Extension', note:'Both legs (single leg is Week A). Recline the seat back. Stack is maxed, so progress with a 3-sec lower and a 1-sec squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
+          { id:'leg-ext-mon', name:'Leg Extension', note:'Both legs (single leg is on Friday). Recline the seat back. Stack is maxed, so progress with a 3-sec lower and a 1-sec squeeze at the top.', target:'3 × 10–12', defaultSets:3 },
           // v4.5.3 (Bryce, 11/09): close squat out, seated curl in, so hamstrings get
           // trained twice a week (squats barely grow them, Kubo 2019). Same
           // 'seated-curl' id as before; it now lives only on Monday, so its Friday
@@ -1580,11 +1640,13 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
           // v4.5.3 (Bryce, 11/09): seated curl moved to Monday. Prone is now the
-          // only curl here (fresh, not second), and leg press takes the open slot
-          // as Friday's quad move: no bar on the back after RDLs.
+          // only curl here (fresh, not second), and the quad move takes the open
+          // slot: no bar on the back after RDLs.
           { id:'prone-curl', name:'Prone Leg Curl', note:'Only curl today, so go hard. Hips down flat, no arching to move the weight.', target:'3 × 10–12', defaultSets:3 },
           { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
-          { id:'leg-press-fri', name:'Leg Press', note:'Quads, second hit of the week. Near failure, but no grinding out the last rep: Monday squats are 3 days out. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+          // v4.6.0 (Bryce, 11/13): leg press out (doesn't like his gym's machine),
+          // single-leg extension in. Same id as the Monday single-leg history.
+          { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Friday quad slot, no spinal load after RDLs. Recline the seat back. Weaker leg first and match its reps on the other leg. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
           // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
           { superset:true, exercises:[
             { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 12–15 / side', defaultSets:2 },
@@ -1606,11 +1668,13 @@ const PROGRAM = [
         { label: 'Accessories', exercises: [
           { id:'kickback-fri', name:'Cable Kickbacks', note:'Glutes. Squeeze at lockout, no lower back arch.', target:'3 × 10–15 / leg', defaultSets:3 },
           // v4.5.3 (Bryce, 11/09): seated curl moved to Monday. Prone is now the
-          // only curl here (fresh, not second), and leg press takes the open slot
-          // as Friday's quad move: no bar on the back after RDLs.
+          // only curl here (fresh, not second), and the quad move takes the open
+          // slot: no bar on the back after RDLs.
           { id:'prone-curl', name:'Prone Leg Curl', note:'Only curl today, so go hard. Hips down flat, no arching to move the weight.', target:'3 × 8–10', defaultSets:3 },
           { id:'cable-pull-through', name:'Cable Pull-Through', note:'Glutes under stretch. Hinge back, drive the hips to lock out. No spinal load.', target:'3 × 12–15', defaultSets:3 },
-          { id:'leg-press-fri', name:'Leg Press', note:'Quads, second hit of the week. Near failure, but no grinding out the last rep: Monday squats are 3 days out. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+          // v4.6.0 (Bryce, 11/13): leg press out (doesn't like his gym's machine),
+          // single-leg extension in. Same id as the Monday single-leg history.
+          { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Friday quad slot, no spinal load after RDLs. Recline the seat back. Weaker leg first and match its reps on the other leg. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
           // Glutes + unweighted quads: the sissy squat is Friday's light quad touch.
           { superset:true, exercises:[
             { id:'hip-abd', name:'Cable Hip Abduction', note:'Glute med. Superset with sissy squats.', target:'2 × 10 / side', defaultSets:2 },
@@ -2776,6 +2840,13 @@ function renderDay(index) {
     // 2-week cycle (Mon/Fri flip by week letter in the program itself).
     const flipWedAbs = section.label === 'Abs' && (variant.id === 'tue-push-a' || variant.id === 'wed-pull-b') && Math.floor((isoWeek - 1) / 2) % 2 === 0;
     const sectionExercises = flipWedAbs ? section.exercises.slice().reverse() : section.exercises;
+    // v4.6.0: today's ab order, so each ab move is judged against days it
+    // held the same slot (led vs came second).
+    if (sIdx === 0) { AB_SLOT = {}; _abSlotCache = null; }
+    if (section.label === 'Abs') {
+      sectionExercises.flatMap(e => e.superset ? e.exercises : [e])
+        .forEach((e, i) => { if (e && e.id) AB_SLOT[e.id] = Math.min(i + 1, 2); });
+    }
     const sectionId = isAccessoriesSection ? `section-accessories-${index}` : '';
     if (isAccessoriesSection) accessoriesSectionId = sectionId;
     html += `<div class="section"${sectionId ? ` id="${sectionId}"` : ''}><div class="section-label">${section.label}</div>`;
@@ -3586,7 +3657,8 @@ function getSuggestion(exId, isVolumeDay, isAnchor, relatedId, target) {
   // trend analysis already does. Falls back to the full set if there aren't
   // enough same-type sessions to judge from.
   const sameType = isAnchorExercise(exId) ? all.filter(sess => !!sess.heavy === !isVolumeDay) : all;
-  const pool = sameType.length >= 1 ? sameType : all;
+  // v4.6.0: ab moves only compare against days in the same slot (led vs 2nd).
+  const pool = abSlotFilter(exId, sameType.length >= 1 ? sameType : all).list;
 
   let bestSet = null;
   let bestSetScore = -1;
@@ -3821,7 +3893,7 @@ function renderExercise(ex, isVol) {
         <div class="exercise-note">${ex.note}</div>
       </div>
     </div>
-    <div class="ui-target${isDeloadWeek && ex.anchor ? ' deload' : ''}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 · deload' : ex.target}${lastSetsText(ex.id, isVol) ? ' · Last: ' + lastSetsText(ex.id, isVol) : ''}</div>
+    <div class="ui-target${isDeloadWeek && ex.anchor ? ' deload' : ''}">${isDeloadWeek && ex.anchor ? plannedSets + ' sets × 12–15 · deload' : ex.target}${AB_SLOT[ex.id] ? ' · ' + abSlotLabel(AB_SLOT[ex.id]) + ' ab move' : ''}${lastSetsText(ex.id, isVol) ? ' · Last' + (abSlotFilter(ex.id, getAllHistory(ex.id)).slot ? ' as ' + abSlotLabel(AB_SLOT[ex.id]) : '') + ': ' + lastSetsText(ex.id, isVol) : ''}</div>
     <div class="log-area">
       ${suggHtml}
       <div id="sets-${ex.id}">${setsHtml}</div>
@@ -3987,13 +4059,27 @@ async function saveDay() {
     });
     const allExerciseIds = new Set([...staticIds, ...domIds]);
 
+    // v4.6.0: slot of each logged ab move, from the on-screen order.
+    const abSlotNow = {};
+    try {
+      let n = 0;
+      document.querySelectorAll('#mainContent .exercise-card[data-exid]').forEach(card => {
+        const id = card.dataset.exid;
+        const lg = sessionLogs[id];
+        if (!lg || !lg.sets || !lg.sets.some(x => x && (x.weight || x.reps))) return;
+        if (!isAbExercise(id, localStorage.getItem('name_' + id))) return;
+        n++;
+        if (!abSlotNow[id]) abSlotNow[id] = Math.min(n, 2);
+      });
+    } catch (e) {}
+    _abSlotCache = null;
     allExerciseIds.forEach(exId => {
       if (sessionLogs[exId] && sessionLogs[exId].sets && sessionLogs[exId].sets.length) {
         const hist = JSON.parse(localStorage.getItem('hist_' + exId) || '[]');
         // Tag deload-week sets so suggestion logic can skip them — deload
         // weights are deliberately lightened and should never be mistaken
         // for a real "last session" reference point.
-        hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek && !isDeloadExempt(exId), notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean) });
+        hist.push({ date: sessionLogs._date, sets: sessionLogs[exId].sets, heavy: variant.tag === 'heavy', deload: isDeloadWeek && !isDeloadExempt(exId), notes: (sessionLogs[exId].sets || []).map(s => s.note || '').filter(Boolean), ...(abSlotNow[exId] ? { abSlot: abSlotNow[exId] } : {}) });
         { const condensed = condenseExerciseHistory(hist, condenseCutoffDate());
           // v3.19.1: condense returns the SAME array when there's nothing to
           // condense (first log of a new exercise, or a short history), and
@@ -6210,7 +6296,8 @@ const ACCESSORY_POOLS = {
     { id:'leg-ext-mon', name:'Leg Extension', note:'Recline the seat back. Pause at top every rep.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
     { id:'hip-add-mon', name:'Cable Hip Adduction', note:'Inner thigh. Full range, controlled.', target:'3 × 12–15 / side', defaultSets:3, muscle:'adductors' },
     { id:'custom-bodyweight-sissy-squats', name:'Bodyweight Sissy Squats', note:'Bodyweight quad work. Knees forward, lean back, slow down.', target:'3 × 10–15', defaultSets:3, muscle:'quads' },
-    { id:'leg-press-fri', name:'Leg Press', note:'Machine — no spinal load. Feet mid-platform, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' },
+    // v4.6.0: leg press out of the pool (Bryce doesn't like his gym's machine).
+    { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Recline the seat back. Weaker leg first, match its reps on the other leg.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' },
     // Glutes/Hip
     { id:'hip-abd-mon', name:'Cable Hip Abduction', note:'Controlled. Glute med isolation.', target:'3 × 15 / side', defaultSets:3, muscle:'glutes' },
     { id:'cable-pull-through', name:'Cable Pull-Through', note:'Hinge at the hips, squeeze glutes to stand. Light spinal load.', target:'3 × 12–15', defaultSets:3, muscle:'glutes' },
@@ -6635,6 +6722,8 @@ function restoreRequiredMuscles(variant, snapshot) {
 // coming back. These rules run on both restored snapshots and fresh re-rolls.
 const FRIDAY_QUAD_PATTERN = /sissy|lunge|leg extension|goblet|split squat|close squat/i;
 const FRIDAY_QUAD_IDS = ['leg-ext-mon','goblet-squat','smith-lunge','smith-lunge-thu','bulgarian-mon','bulgarian'];
+const FRI_SINGLE_LEG_EXT = { id:'custom-single-leg-leg-extension', name:'Single Leg Leg Extension', note:'Friday quad slot, no spinal load after RDLs. Recline the seat back. Weaker leg first and match its reps on the other leg. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12 / leg', defaultSets:3, muscle:'quads' };
+// Retired in v4.6.0 — kept only so old saved layouts referencing it resolve.
 const LEG_PRESS_FRI = { id:'leg-press-fri', name:'Leg Press', note:'Friday quad slot. Machine on purpose — no bracing after heavy RDLs. Feet mid-platform, controlled, full depth without the low back rounding.', target:'3 × 10–12', defaultSets:3, muscle:'quads' };
 const SEATED_CURL_LIGHT = { id:'seated-curl-light', name:'Seated Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set. Seated beats prone here — hips flexed puts the hamstrings at a longer length.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
 const PRONE_LIGHT = { id:'prone-curl-light', name:'Prone Leg Curl (Light)', note:'Lighter than Friday on purpose. Leave 2-3 reps in reserve every set.', target:'2 × 10–12', defaultSets:2, muscle:'hamstrings' };
@@ -6867,12 +6956,21 @@ function applyDayRules(variantId, list) {
   if (isFri) {
     // Friday is glute/ham. Quad-dominant work here was landing 3 days before
     // Monday's squat/lunge day and stacking the same muscles twice.
-    // The leg press is the one exception: it's the deliberate low-fatigue quad
-    // slot, machine-based, no spinal load, and it sits at the end of the day.
-    out = out.filter(item => item && (item.id === 'leg-press-fri' || item.id === 'custom-bodyweight-sissy-squats' ||
+    // The single-leg extension is the one exception: it's the deliberate
+    // low-fatigue quad slot, machine-based, no spinal load.
+    // v4.6.0: single-leg extension replaced the leg press as that slot.
+    out = out.map(item => item && item.id === 'leg-press-fri'
+      ? { ...FRI_SINGLE_LEG_EXT, supersetGroup: item.supersetGroup || null } : item);
+    { let seen = false; out = out.filter(item => !(item && item.id === FRI_SINGLE_LEG_EXT.id) || (!seen && (seen = true))); }
+    out = out.filter(item => item && (item.id === FRI_SINGLE_LEG_EXT.id || item.id === 'custom-bodyweight-sissy-squats' ||
       (!FRIDAY_QUAD_IDS.includes(item.id) && !FRIDAY_QUAD_PATTERN.test(item.name || ''))));
   }
   if (isMon) {
+    // v4.6.0: Monday is two-leg extension only; single leg lives on Friday.
+    const hasTwoLeg = out.some(i => i && i.id === 'leg-ext-mon');
+    out = out.flatMap(item => item && item.id === FRI_SINGLE_LEG_EXT.id
+      ? (hasTwoLeg ? [] : [{ id:'leg-ext-mon', name:'Leg Extension', note:'Both legs. Recline the seat back. 3-sec lower, 1-sec squeeze.', target:'3 × 10–12', defaultSets:3, muscle:'quads', supersetGroup: item.supersetGroup || null }])
+      : [item]);
     // Monday hamstring work stays light so Friday's heavy curls aren't repeated at full effort.
     out = out.map(item => item && (item.id === 'prone-curl-mon' || item.id === 'prone-curl-light')
       ? { ...SEATED_CURL_LIGHT, supersetGroup: item.supersetGroup || null } : item);
@@ -8554,7 +8652,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.5.6';
+const APP_VERSION = '4.6.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
