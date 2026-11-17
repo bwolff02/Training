@@ -3008,6 +3008,7 @@ function appendHistoryAndAddExercise(index, variant) {
   addSection.className = 'add-exercise-section';
   addSection.innerHTML = `
     <button class="randomize-btn" onclick="randomizeAccessories()">Shuffle accessories</button>
+    ${getPreShuffle(variant.id) ? revertButtonHtml(index) : ''}
     <button class="add-exercise-btn" onclick="openExercisePicker('${accessoriesId}', ${index})">+ Add exercise</button>
     <button class="add-superset-btn" onclick="addCustomSuperset('${accessoriesId}', ${index})">Add a superset</button>
     <button class="add-superset-btn" style="margin-top:4px;" onclick="startPairMode(${index})">Pair two exercises</button>
@@ -4236,6 +4237,7 @@ async function saveDay() {
     captureAccessoriesSnapshot(variant, savedDayIndex);
     // v3.15.1: workout saved, so the next session starts from the program.
     try { localStorage.removeItem('session_layout_' + variant.id); } catch (e) {}
+    try { localStorage.removeItem('preshuffle_' + variant.id); } catch (e) {}
   } catch (err) {
     console.error('saveDay error (data was still saved, continuing to clear):', err);
   }
@@ -6192,7 +6194,7 @@ const ACCESSORY_POOLS = {
     { id:'bw-pullup', name:'Bodyweight Pull Ups', note:'Grind them out. Full hang, slow lower.', target:'2 × 6–8', defaultSets:2, muscle:'lats', pattern:'lat-isolation' },
     { id:'custom-seated-straight-cable-fly', name:'Seated Straight Cable Fly', note:'Basically a fly machine. Full stretch.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     { id:'custom-flat-db-90-degree-bench', name:'Flat DB Press (45\u00b0)', note:'Dumbbells, elbows ~45\u00b0.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
-    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
+    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest, your dip replacement. Lean forward, press down and slightly in.', target:'3 × 8–10', defaultSets:3, muscle:'chest' }, // v4.7.0: chest, not triceps — it's the dip stand-in
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
     { id:'military-press', name:'Military Press (Barbell)', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 7–9', defaultSets:3, muscle:'delts_compound' },
@@ -6228,7 +6230,7 @@ const ACCESSORY_POOLS = {
   ],
   push: [
     { id:'custom-seated-cable-low-to-high-flys', name:'Seated Cable Low to High Flys', note:'Upper chest. Control the eccentric.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
-    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest and triceps.', target:'3 × 6–8', defaultSets:3, muscle:'triceps' },
+    { id:'custom-cable-dip', name:'Cable Dip', note:'Lower chest, your dip replacement. Lean forward, press down and slightly in.', target:'3 × 8–10', defaultSets:3, muscle:'chest' }, // v4.7.0: chest, not triceps — it's the dip stand-in
     { id:'custom-cable-rope-tricep-extension-high', name:'Cable Rope Tricep Extension - High', note:'Overhead from a high pulley. Long head stretch.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
     { id:'custom-single-arm-cable-low-to-high-upper-chest-isolation', name:'Single Arm Cable Low to High Upper Chest Isolation', note:'Upper chest, one side at a time.', target:'3 × 8–10', defaultSets:3, muscle:'chest' },
     // Chest
@@ -6247,6 +6249,8 @@ const ACCESSORY_POOLS = {
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
     { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
+    // v4.7.0: Tuesday B's written second side delt move, so a re-roll can keep it.
+    { id:'custom-cable-ez-bar-upright-row', name:'Cable EZ Bar Upright Row', note:'Side delts. EZ bar on the low pulley, grip wider than shoulders. Elbows lead, stop at shoulder height.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     // Triceps
     { id:'skull-crusher', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
     { id:'rope-pushdown', name:'Rope Pushdown', note:'Elbows pinned, flare at bottom.', target:'3 × 12–15', defaultSets:3, muscle:'triceps' },
@@ -6371,12 +6375,24 @@ const EXERCISE_FOCUS = {
   'db-curl':'biceps', 'incline-curl':'biceps', 'twenty-one-curl':'biceps', 'custom-incline-dumbbell-curl':'biceps',
   'hammer-curl-wed':'brachialis', 'hammer-curl-sat':'brachialis', 'cross-body-hammer':'brachialis', 'reverse-curl':'brachialis',
   'custom-cable-rope-tricep-extension-high':'triceps_long', 'tri-overhead':'triceps_long', 'tri-lth':'triceps_long', 'skull-crusher':'triceps_long',
-  'rope-pushdown':'triceps_short', 'smith-jm-press':'triceps_short', 'custom-cable-dip':'triceps_short',
+  'rope-pushdown':'triceps_short', 'smith-jm-press':'triceps_short',
+  // v4.7.0: Cable Dip is his lower-chest dip replacement. Counted as a triceps
+  // slot it let a re-roll stack a 4th chest move on Tuesday B.
+  'custom-cable-dip':'lower_chest',
+  'custom-cable-ez-bar-upright-row':'side_delt',
 };
 function exerciseFocus(ex) {
   if (!ex) return null;
   return EXERCISE_FOCUS[ex.id] || ex.focus || ex.muscle || null;
 }
+// v4.7.0: which muscle each focus belongs to, for filling a slot from a sibling.
+const FOCUS_FAMILY = {
+  upper_chest:'chest', mid_chest:'chest', lower_chest:'chest', chest:'chest',
+  lats:'back', upper_back:'back',
+  side_delt:'side_delt', front_delt:'front_delt', rear_delt:'rear_delt',
+  biceps:'biceps', brachialis:'biceps',
+  triceps_long:'triceps', triceps_short:'triceps', triceps:'triceps',
+};
 
 // Slots per day, by focus. Each total matches that day's written accessory
 // count, so a re-roll swaps exercises without growing or shrinking the day.
@@ -6391,8 +6407,9 @@ const VARIANT_SLOT_COUNTS = {
   // chest, so the chest slots go to lower chest. 6 accessories.
   'tue-push-a': { delts_compound: 1, lower_chest: 2, side_delt: 1, triceps_long: 1, triceps_short: 1 },
   // Tuesday B — Flat Smith + Smith Shoulder Press anchors. No front raise,
-  // two side delt moves. 7 accessories.
-  'tue-push-b': { upper_chest: 1, lower_chest: 1, side_delt: 2, triceps_long: 1, triceps_short: 2 },
+  // two side delt moves. 7 accessories, same mix as the written day:
+  // 3 chest (upper fly + 2 lower, dip counts here), 2 side delt, 2 triceps.
+  'tue-push-b': { upper_chest: 1, lower_chest: 2, side_delt: 2, triceps_long: 1, triceps_short: 1 },
   // Saturday A — Lat Pulldown anchor, back first. 10 accessories.
   'sat-upper-a': { lats: 1, upper_back: 1, mid_chest: 1, lower_chest: 1, side_delt: 1, rear_delt: 1, biceps: 1, brachialis: 1, triceps_long: 1, traps: 1 },
   // Saturday B — Incline anchor covers upper chest. 9 accessories.
@@ -6528,8 +6545,19 @@ function weightedPickWithMultiplier(items, baseScoreFn, multiplierFn) {
 // did last time instead of the static program list. Includes superset
 // pairing info so favorite combos replay correctly too.
 function captureAccessoriesSnapshot(variant, dayIndex) {
+  const snapshot = readAccessoriesLayout(variant, dayIndex);
+  if (snapshot && snapshot.length) {
+    localStorage.setItem('accessory_snapshot_' + variant.id, JSON.stringify(snapshot));
+    // v3.15.1: today's in-session layout (see renderDay).
+    try { localStorage.setItem('session_layout_' + variant.id, JSON.stringify({ date: new Date().toISOString().split('T')[0], items: snapshot })); } catch (e) {}
+  }
+}
+
+// v4.7.0: the on-screen accessory list as data (no saving). Shared by the
+// snapshot above and the pre-shuffle backup that "Revert" restores.
+function readAccessoriesLayout(variant, dayIndex) {
   const accessoriesSection = document.getElementById('section-accessories-' + dayIndex);
-  if (!accessoriesSection) return;
+  if (!accessoriesSection) return null;
 
   const snapshot = [];
   let groupCounter = 0;
@@ -6580,11 +6608,7 @@ function captureAccessoriesSnapshot(variant, dayIndex) {
     }
   });
 
-  if (snapshot.length) {
-    localStorage.setItem('accessory_snapshot_' + variant.id, JSON.stringify(snapshot));
-    // v3.15.1: today's in-session layout (see renderDay).
-    try { localStorage.setItem('session_layout_' + variant.id, JSON.stringify({ date: new Date().toISOString().split('T')[0], items: snapshot })); } catch (e) {}
-  }
+  return snapshot;
 }
 
 // Retrieves the last-saved accessory snapshot for this exact day variant, if
@@ -7016,7 +7040,16 @@ function applyDayRules(variantId, list) {
     out = out.filter(i => !isFront(i));
     let sideCount = 0;
     out = out.filter(i => !isSide(i) || ++sideCount <= 2);
-    if (!has(i => i.id === 'db-lat-raise')) placeAfterTri({ ...DB_LAT_RAISE_DEF, note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.', supersetGroup: null });
+    // v4.7.0: DB lateral raise swaps in for another side delt move rather than
+    // being added on top, so the day keeps its count.
+    if (!has(i => i.id === 'db-lat-raise')) {
+      const dbDef = { ...DB_LAT_RAISE_DEF, note:'Side delts. Slight bend at elbow, lead with the elbow, no swinging.' };
+      const sides = out.map((i, idx) => isSide(i) ? idx : -1).filter(idx => idx >= 0);
+      // Keep the upright row if it's there; swap the other side move.
+      const swapAt = sides.length >= 2 ? (sides.find(idx => !/upright/i.test(out[idx].name || '')) ?? sides[0]) : -1;
+      if (swapAt >= 0) out[swapAt] = { ...dbDef, supersetGroup: out[swapAt].supersetGroup || null };
+      else placeAfterTri({ ...dbDef, supersetGroup: null });
+    }
     if (out.filter(isSide).length < 2 && !has(i => i.id === CABLE_LAT_DEF.id)) placeAfterTri({ ...CABLE_LAT_DEF, note:'Second side delt move. Lean away slightly, full range, no swinging.', supersetGroup: null });
   }
   if (variantId === 'wed-pull-b') {
@@ -7349,15 +7382,16 @@ function getUnusedPoolExercises(muscleGroup) {
 }
 
 
-function randomizeAccessories() {
-  const variant = getCurrentVariant(currentDay);
-  if (!variant) return;
+// v4.7.0: the picking is its own function (pure: no DOM), so randomize and
+// its checks run the exact same logic. Returns the ordered list, or null.
+function buildRandomizedAccessories(variant, dayIndex) {
+  if (!variant) return null;
   const muscleGroup = getMuscleGroup(variant.id);
-  if (!muscleGroup) return;
+  if (!muscleGroup) return null;
 
   const fullPool = ACCESSORY_POOLS[muscleGroup];
   let baseSlotCounts = MUSCLE_SLOT_COUNTS[muscleGroup];
-  if (!fullPool || !baseSlotCounts) return;
+  if (!fullPool || !baseSlotCounts) return null;
   // v3.19.0: never re-pick today's anchors as accessories, and never put
   // bodyweight pull-ups on a day that leads with weighted pull-ups.
   const anchorIds = new Set();
@@ -7417,7 +7451,11 @@ function randomizeAccessories() {
   // v3.19.0: with finer groups, several can read as "under" at once. Bump only
   // the single biggest gap, so a re-roll can't overflow the day and push the
   // arm work off the end.
-  if (underTrained.length) {
+  // v4.7.0: never on days with a written slot mix (VARIANT_SLOT_COUNTS). The
+  // extra slot pushed the day over its count, and the trim then cut laterals
+  // and triceps off the end (Tue B 11/17: 3 chest moves, 1 lateral, 1 tricep).
+  // Those days keep their exact mix; recency still steers WHICH lift you get.
+  if (underTrained.length && !VARIANT_SLOT_COUNTS[variant.id]) {
     underTrained.sort((a, b) => a.ratio - b.ratio);
     slotCounts[underTrained[0].muscle] += 1;
   }
@@ -7484,7 +7522,7 @@ function randomizeAccessories() {
       let constraintSafe = group.filter(ex =>
         !pickedIdsGlobal.has(ex.id) &&
         !violatesPairingExclusion(ex.id, alreadyPickedIds, constraints) &&
-        !violatesDayGapConstraint(ex.id, currentDay, constraints)
+        !violatesDayGapConstraint(ex.id, dayIndex, constraints)
       );
 
       // Pattern-guarantee: if this muscle group has 2+ slots AND uses
@@ -7514,7 +7552,15 @@ function randomizeAccessories() {
       // duplicate can never slip through just because constraints or
       // pattern rules narrowed the pool to nothing.
       const notYetPicked = group.filter(ex => !pickedIdsGlobal.has(ex.id));
-      const pickFrom = constraintSafe.length ? constraintSafe : notYetPicked;
+      let pickFrom = constraintSafe.length ? constraintSafe : notYetPicked;
+      // v4.7.0: this focus is used up (or blocked) — take a sibling from the
+      // same muscle (lower chest -> another chest move) so the day doesn't
+      // silently shrink by one.
+      if (!pickFrom.length) {
+        const fam = FOCUS_FAMILY[muscle];
+        if (fam) pickFrom = pool.filter(ex => FOCUS_FAMILY[exerciseFocus(ex)] === fam && !pickedIdsGlobal.has(ex.id)
+          && !constraints.removedFromPool.includes(ex.id));
+      }
       // If genuinely every exercise in this group is already used this
       // session, leave the slot unfilled rather than duplicating one —
       // a shorter accessory list beats the same lift showing up twice.
@@ -7536,6 +7582,28 @@ function randomizeAccessories() {
   // since pre-fatigued abs compromise bracing on squats and RDLs.
   getAbsForVariant(variant.id, picked.map(p => p.id)).forEach(a => picked.push(a));
   { const ruled = applyDayRules(variant.id, picked); picked.length = 0; picked.push(...ruled); }
+
+  // v4.7.0: on days with a written mix, never leave more moves than slots.
+  // If a day rule added one, drop an extra from whichever muscle is over its
+  // count — never the trailing lateral/tricep just because it's last.
+  if (VARIANT_SLOT_COUNTS[variant.id]) {
+    const total = Object.values(slotCounts).reduce((a, b) => a + b, 0);
+    const famOf = ex => FOCUS_FAMILY[exerciseFocus(ex)] || exerciseFocus(ex) || inferMuscle(ex);
+    const famTarget = {};
+    Object.entries(slotCounts).forEach(([f, n]) => { const k = FOCUS_FAMILY[f] || f; famTarget[k] = (famTarget[k] || 0) + n; });
+    let guard = 20;
+    while (picked.length > total && guard--) {
+      const famCount = {};
+      picked.forEach(ex => { const k = famOf(ex); famCount[k] = (famCount[k] || 0) + 1; });
+      let at = -1;
+      for (let i = picked.length - 1; i >= 0; i--) {
+        const k = famOf(picked[i]);
+        if ((famCount[k] || 0) > (famTarget[k] || 0)) { at = i; break; }
+      }
+      if (at < 0) break;
+      picked.splice(at, 1);
+    }
+  }
 
   // Enforce sequencing constraints on top of the default order — "after"
   // rules (e.g. Lat Pulldown must come after Weighted Pull Ups when both
@@ -7584,10 +7652,22 @@ function randomizeAccessories() {
   picked.forEach(p => { if (supersetAssignments[p.id]) p.supersetGroup = supersetAssignments[p.id]; });
   { const structured = structureAccessories(picked, variant.id, { lateMuscles: lateCategories });
     picked.length = 0; picked.push(...structured); }
+  return picked;
+}
+
+function randomizeAccessories() {
+  const variant = getCurrentVariant(currentDay);
+  if (!variant) return;
+  const picked = buildRandomizedAccessories(variant, currentDay);
+  if (!picked) return;
 
   // Find the Accessories section in the DOM and replace its exercise cards
   const accessoriesSection = document.getElementById('section-accessories-' + currentDay);
   if (!accessoriesSection) { showToast('No accessories section found'); return; }
+
+  // v4.7.0: remember what was on screen before the FIRST shuffle today, so
+  // "Revert to original" can put it back after any number of re-rolls.
+  backupBeforeShuffle(variant, currentDay);
 
   // Remove all existing exercise cards from accessories section
   const existingCards = [...accessoriesSection.querySelectorAll('.exercise-card, .custom-exercise-card, .superset-block')];
@@ -7641,10 +7721,101 @@ function randomizeAccessories() {
   // the app inventing its own exercise list at random.
   try { captureAccessoriesSnapshot(variant, currentDay); } catch (e) { console.error('snapshot capture failed:', e); }
 
+  ensureRevertButton(currentDay, variant);
+
   const pairCount = new Set(picked.filter(p => p.supersetGroup).map(p => p.supersetGroup)).size;
   showToast(pairCount > 0
     ? `Randomized — ${pairCount} superset${pairCount > 1 ? 's' : ''} built in!`
     : 'Accessories randomized!');
+}
+
+// ─── v4.7.0: REVERT A SHUFFLE ─────────────────────────────────────────
+// The first shuffle of the day saves what was on screen. Revert puts that
+// back. Any shuffled exercise you've already logged a set on stays (added
+// after the original list), so revert never throws away logged work.
+function todayStrLocalISO() { return new Date().toISOString().split('T')[0]; }
+
+function getPreShuffle(variantId) {
+  try {
+    const b = JSON.parse(localStorage.getItem('preshuffle_' + variantId) || 'null');
+    return (b && b.date === todayStrLocalISO()) ? b : null;
+  } catch (e) { return null; }
+}
+
+function backupBeforeShuffle(variant, dayIndex) {
+  try {
+    if (getPreShuffle(variant.id)) return; // keep the very first original
+    const items = readAccessoriesLayout(variant, dayIndex) || [];
+    let hadLayout = false;
+    try {
+      const sl = JSON.parse(localStorage.getItem('session_layout_' + variant.id) || 'null');
+      hadLayout = !!(sl && sl.date === todayStrLocalISO() && Array.isArray(sl.items) && sl.items.length);
+    } catch (e) {}
+    localStorage.setItem('preshuffle_' + variant.id, JSON.stringify({
+      date: todayStrLocalISO(),
+      items,
+      hadLayout,
+      prevSnapshot: localStorage.getItem('accessory_snapshot_' + variant.id),
+      custom: JSON.parse(JSON.stringify(sessionLogs._custom || [])),
+      randomized: !!sessionLogs._randomized,
+    }));
+  } catch (e) { console.error('pre-shuffle backup failed:', e); }
+}
+
+function ensureRevertButton(dayIndex, variant) {
+  if (!getPreShuffle(variant.id)) return;
+  if (document.getElementById('revert-shuffle-btn-' + dayIndex)) return;
+  const shuffleBtn = document.querySelector('.add-exercise-section .randomize-btn');
+  if (!shuffleBtn) return;
+  shuffleBtn.insertAdjacentHTML('afterend', revertButtonHtml(dayIndex));
+}
+
+function revertButtonHtml(dayIndex) {
+  return `<button id="revert-shuffle-btn-${dayIndex}" class="add-superset-btn" style="margin-top:6px;" onclick="revertShuffle()">↩ Revert to original</button>`;
+}
+
+const setHasData = st => st && (String(st.weight || '').trim() !== '' || String(st.reps || '').trim() !== '');
+
+function revertShuffle() {
+  const variant = getCurrentVariant(currentDay);
+  if (!variant) return;
+  const backup = getPreShuffle(variant.id);
+  if (!backup) { showToast('Nothing to revert'); return; }
+  try {
+    const original = Array.isArray(backup.items) ? backup.items : [];
+    const originalIds = new Set(original.map(i => i && i.id));
+    // Shuffled-in lifts you've already logged sets on stay on the day.
+    const current = readAccessoriesLayout(variant, currentDay) || [];
+    const keepers = current.filter(i => i && !i.isCustomSnapshot && !originalIds.has(i.id)
+      && sessionLogs[i.id] && (sessionLogs[i.id].sets || []).some(setHasData))
+      .map(i => ({ ...i, supersetGroup: null }));
+
+    if (backup.hadLayout || keepers.length) {
+      localStorage.setItem('session_layout_' + variant.id, JSON.stringify({ date: todayStrLocalISO(), items: original.concat(keepers) }));
+    } else {
+      localStorage.removeItem('session_layout_' + variant.id);
+    }
+    if (backup.prevSnapshot) localStorage.setItem('accessory_snapshot_' + variant.id, backup.prevSnapshot);
+    else localStorage.removeItem('accessory_snapshot_' + variant.id);
+
+    // Custom (typed-in) exercises: the originals come back; any added after
+    // the shuffle with logged sets stay.
+    const restored = JSON.parse(JSON.stringify(backup.custom || []));
+    const names = new Set(restored.filter(c => c && c.name).map(c => normalizeExerciseName(c.name)));
+    (sessionLogs._custom || []).forEach(c => {
+      if (c && c.name && !names.has(normalizeExerciseName(c.name)) && (c.sets || []).some(setHasData)) restored.push(c);
+    });
+    sessionLogs._custom = restored;
+    sessionLogs._randomized = backup.randomized;
+
+    localStorage.removeItem('preshuffle_' + variant.id);
+    try { scheduleAutosave(); } catch (e) {}
+    renderDay(currentDay);
+    showToast(keepers.length ? 'Back to original (kept what you already logged)' : 'Back to original');
+  } catch (e) {
+    console.error('revert failed:', e);
+    showToast('Revert failed');
+  }
 }
 
 // ─── EXPORT / IMPORT / IMPORT ─────────────────────────────────────────
@@ -8652,7 +8823,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.6.0';
+const APP_VERSION = '4.7.0';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
