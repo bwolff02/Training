@@ -1577,7 +1577,7 @@ const PROGRAM = [
           // the custom name he logs, so 10/21 (100×8, 11) attaches.
           { superset:true, exercises:[
             { id:'custom-cable-rope-tricep-extension-high', name:'Cable Rope Tricep Extension - High', note:'Overhead, long head. Face away from a high pulley, lean forward slightly, elbows up by your head. Deep stretch behind the head, extend forward and down. Superset with lateral raises.', target:'3 × 10–12', defaultSets:3 },
-            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 (hip height), wrist strap. Side delts. Lean away slightly, full range.', target:'3 × 12–15', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Side delts. Lean away slightly, full range.', target:'3 × 12–15', defaultSets:3 },
           ]},
           { id:'smith-jm-press', name:'Smith JM Press', note:'Triceps. Elbows forward, controlled.', target:'3 × 8–10', defaultSets:3 },
         ]},
@@ -1761,7 +1761,7 @@ const PROGRAM = [
           ]},
           { id:'cable-fly-htl', name:'Cable Fly High to Low', note:'Full stretch at bottom, squeeze at peak.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
-            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 (hip height), wrist strap. Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
+            { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Side delts. Superset with reverse flys.', target:'3 × 12–15', defaultSets:3 },
             { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3 },
           ]},
           // v3.16.0 (Bryce's call, 10/16): cross-body hammer out, reverse curl in,
@@ -6198,7 +6198,7 @@ const ACCESSORY_POOLS = {
     { id:'cable-fly-lth', name:'Cable Fly (Low to High)', note:'Full stretch, squeeze at top.', target:'3 × 10–12', defaultSets:3, muscle:'chest' },
     { id:'hex-press', name:'Hex Press or 90° Press', note:'Inner chest activation. Hard squeeze at top.', target:'3 × 12–15', defaultSets:3, muscle:'chest' },
     { id:'military-press', name:'Military Press (Barbell)', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 7–9', defaultSets:3, muscle:'delts_compound' },
-    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 (hip height), wrist strap. Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'tri-overhead', name:'Single Arm Cable Tricep Extension', note:'Full overhead stretch. Slow eccentric.', target:'3 × 10–12', defaultSets:3, muscle:'triceps' },
     { id:'skull-crusher', name:'EZ Bar Skull Crusher', note:'Slow eccentric, full stretch at bottom.', target:'3 × 8–10', defaultSets:3, muscle:'triceps' },
@@ -6245,7 +6245,7 @@ const ACCESSORY_POOLS = {
     // raise variations, and forcing a heavy overhead press to the end of
     // the session would be wrong. This category sequences early instead.
     { id:'military-press', name:'Military Press (Barbell)', note:'Strict overhead press. Brace hard, no leg drive.', target:'3 × 5–7', defaultSets:3, muscle:'delts_compound' },
-    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 (hip height), wrist strap. Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
+    { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Lean away slightly, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Slight bend at elbow, lead with elbow.', target:'3 × 12–15', defaultSets:3, muscle:'delts' },
     { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
     { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Controlled, stop at shoulder height.', target:'3 × 10–12', defaultSets:3, muscle:'delts' },
@@ -6754,7 +6754,7 @@ const PRONE_LIGHT = { id:'prone-curl-light', name:'Prone Leg Curl (Light)', note
 const MILITARY_PRESS_DEF = { id:'military-press', name:'Military Press (Barbell)', note:'Your shoulder press this week (Tuesday B gets Smith Shoulder Press). Third press of the day, so expect lower numbers than fresh.', target:'3 × 6–8', defaultSets:3, muscle:'delts_compound' };
 // Retired in v3.10.1 — kept only so old saved layouts referencing it resolve.
 const UPRIGHT_ROW_DEF = { id:'upright-row', name:'Wide Grip Upright Row', note:'Side delts + traps. Hands just outside shoulders, elbows to shoulder height (no higher), bar to lower chest.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
-const CABLE_LAT_DEF = { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 (hip height), wrist strap. Second side delt move, kept apart from the upright row.', target:'3 × 12–15', defaultSets:3, muscle:'delts' };
+const CABLE_LAT_DEF = { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Second side delt move, kept apart from the upright row.', target:'3 × 12–15', defaultSets:3, muscle:'delts' };
 const FRONT_RAISE_DEF = { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delt day. Controlled, stop at shoulder height, no swinging.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
 const CABLE_FRONT_RAISE_DEF = { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Second front delt move, kept apart from the first.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
 const DB_LAT_RAISE_DEF = { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Second side delt move today. Slight bend at elbow, lead with the elbow, no swinging.', target:'3 × 12–15', defaultSets:3, muscle:'delts' };
@@ -7050,7 +7050,7 @@ function applyDayRules(variantId, list) {
       if (swapAt >= 0) out[swapAt] = { ...dbDef, supersetGroup: out[swapAt].supersetGroup || null };
       else placeAfterTri({ ...dbDef, supersetGroup: null });
     }
-    if (out.filter(isSide).length < 2 && !has(i => i.id === CABLE_LAT_DEF.id)) placeAfterTri({ ...CABLE_LAT_DEF, note:'Second side delt move. Lean away slightly, full range, no swinging.', supersetGroup: null });
+    if (out.filter(isSide).length < 2 && !has(i => i.id === CABLE_LAT_DEF.id)) placeAfterTri({ ...CABLE_LAT_DEF, note:'Pulley 2 notches below the 5 — hip height gives better tension. Wrist strap. Second side delt move. Lean away slightly, full range, no swinging.', supersetGroup: null });
   }
   if (variantId === 'wed-pull-b') {
     // Week B's back day keeps face pulls. v3.19.0 (Bryce, 10/28): reverse flys
