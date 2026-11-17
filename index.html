@@ -7664,6 +7664,21 @@ function buildRandomizedAccessories(variant, dayIndex) {
 function randomizeAccessories() {
   const variant = getCurrentVariant(currentDay);
   if (!variant) return;
+  // v4.7.0 (Bryce, 11/17): a stray tap after a finished workout wiped the
+  // accessories he'd logged. Always ask first, louder when sets are logged.
+  let loggedSets = 0;
+  try {
+    const sec = document.getElementById('section-accessories-' + currentDay);
+    if (sec) sec.querySelectorAll('.exercise-card[data-exid]').forEach(card => {
+      const lg = sessionLogs[card.dataset.exid];
+      if (lg && lg.sets) loggedSets += lg.sets.filter(setHasData).length;
+    });
+    (sessionLogs._custom || []).forEach(c => { if (c && c.sets) loggedSets += c.sets.filter(setHasData).length; });
+  } catch (e) {}
+  const msg = loggedSets > 0
+    ? `You've logged ${loggedSets} set${loggedSets === 1 ? '' : 's'} on today's accessories. Shuffling swaps them out for new exercises.\n\nShuffle anyway?`
+    : 'Shuffle today\'s accessories?';
+  if (!window.confirm(msg)) return;
   const picked = buildRandomizedAccessories(variant, currentDay);
   if (!picked) return;
 
