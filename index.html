@@ -1505,18 +1505,19 @@ const PROGRAM = [
           { id:'cable-pullover', name:'Seated Cable Pullover', note:'Lats. Long stretch, slight bend at the elbow.', target:'3 × 10–12', defaultSets:3 },
           { superset:true, exercises:[
             { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 9–11', defaultSets:3 },
-            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
+            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. Controlled, pull to the forehead.', target:'3 × 12–15', defaultSets:3 },
           ]},
           // v3.15.2 (Bryce's call): 6 bicep sets, 3 rear delt. Rear delts still get
           // face pulls plus two flared-elbow rows; reverse flys stay on Wed B and Sat.
           { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Second curl, lighter. Long head stretch: arm behind you, full stretch at the bottom, slow lower.', target:'3 × 10–12', defaultSets:3 },
           // v3.17.0 (Bryce, 10/19): direct forearm work, last move on pull days so grip
           // fatigue never costs the back work. Flexors + extensors are opposing
-          // muscles, so they superset cleanly. 15-25 reps, add weight only after
-          // every set hits 25 (small muscle, a 5 lb jump is a big % jump).
+          // muscles, so they superset cleanly. v4.7.1 (Bryce, 11/18): 25 was too
+          // many — cable wrist curl 12-15, DB reverse wrist curl 15-20 (weaker
+          // muscle, big % dumbbell jumps). Add weight once every set hits the top.
           { superset:true, exercises:[
-            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'3 × 15–25', defaultSets:3, muscle:'forearms' },
-            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
+            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'3 × 12–15', defaultSets:3, muscle:'forearms' },
+            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–20', defaultSets:2, muscle:'forearms' },
           ]},
         ]},
       ]
@@ -1614,15 +1615,15 @@ const PROGRAM = [
           { id:'dual-cable-wide-row', name:'Dual Cable Wide Grip Row', note:'Upper back. Straight bar across both pulleys at ankle height, sit on a bench between the stacks. Overhand grip a bit wider than shoulders, elbows out 45-60°, row up to the lower-to-mid chest. Shoulders down (no shrugging), squeeze the shoulder blades, full reach forward.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
           { superset:true, exercises:[
             { id:'db-curl', name:'EZ Bar Curl', note:'Elbows pinned. Superset with face pulls.', target:'3 × 8–10', defaultSets:3 },
-            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. High reps, pull to the forehead.', target:'3 × 15–20', defaultSets:3 },
+            { id:'face-pull-wed', name:'Face Pull', note:'Rear delts. Controlled, pull to the forehead.', target:'3 × 12–15', defaultSets:3 },
           ]},
           { id:'incline-curl', name:'Low to High Bayesian Curl', note:'Second curl. Long head stretch: arm behind you, full stretch at the bottom, slow lower.', target:'3 × 9–11', defaultSets:3 },
           // v3.17.0: forearm finisher, same pair as Tuesday A (2 wrist curl sets
           // here vs 3 there to keep this day near its set cap). Thursday rest sits
           // between this and Friday's heavy RDL.
           { superset:true, exercises:[
-            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
-            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
+            { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Forearm flexors. Low cable, sit facing the stack, forearms on your thighs, palms up. Let the bar roll to your fingertips, then curl the fingers and wrist all the way up. Superset with reverse wrist curls. Weeks 1-2: stop 2-3 reps short of failure.', target:'2 × 12–15', defaultSets:2, muscle:'forearms' },
+            { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Forearm extensors (top of the forearm). Palms down, forearms on your thighs, wrist drops below level, lift with the back of the hand. Light weight, slow, no jerking.', target:'2 × 15–20', defaultSets:2, muscle:'forearms' },
           ]},
         ]},
         { label: 'Abs', exercises: [
@@ -6216,7 +6217,7 @@ const ACCESSORY_POOLS = {
     { id:'close-pulldown', name:'Close Grip Lat Pulldown', note:'Full stretch at top, drive elbows down.', target:'3 × 6–9', defaultSets:3, muscle:'lats', pattern:'lat-isolation' },
     { id:'diverg-row-wed-acc', name:'Diverging Seated Row', note:'Accessory row volume. Different resistance curve than cable row.', target:'3 × 12–15', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'cable-high-low-row', name:'Seated Cable High to Low Row', note:'Full stretch at top, drive elbows down.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
-    { id:'face-pull-wed', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
+    { id:'face-pull-wed', name:'Face Pull', note:'Controlled reps. Rear delt and shoulder health.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 9–11', defaultSets:3, muscle:'rear_delt' },
     { id:'db-curl', name:'EZ Bar Curl', note:'Full supination at top.', target:'3 × 10–12', defaultSets:3, muscle:'biceps' },
     { id:'hammer-curl-wed', name:'Cable Hammer Curl', note:'Neutral grip. Brachialis and forearm emphasis.', target:'3 × 9–11', defaultSets:3, muscle:'biceps' },
@@ -6280,7 +6281,7 @@ const ACCESSORY_POOLS = {
     { id:'dual-cable-wide-row', name:'Dual Cable Wide Grip Row', note:'Straight bar across both pulleys at ankle height, seated. Elbows out 45-60°, row up to the lower-to-mid chest, shoulders down.', target:'3 × 8–10', defaultSets:3, muscle:'lats', pattern:'row' },
     { id:'cable-rope-row', name:'Cable Rope Low to High Row', note:'Wide pull, squeeze shoulder blades together at top.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' },
     // Rear delts
-    { id:'face-pull-sat', name:'Face Pull', note:'High reps, light weight. Rear delt and shoulder health.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' },
+    { id:'face-pull-sat', name:'Face Pull', note:'Controlled reps. Rear delt and shoulder health.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     { id:'cable-lat-sat', name:'Cable Lateral Raise (Rear Delt)', note:'Rear delt variation. Controlled pull.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' },
     // Biceps (expanded pool for 2-3 random picks per session)
@@ -6291,8 +6292,8 @@ const ACCESSORY_POOLS = {
     { id:'cross-body-hammer', name:'DB Cross Body Hammer Curl', note:'Curl across the body, brachialis and forearm emphasis.', target:'3 × 8–10', defaultSets:3, muscle:'biceps', pickWeight:0.35 }, // v3.19.0: kept, but picked about a third as often (Bryce: not a default)
     { id:'twenty-one-curl', name:'Dumbbell 21 Curls (Straight, Hammer, Cross Body)', note:'7 bottom half + 7 top half + 7 full range. Burnout finisher.', target:'2 × 21', defaultSets:2, muscle:'biceps' },
     // Forearms (new category)
-    { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 15–25', defaultSets:3, muscle:'forearms' },
-    { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Wrist extension, palms down, light and slow.', target:'2 × 15–25', defaultSets:2, muscle:'forearms' },
+    { id:'forearm-curl-ez', name:'Cable Wrist Curl (EZ Bar)', note:'Wrist flexion, full range, controlled.', target:'3 × 12–15', defaultSets:3, muscle:'forearms' },
+    { id:'reverse-wrist-curl-db', name:'Dumbbell Reverse Wrist Curl', note:'Wrist extension, palms down, light and slow.', target:'2 × 15–20', defaultSets:2, muscle:'forearms' },
     { id:'wrist-curl-db', name:'Dumbbell Wrist Curl', note:'Seated, forearms on thighs, full range wrist flexion.', target:'3 × 15–20', defaultSets:3, muscle:'forearms' },
     // Traps
     { id:'shrug-sat', name:'Smith Machine Shrug', note:'Full range, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'traps' },
@@ -6764,7 +6765,7 @@ const CABLE_LAT_DEF = { id:'cable-lat-raise-tue', name:'Cable Lateral Raise', no
 const FRONT_RAISE_DEF = { id:'db-front-raise', name:'Dumbbell Front Raise', note:'Front delt day. Controlled, stop at shoulder height, no swinging.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
 const CABLE_FRONT_RAISE_DEF = { id:'cable-front-raise', name:'Cable Single Arm Front Raise', note:'Second front delt move, kept apart from the first.', target:'3 × 10–12', defaultSets:3, muscle:'delts' };
 const DB_LAT_RAISE_DEF = { id:'db-lat-raise', name:'Dumbbell Lateral Raise', note:'Second side delt move today. Slight bend at elbow, lead with the elbow, no swinging.', target:'3 × 12–15', defaultSets:3, muscle:'delts' };
-const FACE_PULL_DEF = { id:'face-pull-sat', name:'Face Pull', note:'Rear delts. High reps, light weight, pull to the forehead.', target:'3 × 15–20', defaultSets:3, muscle:'rear_delt' };
+const FACE_PULL_DEF = { id:'face-pull-sat', name:'Face Pull', note:'Rear delts. Controlled, pull to the forehead.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' };
 const REV_FLY_DEF = { id:'db-rev-fly', name:'Standing Dumbbell Reverse Flys', note:'Rear delts. Slight bend at elbow, control at top.', target:'3 × 12–15', defaultSets:3, muscle:'rear_delt' };
 const CALF_DEF = { id:'calf-vertical', name:'Vertical Calf Raise (Smith)', note:'Full stretch at bottom, pause at top.', target:'3 × 12–15', defaultSets:3, muscle:'calves' };
 const CHEST_SUPPORTED_ROW = { id:'chest-supported-row', name:'Chest-Supported Row', note:'Chest on the pad, no lower back involvement.', target:'3 × 10–12', defaultSets:3, muscle:'lats', pattern:'row' };
@@ -8844,7 +8845,7 @@ function showToast(msg) {
 // storage — which is why every update meant re-importing the export. Instead,
 // ask GitHub for the latest file on every open and reload in place: same
 // icon, same storage, nothing lost.
-const APP_VERSION = '4.7.0';
+const APP_VERSION = '4.7.1';
 
 function isNewerVersion(a, b) {
   const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
